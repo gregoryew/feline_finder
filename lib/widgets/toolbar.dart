@@ -104,7 +104,9 @@ class Tool extends StatelessWidget {
  }
 
   email(BuildContext context) {
-    print("Email");
+   // Emailer email = Emailer(detail: detail!);
+   // email.
+    
   }
 
   share(BuildContext context) {
@@ -164,7 +166,7 @@ Widget build(BuildContext context) {
             }
 
 class Emailer extends StatefulWidget {
-  const Emailer({Key? key, required petDetail detail}) : super(key: key);
+  const Emailer({Key? key, required PetDetailData detail}) : super(key: key);
 
   @override
   _Emailer createState() => _Emailer();

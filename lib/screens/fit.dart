@@ -193,7 +193,7 @@ Widget buildBreedCard(Breed breed) {
             style: const TextStyle(
               fontSize: 13.0,
               fontWeight: FontWeight.w700,
-              fontFamily: 'Palatino',
+              fontFamily: 'Poppins',
             ),
             textAlign: TextAlign.center,
           ),
@@ -202,7 +202,7 @@ Widget buildBreedCard(Breed breed) {
             style: const TextStyle(
               fontSize: 13.0,
               fontWeight: FontWeight.w700,
-              fontFamily: 'Palatino',
+              fontFamily: 'Poppins',
             ),
             textAlign: TextAlign.center,
           ),

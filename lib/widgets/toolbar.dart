@@ -10,40 +10,53 @@ import 'dart:async';
 import 'dart:io';
 import '../ExampleCode/petDetailData.dart';
 
-enum toolType {
-  phone,
-  map,
-  email,
-  share,
-  meet
-}
+enum toolType { phone, map, email, share, meet }
 
-enum LaunchMode {
-  marker,
-  directions
-}
+enum LaunchMode { marker, directions }
 
 class Tool extends StatelessWidget {
   final toolType tool;
   final PetDetailData? detail;
 
-  Tool({
-    Key? key,
-    required this.tool,
-    required this.detail
-  }):super(key: key);
+  Tool({Key? key, required this.tool, required this.detail}) : super(key: key);
 
   get apiKey => "AIzaSyBNEcaJtpfNh1ako5P_XexuILvjnPlscdE";
 
   @override
   Widget build(BuildContext context) {
     switch (tool) {
-      case toolType.phone: return InkWell(child: Center(child: Column(children: [Image.asset("assets/Icons/ToolBar_Call.png"), const Text("Call", style: TextStyle(fontSize: 20), textAlign: TextAlign.center)])), onTap: () {call(context);});
-      case toolType.map: return InkWell(child: Center(child: Column(children: [Image.asset("assets/Icons/ToolBar_Directions.png"), const Text("Map", style: TextStyle(fontSize: 20), textAlign: TextAlign.center)])), onTap: () {map(context);});
-      case toolType.email: return InkWell(child: Center(child: Column(children: [Image.asset("assets/Icons/ToolBar_Email.png"), const Text("Email", style: TextStyle(fontSize: 20), textAlign: TextAlign.center)])), onTap: () {email(context);});
-      case toolType.share: return InkWell(child: Center(child: Column(children: [Image.asset("assets/Icons/ToolBar_Share.png"), const Text("Share", style: TextStyle(fontSize: 20), textAlign: TextAlign.center)])), onTap: () {share(context);});
-      case toolType.meet: return InkWell(child: Center(child: Column(children: [Image.asset("assets/Icons/ToolBar_Meet.png"), const Text("Meet", style: TextStyle(fontSize: 20), textAlign: TextAlign.center)])), onTap: () {meet(context);});
-      default: return Column();
+      case toolType.phone:
+        return InkWell(
+            child: Center(child: Image.asset("assets/Icons/tools_phone.png")),
+            onTap: () {
+              call(context);
+            });
+      case toolType.map:
+        return InkWell(
+            child: Center(child: Image.asset("assets/Icons/tools_map.png")),
+            onTap: () {
+              map(context);
+            });
+      case toolType.email:
+        return InkWell(
+            child: Center(child: Image.asset("assets/Icons/tools_email.png")),
+            onTap: () {
+              email(context);
+            });
+      case toolType.share:
+        return InkWell(
+            child: Center(child: Image.asset("assets/Icons/tools_share.png")),
+            onTap: () {
+              share(context);
+            });
+      case toolType.meet:
+        return InkWell(
+            child: Center(child: Image.asset("assets/Icons/tools_video.png")),
+            onTap: () {
+              meet(context);
+            });
+      default:
+        return Column();
     }
   }
 
@@ -52,9 +65,12 @@ class Tool extends StatelessWidget {
   }
 
   map(BuildContext context) async {
-
-    List<Location> locations = await locationFromAddress("${detail?.street ?? ""}, ${detail?.cityState ?? ""} ${detail?.postalCode ?? ""}");
-    print("******************** LAT = " + locations[0].latitude.toString() + " LONG = " + locations[0].longitude.toString());
+    List<Location> locations = await locationFromAddress(
+        "${detail?.street ?? ""}, ${detail?.cityState ?? ""} ${detail?.postalCode ?? ""}");
+    print("******************** LAT = " +
+        locations[0].latitude.toString() +
+        " LONG = " +
+        locations[0].longitude.toString());
 
     //print("***************** LAT = " + data.latitude.toString() + ", LOMG = " + data.longitude.toString());
     if (locations.length == 0) {
@@ -62,7 +78,8 @@ class Tool extends StatelessWidget {
         context: context,
         builder: (BuildContext context) => AlertDialog(
           title: const Text('Location not found'),
-          content: Text('Sorry, there was a problem with the address given and the shelter can not be found.'),
+          content: Text(
+              'Sorry, there was a problem with the address given and the shelter can not be found.'),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -101,12 +118,11 @@ class Tool extends StatelessWidget {
     } else {
       throw 'Could not launch $url';
     }
- }
+  }
 
   email(BuildContext context) {
-   // Emailer email = Emailer(detail: detail!);
-   // email.
-    
+    // Emailer email = Emailer(detail: detail!);
+    // email.
   }
 
   share(BuildContext context) {
@@ -122,48 +138,58 @@ class ToolBar extends StatelessWidget {
   final PetDetailData? detail;
   final List<Tool> tools = [];
 
-  ToolBar({
-    Key? key,
-    required this.detail
-  }):super(key: key);
+  ToolBar({Key? key, required this.detail}) : super(key: key);
 
-List<Tool> getTools(PetDetailData? detail) {
-  List<Tool> toolsList = [];
-  if (detail == null) {return [];}
-  if (detail.phoneNumber?.trim() != "" && detail.phoneNumber != null) {toolsList.add(Tool(tool: toolType.phone, detail: detail));}
-  
-  String address = "";
-  if (detail.street != null) {
-    address = detail.street!.toUpperCase().replaceAll(" ", "");
+  List<Tool> getTools(PetDetailData? detail) {
+    List<Tool> toolsList = [];
+    if (detail == null) {
+      return [];
+    }
+    if (detail.phoneNumber?.trim() != "" && detail.phoneNumber != null) {
+      toolsList.add(Tool(tool: toolType.phone, detail: detail));
+    }
+
+    String address = "";
+    if (detail.street != null) {
+      address = detail.street!.toUpperCase().replaceAll(" ", "");
+    }
+    if (address != "" &&
+        address.substring(0, "POBOX".length) != "POBOX" &&
+        address.substring(0, "P.O.".length) != "P.O.") {
+      toolsList.add(Tool(tool: toolType.map, detail: detail));
+    }
+
+    if (detail.email != null && detail.email?.trim() != "") {
+      toolsList.add(Tool(
+        tool: toolType.email,
+        detail: detail,
+      ));
+    }
+
+    toolsList.add(Tool(tool: toolType.share, detail: detail));
+
+    if (detail.email != null && detail.email?.trim() != "") {
+      toolsList.add(Tool(
+        tool: toolType.meet,
+        detail: detail,
+      ));
+    }
+
+    return toolsList;
   }
-  if (address != "" && address.substring(0, "POBOX".length) != "POBOX" && address.substring(0, "P.O.".length) != "P.O.") {
-    toolsList.add(Tool(tool: toolType.map, detail: detail));
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+        shrinkWrap: true,
+        scrollDirection: Axis.horizontal,
+        crossAxisCount: 1,
+        childAspectRatio: 3 / 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        children: getTools(detail));
   }
-
-  if (detail.email != null && detail.email?.trim() != "") {
-    toolsList.add(Tool(tool: toolType.email, detail: detail,));
-  }
-
-  toolsList.add(Tool(tool: toolType.share, detail: detail));
-
-  if (detail.email != null && detail.email?.trim() != "") {
-    toolsList.add(Tool(tool: toolType.meet, detail: detail,));
-  }
-
-  return toolsList;
 }
-
-@override
-Widget build(BuildContext context) {
-  return GridView.count(
-                  shrinkWrap: true,
-                  scrollDirection: Axis.horizontal,
-                  crossAxisCount: 1,
-                  childAspectRatio: 3/2,
-                  children: getTools(detail)
-                );
-              }
-            }
 
 class Emailer extends StatefulWidget {
   const Emailer({Key? key, required PetDetailData detail}) : super(key: key);
@@ -209,7 +235,7 @@ class _Emailer extends State<Emailer> {
     try {
       final MailerResponse response = await FlutterMailer.send(mailOptions);
       switch (response) {
-          case MailerResponse.saved:
+        case MailerResponse.saved:
           platformResponse = 'mail was saved to draft';
           break;
         case MailerResponse.sent:

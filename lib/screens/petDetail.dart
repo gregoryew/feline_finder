@@ -17,7 +17,7 @@ import '../globals.dart';
 class petDetail extends StatefulWidget {
   final String petID;
   String userID = "";
-  final server = FelineFinderServer();
+  //final server = FelineFinderServer();
   bool isFavorite = false;
 
   petDetail(this.petID, {Key? key}) : super(key: key);
@@ -44,21 +44,22 @@ class petDetailState extends State<petDetail> with RouteAware {
   double _height = 20.0;
   late WebViewController _webViewController;
 
-@override
-void initState() {
+  @override
+  void initState() {
     WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
-    routeObserver.subscribe(this, ModalRoute.of(context)!);
-  });
-  super.initState();
-  getPetDetail(widget.petID);
-}
+      routeObserver.subscribe(this, ModalRoute.of(context)!);
+    });
+    getPetDetail(widget.petID);
+    super.initState();
+  }
 
   @override
   void didPush() {
     print("********* DID PUSH");
-    widget.userID = widget.server.getUser().toString();
-    widget.isFavorite = widget.server.isFavorite(widget.userID, widget.petID) as bool;
-    
+    //widget.userID = widget.server.getUser().toString();
+    //widget.isFavorite =
+    //    widget.server.isFavorite(widget.userID, widget.petID) as bool;
+
     print('HomePage: Called didPush');
     super.didPush();
   }
@@ -66,11 +67,11 @@ void initState() {
   @override
   void didPop() {
     print("******** DID POP");
-    if (widget.isFavorite) {
-      widget.server.favoritePet(widget.userID, widget.petID);
-    } else {
-      widget.server.unfavoritePet(widget.userID, widget.petID);
-    }
+    //if (widget.isFavorite) {
+    //  widget.server.favoritePet(widget.userID, widget.petID);
+    //} else {
+    //  widget.server.unfavoritePet(widget.userID, widget.petID);
+    //}
     print('HomePage: Called didPop');
     super.didPop();
   }
@@ -87,272 +88,333 @@ void initState() {
     super.didPushNext();
   }
 
-void getShelterDetail(String orgID) async {
-  var url = "https://api.rescuegroups.org/v5/public/orgs/${orgID}";
+  void getShelterDetail(String orgID) async {
+    var url = "https://api.rescuegroups.org/v5/public/orgs/${orgID}";
 
-  print("URL = $url");
+    print("URL = $url");
 
-  var response = await http.get(Uri.parse(url),
-    headers: {
+    var response = await http.get(Uri.parse(url), headers: {
       'Content-Type': 'application/json', //; charset=UTF-8',
       'Authorization': '0doJkmYU'
-    }
-  );
-
-  if (response.statusCode == 200) {
-    // If the server did return a 200 OK response,
-    // then parse the JSON.
-    print("status 200");
-    setState(() {
-      shelterDetailInstance = Shelter.fromJson(jsonDecode(response.body));
-      loadAsset();
     });
-  } else {
-    // If the server did not return a 200 OK response,
-    // then throw an exception.
-    print("response.statusCode = " + response.statusCode.toString());
-    throw Exception('Failed to load pet ' + response.body );
-  }
-}
 
-void getPetDetail(String petID) async {
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      print("status 200");
+      setState(() {
+        shelterDetailInstance = Shelter.fromJson(jsonDecode(response.body));
+        loadAsset();
+      });
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      print("response.statusCode = " + response.statusCode.toString());
+      throw Exception('Failed to load pet ' + response.body);
+    }
+  }
+
+  void getPetDetail(String petID) async {
     print('Getting Pet Detail');
 
     String id2 = widget.petID;
 
     print("id = ${id2}");
 
-    var url = "https://api.rescuegroups.org/v5/public/animals/${id2}?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText&limit=1&page=1";
+    var url =
+        "https://api.rescuegroups.org/v5/public/animals/${id2}?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText&limit=1&page=1";
 
     print("URL = $url");
 
     Map<String, dynamic> data = {
-    "data": {
-      "filterRadius": {
-        "miles": 1000,
-        "postalcode": "94043"
-      },
-      "filters":
-        [
+      "data": {
+        "filterRadius": {"miles": 1000, "postalcode": "94043"},
+        "filters": [
           {
-            "fieldName" : "species.singular",
-            "operation" : "equal",
-            "criteria" : "cat"
+            "fieldName": "species.singular",
+            "operation": "equal",
+            "criteria": "cat"
           }
         ]
-    }
-  };
+      }
+    };
 
-  var data2 = RescueGroupsQuery.fromJson(data);
+    var data2 = RescueGroupsQuery.fromJson(data);
 
-  var response = await http.get(Uri.parse(url),
-    headers: {
+    var response = await http.get(Uri.parse(url), headers: {
       'Content-Type': 'application/json', //; charset=UTF-8',
       'Authorization': '0doJkmYU'
-    }
-  );
-
-  if (response.statusCode == 200) {
-    // If the server did return a 200 OK response,
-    // then parse the JSON.
-    print("status 200");
-    var petDecoded = pet.fromJson(jsonDecode(response.body));
-    setState(() {
-      petDetailInstance = PetDetailData(petDecoded.data![0], petDecoded.included!, petDecoded.data![0].relationships!.values.toList());
-      getShelterDetail(petDetailInstance!.organizationID!);
-      loadAsset();
     });
-    print("********DD = ${petDetailInstance?.smallPictures}");
-  } else {
-    // If the server did not return a 200 OK response,
-    // then throw an exception.
-    print("response.statusCode = " + response.statusCode.toString());
-    throw Exception('Failed to load pet ' + response.body );
+
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      print("status 200");
+      var petDecoded = pet.fromJson(jsonDecode(response.body));
+      setState(() {
+        petDetailInstance = PetDetailData(
+            petDecoded.data![0],
+            petDecoded.included!,
+            petDecoded.data![0].relationships!.values.toList());
+        getShelterDetail(petDetailInstance!.organizationID!);
+        loadAsset();
+      });
+      print("********DD = ${petDetailInstance?.smallPictures}");
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      print("response.statusCode = " + response.statusCode.toString());
+      throw Exception('Failed to load pet ' + response.body);
+    }
   }
-   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(petDetailInstance?.name ?? ""),
-        actions: <Widget>[
-    Padding(
-      padding: EdgeInsets.only(right: 10.0),
-      child: GestureDetector(
-        onTap: () {},
-        child: LikeButton(
-          size: 40,
-          isLiked: widget.isFavorite,
-          likeBuilder: (isLiked) {
-            final color = widget.isFavorite ? Colors.red : Colors.blueGrey;
-            return Icon(Icons.favorite, color: color, size: 40);
-          }
-        ),
-      ))]),
-      body: SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10),
-      child: Column(children: [ 
-              Stack(
-                children: <Widget>[
-                  Align( alignment: FractionalOffset.center,
-                  child: getImage(petDetailInstance)),
-                  Positioned(
-        bottom: 10,
-        left: 0,
-        height: 80,
-        width: MediaQuery.of(context).size.width,
-        child: SizedBox(
-                         height: 100,
-                         child: Center(child: MasonryGridView.count(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: petDetailInstance == null ? 0 : (petDetailInstance!.smallPictures.length + petDetailInstance!.videos!.length),
-                          padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 3),
-                          // the number of columns
-                          crossAxisCount: 1, 
-                          // vertical gap between two items
-                          mainAxisSpacing: 7, 
-                          // horizontal gap between two items
-                          crossAxisSpacing: 0, 
-                          itemBuilder: (context, index) {
-                          if (index < petDetailInstance!.smallPictures.length) {
-                            return getSmallImage(petDetailInstance, index);
-                          }
-                          else
-                          {
-                            return getVideoImage(petDetailInstance, index);
-                          }
-                        }
-                      )
-       ),
-           ),
-              )]
+      appBar:
+          AppBar(title: Text(petDetailInstance?.name ?? ""), actions: <Widget>[
+        Padding(
+            padding: EdgeInsets.only(right: 10.0),
+            child: GestureDetector(
+              onTap: () {
+                widget.isFavorite = !widget.isFavorite;
+              },
+              child: LikeButton(
+                  size: 40,
+                  isLiked: widget.isFavorite,
+                  likeBuilder: (isLiked) {
+                    final color =
+                        widget.isFavorite ? Colors.red : Colors.blueGrey;
+                    return Icon(Icons.favorite, color: color, size: 40);
+                  }),
+            ))
+      ]),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            children: [
+              Stack(children: <Widget>[
+                Align(
+                    alignment: FractionalOffset.center,
+                    child: getImage(petDetailInstance)),
+                Positioned(
+                  bottom: 10,
+                  left: 0,
+                  height: 80,
+                  width: MediaQuery.of(context).size.width,
+                  child: SizedBox(
+                    height: 100,
+                    child: Center(
+                        child: MasonryGridView.count(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: petDetailInstance == null
+                                ? 0
+                                : (petDetailInstance!.smallPictures.length +
+                                    petDetailInstance!.videos!.length),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 1, horizontal: 3),
+                            // the number of columns
+                            crossAxisCount: 1,
+                            // vertical gap between two items
+                            mainAxisSpacing: 7,
+                            // horizontal gap between two items
+                            crossAxisSpacing: 0,
+                            itemBuilder: (context, index) {
+                              if (index <
+                                  petDetailInstance!.smallPictures.length) {
+                                return getSmallImage(petDetailInstance, index);
+                              } else {
+                                return getVideoImage(petDetailInstance, index);
+                              }
+                            })),
+                  ),
+                )
+              ]),
+              const SizedBox(
+                height: 20,
               ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                color: const Color.fromARGB(184, 111, 97, 97)
-                              ),
-                              color: Color.fromARGB(255, 225, 215, 215),
-                              borderRadius: const BorderRadius.all(Radius.circular(20))
-                              ),
-                              padding: const EdgeInsets.all(20),
-                              child: Column(children: [
-                                          Center(child: Text(petDetailInstance == null ? "" : petDetailInstance!.name ?? "",
-                                          style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.center)),
-                                          const Divider(
-                                            thickness: 1,
-                                            indent: 30,
-                                            endIndent: 30,
-                                          ),
+              Container(
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                          color: const Color.fromARGB(184, 111, 97, 97)),
+                      color: Color.fromARGB(255, 225, 215, 215),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(20))),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(children: [
+                    Center(
+                        child: Text(
+                            petDetailInstance == null
+                                ? ""
+                                : petDetailInstance!.name ?? "",
+                            style: const TextStyle(
+                                fontSize: 30, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center)),
+                    const Divider(
+                      thickness: 1,
+                      indent: 30,
+                      endIndent: 30,
+                    ),
+                    Center(
+                        child: Text(
+                            petDetailInstance == null
+                                ? ""
+                                : petDetailInstance!.primaryBreed ?? "",
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center)),
+                    const SizedBox(height: 20),
+                    getStats(),
+                  ])),
+              const SizedBox(
+                height: 20,
+              ),
+              Center(
+                  child: SizedBox(
+                      height: 100,
+                      child:
+                          Center(child: ToolBar(detail: petDetailInstance)))),
+              Container(
+                height: _height < 100.0 ? 100.0 : _height,
+                color: Colors.deepOrange,
+                child: WebView(
+                  initialUrl: '',
+                  onPageFinished: (some) async {
+                    double height = double.parse(
+                        await _webViewController.evaluateJavascript(
+                            "document.documentElement.scrollHeight;"));
+                    setState(() {
+                      _height = height;
+                    });
+                  },
+                  javascriptMode: JavascriptMode.unrestricted,
+                  onWebViewCreated: (WebViewController webViewController) {
+                    _webViewController = webViewController;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                                          Center(
-                                            child: Text(petDetailInstance == null ? "" : petDetailInstance!.primaryBreed ?? "",
-                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                            textAlign: TextAlign.center
-                                          )),
-                                          const SizedBox(
-                                            height: 10),
-                                          Center(child: SizedBox(
-                                            height: 20,
-                                            child: getStats()
-                                          ),
-                                          
-                                        ),]))
-                                      ]))));
-
-          }
-  
-    Widget getStats() {
-      if (petDetailInstance == null) {
-        return const SizedBox.shrink();
-      }
-      
-      List<String> stats = [];
-      if (petDetailInstance!.status != null) {
-        stats.add(petDetailInstance!.status ?? "");
-      }
-      if (petDetailInstance!.ageGroup != null) {
-        stats.add(petDetailInstance!.ageGroup ?? "");
-      }
-      if (petDetailInstance!.sex != null) {
-        stats.add(petDetailInstance!.sex ?? "");
-      }
-      if (petDetailInstance!.sizeGroup != null) {
-        stats.add(petDetailInstance!.sizeGroup ?? "");
-      }
-      List<Color> foreground = [Color.fromRGBO(101, 164, 43, 1), Color.fromRGBO(3, 122, 254, 1), Color.fromRGBO(245, 76, 10, 1.0)];
-      List<Color> background = [Color.fromRGBO(222, 234, 209, 1), Color.fromRGBO(209, 224, 239, 1), Color.fromARGB(255, 246, 193, 167)];
-      return Center(child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 100,
-                childAspectRatio: 3 / 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10),
-                itemCount: stats.length, 
-                itemBuilder: (context, index) {
-                            return Container(
-                              width: 100,
-                              height: 30,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                color: foreground[index]
-                              ),
-                              color: background[index],
-                              borderRadius: const BorderRadius.all(Radius.circular(5))
-                              ),
-                              child: Text(stats[index],
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: foreground[index]),
-                                            textAlign: TextAlign.center));
-                          }));
+  Widget getStats() {
+    if (petDetailInstance == null) {
+      return const SizedBox.shrink();
     }
 
-    void loadAsset() async {
-      String addressString = "";
-      addressString = "<table>";
-      if (petDetailInstance?.organizationName != "") {
-        addressString = "$addressString<tr><td><b>${petDetailInstance?.organizationName ?? ""}</b></td></tr>";
-      }
-      if (petDetailInstance?.street != "") {
-        addressString = "$addressString<tr><td><b>${petDetailInstance?.street ?? ""}</b></td></tr>";
-      }
-      if (petDetailInstance?.cityState != "") {
-        addressString = "$addressString<tr><td><b>${petDetailInstance?.cityState ?? ""} ${petDetailInstance?.postalCode ?? ""}</b></td></tr></table>";
-      }
+    List<String> stats = [];
+    if (petDetailInstance!.status != null) {
+      stats.add(petDetailInstance!.status ?? "");
+    }
+    if (petDetailInstance!.ageGroup != null) {
+      stats.add(petDetailInstance!.ageGroup ?? "");
+    }
+    if (petDetailInstance!.sex != null) {
+      stats.add(petDetailInstance!.sex ?? "");
+    }
+    if (petDetailInstance!.sizeGroup != null) {
+      stats.add(petDetailInstance!.sizeGroup ?? "");
+    }
+    List<Color> foreground = [
+      const Color.fromRGBO(101, 164, 43, 1),
+      const Color.fromRGBO(3, 122, 254, 1),
+      const Color.fromRGBO(245, 76, 10, 1.0),
+      Colors.deepPurple
+    ];
+    List<Color> background = [
+      const Color.fromRGBO(222, 234, 209, 1),
+      const Color.fromRGBO(209, 224, 239, 1),
+      const Color.fromARGB(255, 246, 193, 167),
+      Colors.purpleAccent.shade100
+    ];
+    return Center(
+        child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: Wrap(
+                alignment: WrapAlignment.spaceEvenly,
+                spacing: 10,
+                runSpacing: 10,
+                direction: Axis.horizontal,
+                children: stats.map((item) {
+                  return Container(
+                      width: 100,
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                              color: foreground[stats.indexOf(item)]),
+                          color: background[stats.indexOf(item)],
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5))),
+                      child: Text(stats[stats.indexOf(item)].trim(),
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: foreground[stats.indexOf(item)]),
+                          textAlign: TextAlign.center));
+                }).toList())));
+  }
 
-      final String description = petDetailInstance?.description ?? "";
+  void loadAsset() async {
+    String addressString = "";
+    addressString = "<table>";
+    if (petDetailInstance?.organizationName != "") {
+      addressString =
+          "$addressString<tr><td><b>${petDetailInstance?.organizationName ?? ""}</b></td></tr>";
+    }
+    if (petDetailInstance?.street != "") {
+      addressString =
+          "$addressString<tr><td><b>${petDetailInstance?.street ?? ""}</b></td></tr>";
+    }
+    if (petDetailInstance?.cityState != "") {
+      addressString =
+          "$addressString<tr><td><b>${petDetailInstance?.cityState ?? ""} ${petDetailInstance?.postalCode ?? ""}</b></td></tr></table>";
+    }
 
-      String serveAreas = "Please contact shelter for details.";
-      String about = "Please contact shelter for details.";
-      String services = "Please contact shelter for details.";
-      String adoptionProcess = "Please contact shelter for details.";
-      String meetPets = "Please contact shelter for details.";
-      String adoptionUrl = "Not Available.";
-      String donationUrl = "Not Available.";
-      String sponsorshipUrl = "Not Available.";
-      String facebookUrl = "Not Available.";
-      String rescueOrgID = "?";
-      String animalID = "?";
+    final String description = petDetailInstance?.description ?? "";
 
-      if (shelterDetailInstance != null && shelterDetailInstance!.data != null && shelterDetailInstance!.data!.isNotEmpty && shelterDetailInstance!.data![0].attributes != null) {
-        Attributes detail = shelterDetailInstance!.data![0].attributes!;
-        animalID = petDetailInstance?.id ?? "?";
-        rescueOrgID = shelterDetailInstance!.data![0].id ?? "?";
-        serveAreas = detail.serveAreas ?? "Please contact shelter for details.";
-        about = detail.about ?? "Please contact shelter for details.";
-        services = detail.services ?? "Please contact shelter for details.";
-        adoptionProcess = detail.adoptionProcess ?? "Please contact shelter for details.";
-        meetPets = detail.meetPets ?? "Please contact shelter for details.";
-        facebookUrl = (detail.facebookUrl != null) ? "<a href='${detail.facebookUrl}'>${detail.facebookUrl}</a>" : "Not Available.";
-        adoptionUrl = (detail.adoptionUrl != null) ? "<a href='${detail.adoptionUrl}'>${detail.adoptionUrl}</a>" : "Not Available.";
-        donationUrl = (detail.donationUrl != null) ? "<a href='${detail.donationUrl}'>${detail.donationUrl}</a>" : "Not Available.";
-        sponsorshipUrl = (detail.sponsorshipUrl != null) ? "<a href='${detail.sponsorshipUrl}'>${detail.sponsorshipUrl}</a>" : "Not Available.";
-      }
+    String serveAreas = "Please contact shelter for details.";
+    String about = "Please contact shelter for details.";
+    String services = "Please contact shelter for details.";
+    String adoptionProcess = "Please contact shelter for details.";
+    String meetPets = "Please contact shelter for details.";
+    String adoptionUrl = "Not Available.";
+    String donationUrl = "Not Available.";
+    String sponsorshipUrl = "Not Available.";
+    String facebookUrl = "Not Available.";
+    String rescueOrgID = "?";
+    String animalID = "?";
 
-      String htmlString = '''<html>
+    if (shelterDetailInstance != null &&
+        shelterDetailInstance!.data != null &&
+        shelterDetailInstance!.data!.isNotEmpty &&
+        shelterDetailInstance!.data![0].attributes != null) {
+      Attributes detail = shelterDetailInstance!.data![0].attributes!;
+      animalID = petDetailInstance?.id ?? "?";
+      rescueOrgID = shelterDetailInstance!.data![0].id ?? "?";
+      serveAreas = detail.serveAreas ?? "Please contact shelter for details.";
+      about = detail.about ?? "Please contact shelter for details.";
+      services = detail.services ?? "Please contact shelter for details.";
+      adoptionProcess =
+          detail.adoptionProcess ?? "Please contact shelter for details.";
+      meetPets = detail.meetPets ?? "Please contact shelter for details.";
+      facebookUrl = (detail.facebookUrl != null)
+          ? "<a href='${detail.facebookUrl}'>${detail.facebookUrl}</a>"
+          : "Not Available.";
+      adoptionUrl = (detail.adoptionUrl != null)
+          ? "<a href='${detail.adoptionUrl}'>${detail.adoptionUrl}</a>"
+          : "Not Available.";
+      donationUrl = (detail.donationUrl != null)
+          ? "<a href='${detail.donationUrl}'>${detail.donationUrl}</a>"
+          : "Not Available.";
+      sponsorshipUrl = (detail.sponsorshipUrl != null)
+          ? "<a href='${detail.sponsorshipUrl}'>${detail.sponsorshipUrl}</a>"
+          : "Not Available.";
+    }
+
+    String htmlString = '''<html>
                 <head>
                       <meta name="viewport" content="width=device-width, initial-scale=1.0">
                       <style>
@@ -575,58 +637,77 @@ void getPetDetail(String petID) async {
                             </body>
                     </html>
                 ''';
-      _webViewController.loadUrl(Uri.dataFromString(htmlString,
-        mimeType: 'text/html', encoding: Encoding.getByName('utf-8'))
+    _webViewController.loadUrl(Uri.dataFromString(htmlString,
+            mimeType: 'text/html', encoding: Encoding.getByName('utf-8'))
         .toString());
-    }
+  }
 
-    double calculateRatio(Large pd, double width) {
-      return (pd.resolutionY! / pd.resolutionX!) * width;
-    }
+  double calculateRatio(Large pd, double width) {
+    return (pd.resolutionY! / pd.resolutionX!) * width;
+  }
 
-    Widget getImage(PetDetailData? pd) {
-      if (pd == null) {
-        return const CircularProgressIndicator();
-      } else {
-        return CachedNetworkImage(
-          placeholder: (BuildContext context, String url) => Container(
-                width: MediaQuery.of(context).size.width,
-                height: calculateRatio(pd.mainPictures[selectedImage], MediaQuery.of(context).size.width),
-                color: Colors.grey), imageUrl: pd.mainPictures[selectedImage].url ?? "",
-              );
-      }
-    }
-
-    Widget getVideoImage(PetDetailData? pd, int index) {
-      if (pd == null || index > pd.videos!.length + pd.smallPictures.length ) {
-        return const CircularProgressIndicator();
-      } else {
-        return GestureDetector(
-                            onTap: () {
-                              setState(() {selectedImage = index;});
-                            }, child: ClipRRect(
-  borderRadius: BorderRadius.circular(10), child: ColorFiltered(
-  colorFilter: ColorFilter.mode(Colors.black.withOpacity(selectedImage == index ? 0.0 : 0.4), BlendMode.srcOver),
-  child: Image.network(pd.smallPictures[index].url ?? 'https://cdn.pixabay.com/photo/2022/03/27/11/23/cat-7094808__340.jpg',
-                             height: 50,
-                             fit: BoxFit.fitHeight))));
-      }
-    }
-
-    Widget getSmallImage(PetDetailData? pd, int index) {
-      if (pd == null || pd.smallPictures.length < index) {
-        return const CircularProgressIndicator();
-      } else {
-        return GestureDetector(
-                            onTap: () {
-                              setState(() {selectedImage = index;});
-                            }, child: ClipRRect(
-  borderRadius: BorderRadius.circular(10), child: ColorFiltered(
-  colorFilter: ColorFilter.mode(Colors.black.withOpacity(selectedImage == index ? 0.0 : 0.4), BlendMode.srcOver),
-  child: CachedNetworkImage(imageUrl: pd.smallPictures[index].url ?? 'https://cdn.pixabay.com/photo/2022/03/27/11/23/cat-7094808__340.jpg',
-                            height: 50,
-                            fit: BoxFit.fitHeight))));
-      
-      }
+  Widget getImage(PetDetailData? pd) {
+    if (pd == null) {
+      return const CircularProgressIndicator();
+    } else {
+      return CachedNetworkImage(
+        placeholder: (BuildContext context, String url) => Container(
+            width: MediaQuery.of(context).size.width,
+            height: calculateRatio(pd.mainPictures[selectedImage],
+                MediaQuery.of(context).size.width),
+            color: Colors.grey),
+        imageUrl: pd.mainPictures[selectedImage].url ?? "",
+      );
     }
   }
+
+  Widget getVideoImage(PetDetailData? pd, int index) {
+    if (pd == null || index > pd.videos!.length + pd.smallPictures.length) {
+      return const CircularProgressIndicator();
+    } else {
+      return GestureDetector(
+          onTap: () {
+            setState(() {
+              selectedImage = index;
+            });
+          },
+          child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: ColorFiltered(
+                  colorFilter: ColorFilter.mode(
+                      Colors.black
+                          .withOpacity(selectedImage == index ? 0.0 : 0.4),
+                      BlendMode.srcOver),
+                  child: Image.network(
+                      pd.smallPictures[index].url ??
+                          'https://cdn.pixabay.com/photo/2022/03/27/11/23/cat-7094808__340.jpg',
+                      height: 50,
+                      fit: BoxFit.fitHeight))));
+    }
+  }
+
+  Widget getSmallImage(PetDetailData? pd, int index) {
+    if (pd == null || pd.smallPictures.length < index) {
+      return const CircularProgressIndicator();
+    } else {
+      return GestureDetector(
+          onTap: () {
+            setState(() {
+              selectedImage = index;
+            });
+          },
+          child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: ColorFiltered(
+                  colorFilter: ColorFilter.mode(
+                      Colors.black
+                          .withOpacity(selectedImage == index ? 0.0 : 0.4),
+                      BlendMode.srcOver),
+                  child: CachedNetworkImage(
+                      imageUrl: pd.smallPictures[index].url ??
+                          'https://cdn.pixabay.com/photo/2022/03/27/11/23/cat-7094808__340.jpg',
+                      height: 50,
+                      fit: BoxFit.fitHeight))));
+    }
+  }
+}

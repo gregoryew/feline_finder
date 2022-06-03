@@ -1,10 +1,9 @@
-import 'RescueGroups.dart';
+import 'dart:ffi';
 
-class YouTubeVideo {
-  String? videoId;
-  String? urlThumbnail;
-  int? order;
-}
+import 'package:flutter/widgets.dart';
+
+import 'RescueGroups.dart';
+import 'media.dart';
 
 class PetDetailData {
   String? id;
@@ -20,22 +19,25 @@ class PetDetailData {
   String? cityState;
   String? postalCode;
   List<Large> mainPictures = [];
-  List<Large> smallPictures = [];
-  List<YouTubeVideo>? videos = [];
+  List<Media> media = [];
   String? organizationID = "";
   String? organizationName = "";
   String? description = "";
+  var mediaGlobalKeys = [];
 
-  PetDetailData(petDatum pet, List<Included> included, List<Relationship> relationships) {
+  PetDetailData(petDatum pet, List<Included> included,
+      List<Relationship> relationships, Function(int) selectedIndexChanged) {
     id = pet.id;
     name = pet.attributes!.name;
     primaryBreed = pet.attributes!.breedPrimary;
     ageGroup = ageGroupValues.reverse[pet.attributes!.ageGroup];
     sex = sexValues.reverse[pet.attributes!.sex];
     sizeGroup = sizeGroupValues.reverse[pet.attributes!.sizeGroup];
-    var statusList = findAllOfACertainType(pet, included, "statuses", IncludedType.STATUSES);
+    var statusList =
+        findAllOfACertainType(pet, included, "statuses", IncludedType.STATUSES);
     status = statusList[0].attributes!.name;
-    List<Included> picturesIncluded = findAllOfACertainType(pet, included, "pictures", IncludedType.PICTURES);    
+    List<Included> picturesIncluded =
+        findAllOfACertainType(pet, included, "pictures", IncludedType.PICTURES);
     for (int i = 0; i < picturesIncluded.length; i++) {
       if (picturesIncluded[i].attributes!.large!.url != null) {
         mainPictures.add(picturesIncluded[i].attributes!.large!);
@@ -45,10 +47,18 @@ class PetDetailData {
         mainPictures.add(picturesIncluded[i].attributes!.small!);
       }
     }
+    print("******* URL = " + picturesIncluded[0].attributes!.small!.url!);
     for (int i = 0; i < picturesIncluded.length; i++) {
-      smallPictures.add(picturesIncluded[i].attributes!.small!);
+      var photo = SmallPhoto(
+          selected: i == 0,
+          order: i,
+          photo: picturesIncluded[i].attributes!.small!.url!,
+          selectedChanged: selectedIndexChanged);
+      media.add(photo);
     }
-    List<Included> videoListIncluded = findAllOfACertainType(pet, included, "videos", IncludedType.VIDEOS);
+    List<Included> videoListIncluded =
+        findAllOfACertainType(pet, included, "videos", IncludedType.VIDEOS);
+    /*
     for (int i = 0; i < videoListIncluded.length; i++) {
       YouTubeVideo video = YouTubeVideo();
       video.order = videoListIncluded[i].attributes!.order;
@@ -56,7 +66,9 @@ class PetDetailData {
       video.videoId = videoListIncluded[i].attributes!.videoId;
       videos?.add(video);
     }
-    List<Included> organizationIncluded = findAllOfACertainType(pet, included, "orgs", IncludedType.ORGS);
+    */
+    List<Included> organizationIncluded =
+        findAllOfACertainType(pet, included, "orgs", IncludedType.ORGS);
     organizationID = organizationIncluded[0].id;
     organizationName = organizationIncluded[0].attributes!.name;
     street = organizationIncluded[0].attributes!.street;
@@ -64,11 +76,13 @@ class PetDetailData {
     postalCode = organizationIncluded[0].attributes!.postalcode;
     email = organizationIncluded[0].attributes!.email;
     phoneNumber = organizationIncluded[0].attributes!.phone;
-    description = pet.attributes!.descriptionHtml ?? pet.attributes!.descriptionText;
+    description = pet.attributes!.descriptionText;
   }
 
-  List<Included> findAllOfACertainType(petDatum pet, List<Included> included, String includeType, IncludedType type) {
-    if (pet.relationships![includeType] == null || pet.relationships![includeType]!.data == null) return [];
+  List<Included> findAllOfACertainType(petDatum pet, List<Included> included,
+      String includeType, IncludedType type) {
+    if (pet.relationships![includeType] == null ||
+        pet.relationships![includeType]!.data == null) return [];
     final includedData = pet.relationships![includeType]!.data!;
     final includeds = included.where((l) => l.type == type).toList();
     List<Included> includedList = [];
@@ -77,5 +91,4 @@ class PetDetailData {
     }
     return includedList;
   }
-
 }

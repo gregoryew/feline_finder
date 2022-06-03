@@ -9,12 +9,8 @@ import 'dart:convert' as convert;
 import '/models/playlist.dart';
 import '/widgets/playlist-row.dart';
 import '/utils/constants.dart';
-import '../models/favoritesRespository.dart';
 
-
-enum WidgetMarker {
-  adopt, videos, stats, info
-}
+enum WidgetMarker { adopt, videos, stats, info }
 
 class BreedDetail extends StatefulWidget {
   final Breed breed;
@@ -30,10 +26,8 @@ class BreedDetail extends StatefulWidget {
   }
 }
 
-class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStateMixin<BreedDetail> {
-
-  final DataRepository repository = DataRepository();
-
+class _BreedDetailState extends State<BreedDetail>
+    with SingleTickerProviderStateMixin<BreedDetail> {
   WidgetMarker selectedWidgetMarker = WidgetMarker.info;
   late AnimationController _controller;
   late Animation<double> _animation;
@@ -45,17 +39,19 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
   double progress = 0;
 
   bool fullScreen = true;
- 
+
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 3));
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 3));
     _animation = Tween(begin: 0.0, end: 1.0).animate(_controller);
     getPlaylists();
   }
 
   Future<void> getPlaylists() async {
-    final String url = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=49&playlistId=${widget.breed.playListID}&key=${Constants.YOU_TUBE_API_KEY}';
+    final String url =
+        'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=49&playlistId=${widget.breed.playListID}&key=${Constants.YOU_TUBE_API_KEY}';
     Uri u = Uri.parse(url);
     var response = await http.get(u);
     if (response.statusCode == 200) {
@@ -81,21 +77,20 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
         title: Text(widget.breed.name),
       ),
       // 2
-      body: StreamBuilder<QuerySnapshot>(
-      stream: repository.getStream(),
-      builder: (context, snapshot) {return SafeArea(
+      body: SafeArea(
         // 3
         child: Column(
           children: <Widget>[
             // 4
-            Visibility (
+            Visibility(
               visible: fullScreen,
               child: Column(
                 children: [
                   Image(
                     height: 200,
                     width: MediaQuery.of(context).size.width,
-                    image: AssetImage('assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
+                    image: AssetImage(
+                        'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
                   ),
                   const SizedBox(
                     height: 4,
@@ -104,16 +99,18 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
                   Text(
                     widget.breed.name,
                     style: const TextStyle(fontSize: 18),
-                  ),  
+                  ),
                 ],
               ),
             ),
             // 5
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget> [
+              children: <Widget>[
                 IconButton(
-                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.adopt) ? 'assets/Icons/Tool_Filled_Cat.png' : 'assets/Icons/Tool_Cat.png'),
+                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.adopt)
+                      ? 'assets/Icons/Tool_Filled_Cat.png'
+                      : 'assets/Icons/Tool_Cat.png'),
                   onPressed: () {
                     setState(() {
                       selectedWidgetMarker = WidgetMarker.adopt;
@@ -121,7 +118,10 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
                   },
                 ),
                 IconButton(
-                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.videos) ? 'assets/Icons/Tool_Filled_Video.png' : 'assets/Icons/Tool_Video.png'),
+                  icon: Image.asset(
+                      (selectedWidgetMarker == WidgetMarker.videos)
+                          ? 'assets/Icons/Tool_Filled_Video.png'
+                          : 'assets/Icons/Tool_Video.png'),
                   onPressed: () {
                     setState(() {
                       selectedWidgetMarker = WidgetMarker.videos;
@@ -129,7 +129,9 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
                   },
                 ),
                 IconButton(
-                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.stats) ? 'assets/Icons/Tool_Filled_Stats.png' : 'assets/Icons/Tool_Stats.png'),
+                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.stats)
+                      ? 'assets/Icons/Tool_Filled_Stats.png'
+                      : 'assets/Icons/Tool_Stats.png'),
                   onPressed: () {
                     setState(() {
                       selectedWidgetMarker = WidgetMarker.stats;
@@ -137,7 +139,9 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
                   },
                 ),
                 IconButton(
-                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.info) ? 'assets/Icons/Tool_Filled_Info.png' : 'assets/Icons/Tool_Info.png'),
+                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.info)
+                      ? 'assets/Icons/Tool_Filled_Info.png'
+                      : 'assets/Icons/Tool_Info.png'),
                   onPressed: () {
                     setState(() {
                       selectedWidgetMarker = WidgetMarker.info;
@@ -145,7 +149,9 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
                   },
                 ),
                 IconButton(
-                  icon: Image.asset((fullScreen) ? 'assets/Icons/fullScreen.png' : 'assets/Icons/collapsedScreen.png'),
+                  icon: Image.asset((fullScreen)
+                      ? 'assets/Icons/fullScreen.png'
+                      : 'assets/Icons/collapsedScreen.png'),
                   onPressed: () {
                     setState(() {
                       if (fullScreen) {
@@ -159,21 +165,17 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
               ],
             ),
             FutureBuilder(
-              future: _playAnimation(),
-              builder: (BuildContext context, AsyncSnapshot snapshot) {
-                return 
-                Expanded(
-                  child: Align(alignment: Alignment.bottomCenter,
-                  child: getCustomContainer(),
-                  )
-                );
-              }
-            )
+                future: _playAnimation(),
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  return Expanded(
+                      child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: getCustomContainer(),
+                  ));
+                })
           ],
         ),
-      );
-      }
-    )
+      ),
     );
   }
 
@@ -196,119 +198,115 @@ class _BreedDetailState extends State<BreedDetail> with SingleTickerProviderStat
 
   Widget getAdoptContainer() {
     return FadeTransition(
-    opacity: _animation,
-    child: Container(
-      color: Colors.red,
-      )
-    );
+        opacity: _animation,
+        child: Container(
+          color: Colors.red,
+        ));
   }
 
   Widget getVideosContainer() {
     return FadeTransition(
-    opacity: _animation,
-    child: ListView.separated(
-            separatorBuilder: (context, index) => Divider(
-  thickness: 2.0,
-),
-    itemCount: playlists.length,
-    itemBuilder: (context, index) {
-    return PlaylistRow(
-      playlist: playlists[index],
-    );
-    }
-    ),
+      opacity: _animation,
+      child: ListView.separated(
+          separatorBuilder: (context, index) => Divider(
+                thickness: 2.0,
+              ),
+          itemCount: playlists.length,
+          itemBuilder: (context, index) {
+            return PlaylistRow(
+              playlist: playlists[index],
+            );
+          }),
     );
   }
 
   Widget getStatsContainer() {
     return FadeTransition(
-    opacity: _animation,
-    child: ListView.separated(
-            separatorBuilder: (context, index) => Divider(
-  thickness: 2.0,
-),
-    itemCount: widget.breed.stats.length,
-    itemBuilder: (context, index) {
-    return new LinearPercentIndicator(
-                lineHeight: 14.0,
-                percent: (widget.breed.stats[index].isPercent) ? widget.breed.stats[index].value.toDouble() / maxValues[index].toDouble() : 1.0,
-                backgroundColor: Colors.grey,
-                progressColor: Colors.blue,
-                center: Text(
-                  widget.breed.stats[index].name + ': ' +  Question.questions[index].choices[widget.breed.stats[index].value.toInt()].name,
-                  style: new TextStyle(fontSize: 12.0),
-                ),
-              );
-    }
-    ),
+      opacity: _animation,
+      child: ListView.separated(
+          separatorBuilder: (context, index) => Divider(
+                thickness: 2.0,
+              ),
+          itemCount: widget.breed.stats.length,
+          itemBuilder: (context, index) {
+            return new LinearPercentIndicator(
+              lineHeight: 14.0,
+              percent: (widget.breed.stats[index].isPercent)
+                  ? widget.breed.stats[index].value.toDouble() /
+                      maxValues[index].toDouble()
+                  : 1.0,
+              backgroundColor: Colors.grey,
+              progressColor: Colors.blue,
+              center: Text(
+                widget.breed.stats[index].name +
+                    ': ' +
+                    Question.questions[index]
+                        .choices[widget.breed.stats[index].value.toInt()].name,
+                style: new TextStyle(fontSize: 12.0),
+              ),
+            );
+          }),
     );
   }
 
   Widget getInfoContainer() {
     return FadeTransition(
-    opacity: _animation,
-    child:
-      Column(children: [
-        Expanded(child:
-            InAppWebView(initialUrlRequest: URLRequest(
-                      url: Uri.parse(widget.breed.htmlUrl)
-                    ),
-                    initialOptions: InAppWebViewGroupOptions(
-                      crossPlatform: InAppWebViewOptions(
-
-                      ),
-                      ios: IOSInAppWebViewOptions(
-
-                      ),
-                      android: AndroidInAppWebViewOptions(
-                        useHybridComposition: true
-                      )
-                    ),
-                    onWebViewCreated: (InAppWebViewController controller) {
-                      webView = controller;
-                    },
-                    onLoadStart: (controller, url) {
-                      setState(() {
-                        this.url = url?.toString() ?? '';
-                      });
-                    },
-                    onLoadStop: (controller, url) async {
-                      setState(() {
-                        this.url = url?.toString() ?? '';
-                      });
-                    },
-                    onProgressChanged: (controller, progress) {
-                      setState(() {
-                        this.progress = progress / 100;
-                      });
-                    },
-                  ),
+        opacity: _animation,
+        child: Column(
+          children: [
+            Expanded(
+              child: InAppWebView(
+                initialUrlRequest:
+                    URLRequest(url: Uri.parse(widget.breed.htmlUrl)),
+                initialOptions: InAppWebViewGroupOptions(
+                    crossPlatform: InAppWebViewOptions(),
+                    ios: IOSInAppWebViewOptions(),
+                    android:
+                        AndroidInAppWebViewOptions(useHybridComposition: true)),
+                onWebViewCreated: (InAppWebViewController controller) {
+                  webView = controller;
+                },
+                onLoadStart: (controller, url) {
+                  setState(() {
+                    this.url = url?.toString() ?? '';
+                  });
+                },
+                onLoadStop: (controller, url) async {
+                  setState(() {
+                    this.url = url?.toString() ?? '';
+                  });
+                },
+                onProgressChanged: (controller, progress) {
+                  setState(() {
+                    this.progress = progress / 100;
+                  });
+                },
               ),
-              ButtonBar(
-                alignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  ElevatedButton(
-                    child: Icon(Icons.arrow_back),
-                    onPressed: () {
-                      webView?.goBack();
-                    },
-                  ),
-                  ElevatedButton(
-                    child: Icon(Icons.arrow_forward),
-                    onPressed: () {
-                      webView?.goForward();
-                    },
-                  ),
-                  ElevatedButton(
-                    child: Icon(Icons.refresh),
-                    onPressed: () {
-                      webView?.reload();
-                    },
-                  ),
-                ],
-              ),
-      ],)
-    );
+            ),
+            ButtonBar(
+              alignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ElevatedButton(
+                  child: Icon(Icons.arrow_back),
+                  onPressed: () {
+                    webView?.goBack();
+                  },
+                ),
+                ElevatedButton(
+                  child: Icon(Icons.arrow_forward),
+                  onPressed: () {
+                    webView?.goForward();
+                  },
+                ),
+                ElevatedButton(
+                  child: Icon(Icons.refresh),
+                  onPressed: () {
+                    webView?.reload();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ));
   }
 }
-

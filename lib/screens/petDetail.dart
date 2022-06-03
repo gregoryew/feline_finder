@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:like_button/like_button.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import '/ExampleCode/petDetailData.dart';
 import '/models/shelter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../globals.dart';
+import 'package:linkify_text/linkify_text.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
@@ -114,6 +114,12 @@ class petDetailState extends State<petDetail> with RouteAware {
     }
   }
 
+  selectedIndexChanged(int _selectedIndex) {
+    setState(() {
+      selectedImage = _selectedIndex;
+    });
+  }
+
   void getPetDetail(String petID) async {
     print('Getting Pet Detail');
 
@@ -155,11 +161,12 @@ class petDetailState extends State<petDetail> with RouteAware {
         petDetailInstance = PetDetailData(
             petDecoded.data![0],
             petDecoded.included!,
-            petDecoded.data![0].relationships!.values.toList());
+            petDecoded.data![0].relationships!.values.toList(),
+            selectedIndexChanged);
         getShelterDetail(petDetailInstance!.organizationID!);
         loadAsset();
       });
-      print("********DD = ${petDetailInstance?.smallPictures}");
+      print("********DD = ${petDetailInstance?.media}");
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
@@ -194,24 +201,24 @@ class petDetailState extends State<petDetail> with RouteAware {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              Stack(children: <Widget>[
-                Align(
-                    alignment: FractionalOffset.center,
-                    child: getImage(petDetailInstance)),
-                Positioned(
-                  bottom: 10,
-                  left: 0,
-                  height: 80,
-                  width: MediaQuery.of(context).size.width,
-                  child: SizedBox(
-                    height: 100,
-                    child: Center(
+              Stack(
+                children: <Widget>[
+                  Align(
+                      alignment: FractionalOffset.center,
+                      child: getImage(petDetailInstance)),
+                  Positioned(
+                    bottom: 10,
+                    left: 0,
+                    height: 80,
+                    width: MediaQuery.of(context).size.width,
+                    child: SizedBox(
+                      height: 100,
+                      child: Center(
                         child: MasonryGridView.count(
                             scrollDirection: Axis.horizontal,
                             itemCount: petDetailInstance == null
                                 ? 0
-                                : (petDetailInstance!.smallPictures.length +
-                                    petDetailInstance!.videos!.length),
+                                : petDetailInstance!.media.length,
                             padding: const EdgeInsets.symmetric(
                                 vertical: 1, horizontal: 3),
                             // the number of columns
@@ -221,28 +228,25 @@ class petDetailState extends State<petDetail> with RouteAware {
                             // horizontal gap between two items
                             crossAxisSpacing: 0,
                             itemBuilder: (context, index) {
-                              if (index <
-                                  petDetailInstance!.smallPictures.length) {
-                                return getSmallImage(petDetailInstance, index);
-                              } else {
-                                return getVideoImage(petDetailInstance, index);
-                              }
-                            })),
-                  ),
-                )
-              ]),
+                              return getSmallImage(petDetailInstance, index);
+                            }),
+                      ),
+                    ),
+                  )
+                ],
+              ),
               const SizedBox(
                 height: 20,
               ),
               Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(
-                          color: const Color.fromARGB(184, 111, 97, 97)),
-                      color: Color.fromARGB(255, 225, 215, 215),
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(20))),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(children: [
+                decoration: BoxDecoration(
+                    border: Border.all(
+                        color: const Color.fromARGB(184, 111, 97, 97)),
+                    color: Color.fromARGB(255, 225, 215, 215),
+                    borderRadius: const BorderRadius.all(Radius.circular(20))),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
                     Center(
                         child: Text(
                             petDetailInstance == null
@@ -266,32 +270,111 @@ class petDetailState extends State<petDetail> with RouteAware {
                             textAlign: TextAlign.center)),
                     const SizedBox(height: 20),
                     getStats(),
-                  ])),
+                  ],
+                ),
+              ),
               const SizedBox(
                 height: 20,
               ),
               Center(
-                  child: SizedBox(
-                      height: 100,
-                      child:
-                          Center(child: ToolBar(detail: petDetailInstance)))),
-              Container(
-                height: _height < 100.0 ? 100.0 : _height,
-                color: Colors.deepOrange,
-                child: WebView(
-                  initialUrl: '',
-                  onPageFinished: (some) async {
-                    double height = double.parse(
-                        await _webViewController.evaluateJavascript(
-                            "document.documentElement.scrollHeight;"));
-                    setState(() {
-                      _height = height;
-                    });
-                  },
-                  javascriptMode: JavascriptMode.unrestricted,
-                  onWebViewCreated: (WebViewController webViewController) {
-                    _webViewController = webViewController;
-                  },
+                child: SizedBox(
+                  height: 100,
+                  child: Center(
+                    child: ToolBar(detail: petDetailInstance),
+                  ),
+                ),
+              ),
+              const SizedBox(
+                height: 20,
+              ),
+              const Text("General Information",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                          color: const Color.fromARGB(184, 111, 97, 97)),
+                      color: Color.fromARGB(255, 225, 215, 215),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(20))),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      const Text(
+                        "Contact",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                        textAlign: TextAlign.left,
+                      ),
+                      Divider(
+                        thickness: 1,
+                        color: Colors.grey[100],
+                      ),
+                      Row(
+                        children: [
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Image.asset(
+                                "assets/Icons/ToolBar_Directions.png",
+                                width: 20,
+                                fit: BoxFit.fitWidth),
+                          ),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(
+                              (petDetailInstance?.organizationName ?? "") +
+                                  "\n" +
+                                  (petDetailInstance?.street ?? "") +
+                                  "\n" +
+                                  (petDetailInstance?.cityState ?? " ") +
+                                  " " +
+                                  (petDetailInstance?.postalCode ?? ""),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Container(
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                          color: const Color.fromARGB(184, 111, 97, 97)),
+                      color: const Color.fromARGB(255, 225, 215, 215),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(20))),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      const Text(
+                        "Description",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.grey),
+                        textAlign: TextAlign.left,
+                      ),
+                      Divider(
+                        thickness: 1,
+                        color: Colors.grey[100],
+                      ),
+                      LinkifyText(
+                        petDetailInstance?.description ?? "",
+                        fontSize: 15.0,
+                        linkColor: Colors.blue,
+                        fontColor: Colors.black,
+                        fontWeight: FontWeight.w500,
+                        isLinkNavigationEnable: true,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -359,7 +442,7 @@ class petDetailState extends State<petDetail> with RouteAware {
 
   void loadAsset() async {
     String addressString = "";
-    addressString = "<table>";
+    addressString = "<h3><table>";
     if (petDetailInstance?.organizationName != "") {
       addressString =
           "$addressString<tr><td><b>${petDetailInstance?.organizationName ?? ""}</b></td></tr>";
@@ -370,7 +453,7 @@ class petDetailState extends State<petDetail> with RouteAware {
     }
     if (petDetailInstance?.cityState != "") {
       addressString =
-          "$addressString<tr><td><b>${petDetailInstance?.cityState ?? ""} ${petDetailInstance?.postalCode ?? ""}</b></td></tr></table>";
+          "$addressString<tr><td><b>${petDetailInstance?.cityState ?? ""} ${petDetailInstance?.postalCode ?? ""}</b></td></tr></table></h3>";
     }
 
     final String description = petDetailInstance?.description ?? "";
@@ -413,233 +496,6 @@ class petDetailState extends State<petDetail> with RouteAware {
           ? "<a href='${detail.sponsorshipUrl}'>${detail.sponsorshipUrl}</a>"
           : "Not Available.";
     }
-
-    String htmlString = '''<html>
-                <head>
-                      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                      <style>
-                          @media {
-                              body {
-                                  font-size: 5px;
-                                  max-width: 520px;
-                                  margin: 20px auto;
-                              }
-                              h1 {color: black;
-                                  FONT-FAMILY:Arial,Helvetica,sans-serif;
-                                  font-size: 18px;
-                              }
-                              h2 {color: blue;
-                                  FONT-FAMILY:Arial,Helvetica,sans-serif;
-                                  font-size: 18px;
-                              }
-                              h3 {color: blue;
-                                  FONT-FAMILY:Arial,Helvetica,sans-serif;
-                                  font-size: 18px;}
-                              h4 {color: black;
-                                  FONT-FAMILY:Arial,Helvetica,sans-serif;
-                                  font-size: 12px;}
-                              a { color: blue}
-                              a.visited {color: grey;}
-                          }
-                      </style>
-                </head>
-                <body>
-                    <center>
-                        <table>
-                            <tr>
-                                <td width="100%">
-                                    <table width="100%">
-                                        <tr>
-                                            <td>
-                                                <center>
-                                                    <b>
-                                                        <h2><b>GENERAL INFORMATION</h2>
-                                                    </b>
-                                                </center>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <table>
-                                        <tr>
-                                            <td>
-                                                <center>
-                                                    <h2>CONTACT</h2>
-                                                </center>
-                                                <h1>
-                                                $addressString
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>
-                                                        DESCRIPTION
-                                                    </center>
-                                                </h2>
-                                                <h1>
-                                                    <p style="word-wrap: break-word;">
-                                                        $description
-                                                    </p>
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>
-                                                        IDs
-                                                    </center>
-                                                </h2>
-                                                <h1>
-                                                    <p style="word-wrap: break-word;">
-                                                        <table>
-                                                        <tr>
-                                                        <td>
-                                                        <b>
-                                                        Rescue Org ID:
-                                                        </b> 
-                                                        </td>
-                                                        <td align="right">
-                                                        <b>
-                                                        $rescueOrgID
-                                                        </b>
-                                                        </td>
-                                                        </tr>
-                                                        <tr>
-                                                        <td>
-                                                        <b>
-                                                        Animal ID:
-                                                        </b>
-                                                        </td>
-                                                        <td  align="right">
-                                                        <b>
-                                                        $animalID
-                                                        </b>
-                                                        </td>
-                                                        </tr>
-                                                        </table>
-                                                    </p>
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>
-                                                        SERVICE AREAS
-                                                    </center>
-                                                </h2>
-                                                <h1>
-                                                    <p style="word-wrap: break-word;">
-                                                        $serveAreas
-                                                    </p>
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>
-                                                        SERVICES
-                                                    </center>
-                                                </h2>
-                                                <h1>
-                                                    <p style="word-wrap: break-word;">
-                                                        $services
-                                                    </p>
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>
-                                                        ADOPTION PROCESS
-                                                    </center>
-                                                </h2>
-                                                <h1>
-                                                    <p style="word-wrap: break-word;">
-                                                        $adoptionProcess
-                                                    </p>
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>
-                                                        MEET PETS
-                                                    </center>
-                                                </h2>
-                                                <h1>
-                                                    <p style="word-wrap: break-word;">
-                                                        $meetPets
-                                                    </p>
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>
-                                                        ABOUT RESCUE ORGANIZATION
-                                                    </center>
-                                                </h2>
-                                                <h1>
-                                                    <p style="word-wrap: break-word;">
-                                                        $about
-                                                    </p>
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>
-                                                        IMPORTANT URLS
-                                                    </center>
-                                                </h2>
-                                                <h1>
-                                                    <p style="word-wrap: break-word;">
-                                                        <table>
-                                                        <tr>
-                                                        <td><b>Adoption URL:</b></td><td>$adoptionUrl</td>
-                                                        </tr>
-                                                        <tr>
-                                                        <td><b>Donation URL:</b></td><td>$donationUrl</td>
-                                                        </tr>
-                                                        <tr>
-                                                        <td><b>Sponsorship URL:</b></td><td>$sponsorshipUrl</td>
-                                                        </tr>
-                                                        <tr>
-                                                        <td><b>FaceBook URL:</b></td><td>$facebookUrl</td>
-                                                        </tr>
-                                                        </table>
-                                                    </p>
-                                                </h1>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <h2>
-                                                    <center>DISCLAIMER</center>
-                                                </h2>
-                                                <h4>PLEASE READ: Information regarding adoptable pets is provided by the adoption organization and is neither checked for accuracy or completeness nor guaranteed to be accurate or complete.  The health or status and behavior of any pet found, adopted through, or listed on the Feline Finder app are the sole responsibility of the adoption organization listing the same and/or the adopting party, and by using this service, the adopting party releases Feline Finder and Gregory Edward Williams, from any and all liability arising out of or in any way connected with the adoption of a pet listed on the Feline Finder app.
-                                                </h4>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </center>
-                            </body>
-                    </html>
-                ''';
-    _webViewController.loadUrl(Uri.dataFromString(htmlString,
-            mimeType: 'text/html', encoding: Encoding.getByName('utf-8'))
-        .toString());
   }
 
   double calculateRatio(Large pd, double width) {
@@ -650,64 +506,23 @@ class petDetailState extends State<petDetail> with RouteAware {
     if (pd == null) {
       return const CircularProgressIndicator();
     } else {
-      return CachedNetworkImage(
-        placeholder: (BuildContext context, String url) => Container(
-            width: MediaQuery.of(context).size.width,
-            height: calculateRatio(pd.mainPictures[selectedImage],
-                MediaQuery.of(context).size.width),
-            color: Colors.grey),
-        imageUrl: pd.mainPictures[selectedImage].url ?? "",
-      );
-    }
-  }
-
-  Widget getVideoImage(PetDetailData? pd, int index) {
-    if (pd == null || index > pd.videos!.length + pd.smallPictures.length) {
-      return const CircularProgressIndicator();
-    } else {
-      return GestureDetector(
-          onTap: () {
-            setState(() {
-              selectedImage = index;
-            });
-          },
-          child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: ColorFiltered(
-                  colorFilter: ColorFilter.mode(
-                      Colors.black
-                          .withOpacity(selectedImage == index ? 0.0 : 0.4),
-                      BlendMode.srcOver),
-                  child: Image.network(
-                      pd.smallPictures[index].url ??
-                          'https://cdn.pixabay.com/photo/2022/03/27/11/23/cat-7094808__340.jpg',
-                      height: 50,
-                      fit: BoxFit.fitHeight))));
+      return (pd.mainPictures.isEmpty)
+          ? Image.asset("assets/Icons/No_Cat_Image.png")
+          : CachedNetworkImage(
+              placeholder: (BuildContext context, String url) => Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: calculateRatio(pd.mainPictures[selectedImage],
+                      MediaQuery.of(context).size.width),
+                  color: Colors.grey),
+              imageUrl: pd.mainPictures[selectedImage].url.toString());
     }
   }
 
   Widget getSmallImage(PetDetailData? pd, int index) {
-    if (pd == null || pd.smallPictures.length < index) {
+    if (pd == null || pd.media.length < index) {
       return const CircularProgressIndicator();
     } else {
-      return GestureDetector(
-          onTap: () {
-            setState(() {
-              selectedImage = index;
-            });
-          },
-          child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: ColorFiltered(
-                  colorFilter: ColorFilter.mode(
-                      Colors.black
-                          .withOpacity(selectedImage == index ? 0.0 : 0.4),
-                      BlendMode.srcOver),
-                  child: CachedNetworkImage(
-                      imageUrl: pd.smallPictures[index].url ??
-                          'https://cdn.pixabay.com/photo/2022/03/27/11/23/cat-7094808__340.jpg',
-                      height: 50,
-                      fit: BoxFit.fitHeight))));
+      return pd.media[index];
     }
   }
 }

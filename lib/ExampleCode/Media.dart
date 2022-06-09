@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 // ignore: must_be_immutable
 class Media extends StatefulWidget {
@@ -7,14 +8,10 @@ class Media extends StatefulWidget {
   int order = 0;
   String photo = "";
   late Function(int) selectedChanged;
+  final Stream<int> stream;
 
-  Media({
-    Key? key,
-    required this.selected,
-    required this.order,
-    required this.photo,
-    required this.selectedChanged,
-  }) : super(key: key);
+  Media(
+      this.selected, this.order, this.photo, this.selectedChanged, this.stream);
 
   @override
   State<StatefulWidget> createState() {
@@ -30,27 +27,31 @@ class _Media extends State<Media> {
     throw UnimplementedError();
   }
 
-  void setSelected(bool _selected) {
+  @override
+  void initState() {
+    super.initState();
+    widget.stream.listen((index) {
+      setSelected(index);
+    });
+  }
+
+  void setSelected(int pic) {
     setState(() {
-      widget.selected = _selected;
+      print("****************setState button");
+      if (widget.order == pic) {
+        widget.selected = true;
+      } else {
+        widget.selected = false;
+      }
     });
   }
 }
 
 // ignore: must_be_immutable
 class SmallPhoto extends Media {
-  SmallPhoto(
-      {Key? key,
-      required bool selected,
-      required int order,
-      required String photo,
-      required Function(int p1) selectedChanged})
-      : super(
-            key: key,
-            selected: selected,
-            order: order,
-            photo: photo,
-            selectedChanged: selectedChanged);
+  SmallPhoto(bool selected, int order, String photo,
+      Function(int p1) selectedChanged, Stream<int> stream)
+      : super(selected, order, photo, selectedChanged, stream);
 
   @override
   State<StatefulWidget> createState() {
@@ -67,13 +68,13 @@ class _SmallPhoto extends State<SmallPhoto> {
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: //ColorFiltered(
-            //colorFilter: ColorFilter.mode(
-            //    Colors.black.withOpacity(widget.selected ? 0.0 : 0.4),
-            //    BlendMode.srcOver),
-            //child:
-            CachedNetworkImage(
-                imageUrl: widget.photo, height: 50, fit: BoxFit.fitHeight),
+        child: ColorFiltered(
+          colorFilter: ColorFilter.mode(
+              Colors.black.withOpacity(widget.selected ? 0.0 : 0.4),
+              BlendMode.srcOver),
+          child: CachedNetworkImage(
+              imageUrl: widget.photo, height: 50, fit: BoxFit.fitHeight),
+        ),
       ),
     );
   }

@@ -1,7 +1,5 @@
-import 'dart:ffi';
-
 import 'package:flutter/widgets.dart';
-
+import '../main.dart';
 import 'RescueGroups.dart';
 import 'media.dart';
 
@@ -50,10 +48,12 @@ class PetDetailData {
     print("******* URL = " + picturesIncluded[0].attributes!.small!.url!);
     for (int i = 0; i < picturesIncluded.length; i++) {
       var photo = SmallPhoto(
-          selected: i == 0,
-          order: i,
-          photo: picturesIncluded[i].attributes!.small!.url!,
-          selectedChanged: selectedIndexChanged);
+          i == 0,
+          i,
+          picturesIncluded[i].attributes!.small!.url!,
+          selectedIndexChanged,
+          buttonChangedHighlightStream
+          );
       media.add(photo);
     }
     List<Included> videoListIncluded =

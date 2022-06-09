@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:percent_indicator/percent_indicator.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '/models/breed.dart';
 import '/models/question.dart';
 import 'package:http/http.dart' as http;

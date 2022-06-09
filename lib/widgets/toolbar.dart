@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:recipes/screens/petDetail.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_mailer/flutter_mailer.dart';
-import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:async';
 import 'dart:io';
 import '../ExampleCode/petDetailData.dart';
+import 'package:email_launcher/email_launcher.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 enum toolType { phone, map, email, share, meet }
 
@@ -120,12 +121,33 @@ class Tool extends StatelessWidget {
     }
   }
 
-  email(BuildContext context) {
-    print("EMAIL");
+  email(BuildContext context) async {
+    Email email = Email(
+        to: [detail?.email ?? ""],
+        cc: [],
+        bcc: [],
+        subject: detail?.name ?? "",
+        body:
+            "I would like to talk to you about the cat named ${detail?.name ?? ""} I saw on the app Feline Finder as being available from your organization.");
+    await EmailLauncher.launch(email);
   }
 
-  share(BuildContext context) {
-    print("Share");
+  Future<String> getFilePath() async {
+    Directory appDocumentsDirectory =
+        await getApplicationDocumentsDirectory(); // 1
+    String appDocumentsPath = appDocumentsDirectory.path; // 2
+    var userID = const Uuid();
+    String filePath = '$appDocumentsPath/${userID.v1()}.jpg';
+
+    return filePath;
+  }
+
+  share(BuildContext context) async {
+    var response = await http.get(Uri.parse(detail!.mainPictures[0].url!));
+    String filepath = await getFilePath();
+    File file = File(filepath); // 1
+    file.writeAsBytesSync(response.bodyBytes);
+    Share.shareFiles([filepath], text: detail?.description ?? "");
   }
 
   meet(BuildContext context) {

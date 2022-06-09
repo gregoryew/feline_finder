@@ -13,12 +13,13 @@ import '/models/shelter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../globals.dart';
 import 'package:linkify_text/linkify_text.dart';
+import 'package:html/parser.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
   String userID = "";
-  //final server = FelineFinderServer();
-  bool isFavorite = false;
+  final server = FelineFinderServer();
+  bool isLiked = false;
 
   petDetail(this.petID, {Key? key}) : super(key: key);
 
@@ -39,7 +40,6 @@ class petDetail extends StatefulWidget {
 class petDetailState extends State<petDetail> with RouteAware {
   PetDetailData? petDetailInstance;
   Shelter? shelterDetailInstance;
-  bool isLiked = false;
   int selectedImage = 0;
   double _height = 20.0;
   late WebViewController _webViewController;
@@ -54,12 +54,12 @@ class petDetailState extends State<petDetail> with RouteAware {
   }
 
   @override
-  void didPush() {
+  void didPush() async {
     print("********* DID PUSH");
-    //widget.userID = widget.server.getUser().toString();
-    //widget.isFavorite =
-    //    widget.server.isFavorite(widget.userID, widget.petID) as bool;
-
+    widget.userID = await widget.server.getUser();
+    widget.isLiked =
+        await widget.server.isFavorite(widget.userID, widget.petID);
+    print("isLiked = ${widget.isLiked}");
     print('HomePage: Called didPush');
     super.didPush();
   }
@@ -67,11 +67,14 @@ class petDetailState extends State<petDetail> with RouteAware {
   @override
   void didPop() {
     print("******** DID POP");
-    //if (widget.isFavorite) {
-    //  widget.server.favoritePet(widget.userID, widget.petID);
-    //} else {
-    //  widget.server.unfavoritePet(widget.userID, widget.petID);
-    //}
+    print("IsLiked=${widget.isLiked}");
+    if (widget.isLiked) {
+      print("unfavoritePet called");
+      widget.server.unfavoritePet(widget.userID, widget.petID);
+    } else {
+      print("favoritePet called");
+      widget.server.favoritePet(widget.userID, widget.petID);
+    }
     print('HomePage: Called didPop');
     super.didPop();
   }
@@ -116,6 +119,7 @@ class petDetailState extends State<petDetail> with RouteAware {
 
   selectedIndexChanged(int _selectedIndex) {
     setState(() {
+      buttonChangedHighlight.add(_selectedIndex);
       selectedImage = _selectedIndex;
     });
   }
@@ -177,6 +181,44 @@ class petDetailState extends State<petDetail> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    String serveAreas = "Please contact shelter for details.";
+    String about = "Please contact shelter for details.";
+    String services = "Please contact shelter for details.";
+    String adoptionProcess = "Please contact shelter for details.";
+    String meetPets = "Please contact shelter for details.";
+    String adoptionUrl = "Not Available.";
+    String donationUrl = "Not Available.";
+    String sponsorshipUrl = "Not Available.";
+    String facebookUrl = "Not Available.";
+    String rescueOrgID = "?";
+    String animalID = "?";
+
+    if (shelterDetailInstance != null &&
+        shelterDetailInstance!.data != null &&
+        shelterDetailInstance!.data!.isNotEmpty &&
+        shelterDetailInstance!.data![0].attributes != null) {
+      Attributes detail = shelterDetailInstance!.data![0].attributes!;
+      animalID = petDetailInstance?.id ?? "?";
+      rescueOrgID = shelterDetailInstance!.data![0].id ?? "?";
+      serveAreas = detail.serveAreas ?? "Please contact shelter for details.";
+      about = detail.about ?? "Please contact shelter for details.";
+      services = detail.services ?? "Please contact shelter for details.";
+      adoptionProcess =
+          detail.adoptionProcess ?? "Please contact shelter for details.";
+      meetPets = detail.meetPets ?? "Please contact shelter for details.";
+      facebookUrl = (detail.facebookUrl != null)
+          ? "<a href='${detail.facebookUrl}'>${detail.facebookUrl}</a>"
+          : "Not Available.";
+      adoptionUrl = (detail.adoptionUrl != null)
+          ? "<a href='${detail.adoptionUrl}'>${detail.adoptionUrl}</a>"
+          : "Not Available.";
+      donationUrl = (detail.donationUrl != null)
+          ? "<a href='${detail.donationUrl}'>${detail.donationUrl}</a>"
+          : "Not Available.";
+      sponsorshipUrl = (detail.sponsorshipUrl != null)
+          ? "<a href='${detail.sponsorshipUrl}'>${detail.sponsorshipUrl}</a>"
+          : "Not Available.";
+    }
     return Scaffold(
       appBar:
           AppBar(title: Text(petDetailInstance?.name ?? ""), actions: <Widget>[
@@ -184,14 +226,19 @@ class petDetailState extends State<petDetail> with RouteAware {
             padding: EdgeInsets.only(right: 10.0),
             child: GestureDetector(
               onTap: () {
-                widget.isFavorite = !widget.isFavorite;
+                setState(() {
+                  if (widget.isLiked == true) {
+                    widget.isLiked = false;
+                  } else if (widget.isLiked == false) {
+                    widget.isLiked = true;
+                  }
+                });
               },
               child: LikeButton(
                   size: 40,
-                  isLiked: widget.isFavorite,
+                  isLiked: widget.isLiked,
                   likeBuilder: (isLiked) {
-                    final color =
-                        widget.isFavorite ? Colors.red : Colors.blueGrey;
+                    final color = isLiked ? Colors.red : Colors.blueGrey;
                     return Icon(Icons.favorite, color: color, size: 40);
                   }),
             ))
@@ -342,43 +389,66 @@ class petDetailState extends State<petDetail> with RouteAware {
                 ),
               ),
               const SizedBox(height: 20),
-              Center(
-                child: Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(
-                          color: const Color.fromARGB(184, 111, 97, 97)),
-                      color: const Color.fromARGB(255, 225, 215, 215),
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(20))),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Description",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.grey),
-                        textAlign: TextAlign.left,
-                      ),
-                      Divider(
-                        thickness: 1,
-                        color: Colors.grey[100],
-                      ),
-                      LinkifyText(
-                        petDetailInstance?.description ?? "",
-                        fontSize: 15.0,
-                        linkColor: Colors.blue,
-                        fontColor: Colors.black,
-                        fontWeight: FontWeight.w500,
-                        isLinkNavigationEnable: true,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              textBox("Description", petDetailInstance?.description ?? ""),
+              const SizedBox(height: 20),
+              textBox("Serves Area", serveAreas),
+              const SizedBox(height: 20),
+              textBox("About", about),
+              const SizedBox(height: 20),
+              textBox("Services", services),
+              const SizedBox(height: 20),
+              textBox("Adoption Process", adoptionProcess),
+              const SizedBox(height: 20),
+              textBox("Meet Pets", meetPets),
+              const SizedBox(height: 20),
+              textBox("Adoption Url", adoptionUrl),
+              const SizedBox(height: 20),
+              textBox("Facebook Url", facebookUrl),
+              const SizedBox(height: 20),
+              textBox("Donation Url", donationUrl),
+              const SizedBox(height: 20),
+              textBox("Sponsorship Url", sponsorshipUrl)
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget textBox(String title, String textBlock) {
+    var document = parseFragment(textBlock);
+    var textString = document.text ?? "";
+
+    return Center(
+      child: Container(
+        decoration: BoxDecoration(
+            border: Border.all(color: const Color.fromARGB(184, 111, 97, 97)),
+            color: const Color.fromARGB(255, 225, 215, 215),
+            borderRadius: const BorderRadius.all(Radius.circular(20))),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.grey),
+              textAlign: TextAlign.left,
+            ),
+            Divider(
+              thickness: 1,
+              color: Colors.grey[100],
+            ),
+            LinkifyText(
+              textString,
+              fontSize: 15.0,
+              linkColor: Colors.blue,
+              fontColor: Colors.black,
+              fontWeight: FontWeight.w500,
+              isLinkNavigationEnable: true,
+            ),
+          ],
         ),
       ),
     );

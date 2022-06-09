@@ -123,17 +123,19 @@ Choice('Very Well', 5, 5, 2),
 Question(11, 'Build', 'What body type should your cat be?', 14, 12, 'Build', true, 
 [
 Choice('Doesn''t Matter', 1, 7, 1),
-Choice('Oriental', 1, 1, 2),
-Choice('Foreign', 2, 2, 3),
+//Choice('Oriental', 1, 1, 2),
+Choice('Foreign/Oriental', 2, 2, 3),
 Choice('Semi-Foreign', 3, 3, 4),
 Choice('Semi-Coby', 4, 4, 5),
 Choice('Cobby', 5, 5, 6),
 Choice('Drawf', 6, 6, 7),
+/*
 Choice('Large', 7, 7, 7),
 Choice('Medium', 8, 8, 8),
 Choice('Moderate', 9, 9, 9),
 Choice('Normal', 10, 10, 10),
 Choice('Small', 11, 11, 11),
+*/
 ]),
 Question(12, 'Hair Type', 'What type of coat should your cat have?', 15, 13, 'Type of Hair', true, 
 [

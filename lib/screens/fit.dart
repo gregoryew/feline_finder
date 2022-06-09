@@ -207,9 +207,10 @@ class FitState extends State<Fit> {
                     Text(question.description,
                         style: const TextStyle(fontSize: 10)),
                     const SizedBox(height: 20),
-                    Image(
-                        image: AssetImage(
-                            "assets/Animation/${question.imageName}")),
+                    SizedBox(
+                        width: 200,
+                        height: 200,
+                        child: Image(image: getExampleImage(question))),
                   ],
                 ),
               ),
@@ -220,7 +221,34 @@ class FitState extends State<Fit> {
     );
   }
 
-//Animation/${question.imageName}
+  AssetImage getExampleImage(Question q) {
+    switch (q.id) {
+      case 11:
+        {
+          return AssetImage(
+              "assets/Fit_Examples/Body/${q.choices[_sliderValue[q.id]].name.replaceAll("/", "-")}.png");
+        }
+      case 12:
+        {
+          return AssetImage(
+              "assets/Fit_Examples/Hair/${q.choices[_sliderValue[q.id]].name.replaceAll(" ", "_")}.png");
+        }
+      case 14:
+        {
+          if (q.id == 1) {
+            return AssetImage(
+                "assets/Fit_Examples/Zodicat/${q.choices[_sliderValue[q.id]].name}.jpg");
+          } else {
+            return AssetImage(
+                "assets/Fit_Examples/Zodicat/${q.choices[_sliderValue[q.id]].name}.png");
+          }
+        }
+      default:
+        {
+          return AssetImage("assets/Animation/${q.imageName}");
+        }
+    }
+  }
 
   Widget buildMatches() {
     return ListView.builder(

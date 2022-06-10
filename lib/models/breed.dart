@@ -16,43 +16,70 @@ class Breed {
   Color backgroundColor;
   List<StatValue> stats;
 
-  Breed(this.id,
-  this.name, 
-  this.sortOrder, 
-  this.htmlUrl,
-  this.pictureHeadShotName,
-  this.crossRefBreedID,
-  this.fullSizedPicture,
-  this.youTubeURL,
-  this.cats101URL,
-  this.playListID,
-  this.rid,
-  this.percentMatch,
-  this.backgroundColor,
-  this.stats);
+  Breed(
+      this.id,
+      this.name,
+      this.sortOrder,
+      this.htmlUrl,
+      this.pictureHeadShotName,
+      this.crossRefBreedID,
+      this.fullSizedPicture,
+      this.youTubeURL,
+      this.cats101URL,
+      this.playListID,
+      this.rid,
+      this.percentMatch,
+      this.backgroundColor,
+      this.stats);
+}
 
-static List<Breed> breeds = [
-Breed(1, 'Abyssinian', 1, 'https://en.wikipedia.org/wiki/Abyssinian_cat', 'Abyssinian', 1, 'Abyssinian Full', 'hTz3eysKeBs', 'https://www.youtube.com/watch?v=7jZ9CGARwEs', 'PLrrwGtN2q9fDIt62ltVoOU4GmUOB4TlWo', 1, 1.0, Colors.white,
-[
-    StatValue('Energy Level', true, 5),
-    StatValue('Fun-loving', true, 5),
-    StatValue('TLC', true, 4),
-    StatValue('Companion', true, 3),
-    StatValue('"Talkative"', true, 1),
-    StatValue('Willingness to be petted', true, 1),
-    StatValue('Brains', true, 4),
-    StatValue('Fitness', true, 2),
-    StatValue('Grooming Needs', true, 2),
-    StatValue('Good with Children', true, 2),
-    StatValue('Good with other pets', true, 3),
-    StatValue('Build', false, 3),
-    StatValue('Hair Type', false, 2),
-    StatValue('Size', false, 2),
-    StatValue('Zodicat', false, 7),
-],
-),
-Breed(2, 'American Curl', 3, 'https://en.wikipedia.org/wiki/American_Curl', 'American Curl', 2, 'American Curl Full', '7eEELTmdQag', 'https://www.youtube.com/watch?v=tjDhGwV7tgc', 'PLrrwGtN2q9fDgEz0t1pqmNHLoH3eIQFv1', 2, 1.0, Colors.white,
-[
+List<Breed> breeds = [
+  Breed(
+    1,
+    'Abyssinian',
+    1,
+    'https://en.wikipedia.org/wiki/Abyssinian_cat',
+    'Abyssinian',
+    1,
+    'Abyssinian Full',
+    'hTz3eysKeBs',
+    'https://www.youtube.com/watch?v=7jZ9CGARwEs',
+    'PLrrwGtN2q9fDIt62ltVoOU4GmUOB4TlWo',
+    1,
+    1.0,
+    Colors.white,
+    [
+      StatValue('Energy Level', true, 5),
+      StatValue('Fun-loving', true, 5),
+      StatValue('TLC', true, 4),
+      StatValue('Companion', true, 3),
+      StatValue('"Talkative"', true, 1),
+      StatValue('Willingness to be petted', true, 1),
+      StatValue('Brains', true, 4),
+      StatValue('Fitness', true, 2),
+      StatValue('Grooming Needs', true, 2),
+      StatValue('Good with Children', true, 2),
+      StatValue('Good with other pets', true, 3),
+      StatValue('Build', false, 3),
+      StatValue('Hair Type', false, 2),
+      StatValue('Size', false, 2),
+      StatValue('Zodicat', false, 7),
+    ],
+  ),
+  Breed(
+      2,
+      'American Curl',
+      3,
+      'https://en.wikipedia.org/wiki/American_Curl',
+      'American Curl',
+      2,
+      'American Curl Full',
+      '7eEELTmdQag',
+      'https://www.youtube.com/watch?v=tjDhGwV7tgc',
+      'PLrrwGtN2q9fDgEz0t1pqmNHLoH3eIQFv1',
+      2,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -68,10 +95,21 @@ Breed(2, 'American Curl', 3, 'https://en.wikipedia.org/wiki/American_Curl', 'Ame
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 12),
-]
-),
-Breed(3, 'American Shorthair', 4, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'UN4tM2T8EGo', 'https://www.youtube.com/watch?v=8z5jTGFBdZw', 'PLrrwGtN2q9fCzanQL9esPSPTpv4XWJRM8', 3, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      3,
+      'American Shorthair',
+      4,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'UN4tM2T8EGo',
+      'https://www.youtube.com/watch?v=8z5jTGFBdZw',
+      'PLrrwGtN2q9fCzanQL9esPSPTpv4XWJRM8',
+      3,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -87,10 +125,21 @@ Breed(3, 'American Shorthair', 4, 'https://en.wikipedia.org/wiki/American_Shorth
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(4, 'American Wirehair', 5, 'https://en.wikipedia.org/wiki/American_Wirehair', 'American Wirehair', 6, 'American Wirehair Full', 'ZqIQhXIvqeE', 'https://www.youtube.com/watch?v=sr_QqTDhQmA', 'PLrrwGtN2q9fDd4Pn6p_VzceV760aakZ6s', 4, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      4,
+      'American Wirehair',
+      5,
+      'https://en.wikipedia.org/wiki/American_Wirehair',
+      'American Wirehair',
+      6,
+      'American Wirehair Full',
+      'ZqIQhXIvqeE',
+      'https://www.youtube.com/watch?v=sr_QqTDhQmA',
+      'PLrrwGtN2q9fDd4Pn6p_VzceV760aakZ6s',
+      4,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -106,10 +155,21 @@ Breed(4, 'American Wirehair', 5, 'https://en.wikipedia.org/wiki/American_Wirehai
     StatValue('Hair Type', false, 3),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 11),
-]
-),
-Breed(5, 'Applehead Siamese', 6, 'https://en.wikipedia.org/wiki/Siamese_cat', 'Siamese', 31, 'Siamese Full', 'u7MMKAE2xnM', 'https://www.youtube.com/watch?v=G4PmBnCZwvA', 'PLrrwGtN2q9fALVoa3-3aGkcUxtba1X78P', 6, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      5,
+      'Applehead Siamese',
+      6,
+      'https://en.wikipedia.org/wiki/Siamese_cat',
+      'Siamese',
+      31,
+      'Siamese Full',
+      'u7MMKAE2xnM',
+      'https://www.youtube.com/watch?v=G4PmBnCZwvA',
+      'PLrrwGtN2q9fALVoa3-3aGkcUxtba1X78P',
+      6,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 2),
     StatValue('TLC', true, 1),
@@ -125,10 +185,21 @@ Breed(5, 'Applehead Siamese', 6, 'https://en.wikipedia.org/wiki/Siamese_cat', 'S
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 1),
-]
-),
-Breed(6, 'Balinese', 7, 'https://en.wikipedia.org/wiki/Balinese_cat', 'Balinese', 5, 'Balinese Full', 'nX2CV2V2zDs', 'https://www.youtube.com/watch?v=syqPBZp2l0Q', 'PLrrwGtN2q9fBQXTJNCqAAGrGVvo0SbUie', 7, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      6,
+      'Balinese',
+      7,
+      'https://en.wikipedia.org/wiki/Balinese_cat',
+      'Balinese',
+      5,
+      'Balinese Full',
+      'nX2CV2V2zDs',
+      'https://www.youtube.com/watch?v=syqPBZp2l0Q',
+      'PLrrwGtN2q9fBQXTJNCqAAGrGVvo0SbUie',
+      7,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -144,10 +215,21 @@ Breed(6, 'Balinese', 7, 'https://en.wikipedia.org/wiki/Balinese_cat', 'Balinese'
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 5),
-]
-),
-Breed(7, 'Bengal', 8, 'https://en.wikipedia.org/wiki/Bengal_cat', 'Bengal', 4, 'Bengal Full', 'Q6KSn1kY3kE', 'https://www.youtube.com/watch?v=yc8yHE8d3zY', 'PLrrwGtN2q9fBqPIdQ6MOyXEyh7xFcmGbF', 8, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      7,
+      'Bengal',
+      8,
+      'https://en.wikipedia.org/wiki/Bengal_cat',
+      'Bengal',
+      4,
+      'Bengal Full',
+      'Q6KSn1kY3kE',
+      'https://www.youtube.com/watch?v=yc8yHE8d3zY',
+      'PLrrwGtN2q9fBqPIdQ6MOyXEyh7xFcmGbF',
+      8,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -163,10 +245,21 @@ Breed(7, 'Bengal', 8, 'https://en.wikipedia.org/wiki/Bengal_cat', 'Bengal', 4, '
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 7),
-]
-),
-Breed(8, 'Birman', 9, 'https://en.wikipedia.org/wiki/Birman', 'Birman', 3, 'Birman Full', 'BZfSVWwqLjI', 'https://www.youtube.com/watch?v=ReH_WO3UgUA', 'PLrrwGtN2q9fBmnGQk5oCWWy5zpMfLe-9b', 9, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      8,
+      'Birman',
+      9,
+      'https://en.wikipedia.org/wiki/Birman',
+      'Birman',
+      3,
+      'Birman Full',
+      'BZfSVWwqLjI',
+      'https://www.youtube.com/watch?v=ReH_WO3UgUA',
+      'PLrrwGtN2q9fBmnGQk5oCWWy5zpMfLe-9b',
+      9,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 4),
@@ -182,10 +275,21 @@ Breed(8, 'Birman', 9, 'https://en.wikipedia.org/wiki/Birman', 'Birman', 3, 'Birm
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 1),
-]
-),
-Breed(9, 'Bobtail', 10, 'https://en.wikipedia.org/wiki/American_Bobtail', 'Bobtail', 40, 'Bobtail Full', 'AViY4kPSC_o', 'http://www.animalplanet.com/tv-shows/cats-101/videos/american-bobtail/', 'PLrrwGtN2q9fAnnYXn4S_KdtX5ydMNaWsf', 10, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      9,
+      'Bobtail',
+      10,
+      'https://en.wikipedia.org/wiki/American_Bobtail',
+      'Bobtail',
+      40,
+      'Bobtail Full',
+      'AViY4kPSC_o',
+      'http://www.animalplanet.com/tv-shows/cats-101/videos/american-bobtail/',
+      'PLrrwGtN2q9fAnnYXn4S_KdtX5ydMNaWsf',
+      10,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -201,10 +305,21 @@ Breed(9, 'Bobtail', 10, 'https://en.wikipedia.org/wiki/American_Bobtail', 'Bobta
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 6),
-]
-),
-Breed(10, 'Bombay', 11, 'https://en.wikipedia.org/wiki/Bombay_cat', 'Bombay', 8, 'Bombay Full', 'X6OQ3llu-7E', 'https://www.youtube.com/watch?v=64uA_yxE8b4', 'PLrrwGtN2q9fC-UO8mU_1XRXuONoxi2RPl', 11, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      10,
+      'Bombay',
+      11,
+      'https://en.wikipedia.org/wiki/Bombay_cat',
+      'Bombay',
+      8,
+      'Bombay Full',
+      'X6OQ3llu-7E',
+      'https://www.youtube.com/watch?v=64uA_yxE8b4',
+      'PLrrwGtN2q9fC-UO8mU_1XRXuONoxi2RPl',
+      11,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -220,10 +335,21 @@ Breed(10, 'Bombay', 11, 'https://en.wikipedia.org/wiki/Bombay_cat', 'Bombay', 8,
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 12),
-]
-),
-Breed(11, 'British Shorthair', 12, 'https://en.wikipedia.org/wiki/British_Shorthair', 'British Shorthair', 9, 'British Shorthair Full', 'JxFYS3LzDPA', 'http://www.animalplanet.com/tv-shows/cats-101/videos/cats-101videosbritish-shorthair/', 'PLrrwGtN2q9fDVNqEKa7wGpBa6UJQNI1fw', 12, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      11,
+      'British Shorthair',
+      12,
+      'https://en.wikipedia.org/wiki/British_Shorthair',
+      'British Shorthair',
+      9,
+      'British Shorthair Full',
+      'JxFYS3LzDPA',
+      'http://www.animalplanet.com/tv-shows/cats-101/videos/cats-101videosbritish-shorthair/',
+      'PLrrwGtN2q9fDVNqEKa7wGpBa6UJQNI1fw',
+      12,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 1),
@@ -239,10 +365,21 @@ Breed(11, 'British Shorthair', 12, 'https://en.wikipedia.org/wiki/British_Shorth
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 10),
-]
-),
-Breed(12, 'Burmese', 13, 'https://en.wikipedia.org/wiki/Burmese_cat', 'Burmese', 14, 'Burmese Full', '-ddyL3-wi6Y', 'https://www.youtube.com/watch?v=5-a332qim0Q', 'PLrrwGtN2q9fB93sCTFsTE-7WuNA922V-q', 13, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      12,
+      'Burmese',
+      13,
+      'https://en.wikipedia.org/wiki/Burmese_cat',
+      'Burmese',
+      14,
+      'Burmese Full',
+      '-ddyL3-wi6Y',
+      'https://www.youtube.com/watch?v=5-a332qim0Q',
+      'PLrrwGtN2q9fB93sCTFsTE-7WuNA922V-q',
+      13,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -258,10 +395,21 @@ Breed(12, 'Burmese', 13, 'https://en.wikipedia.org/wiki/Burmese_cat', 'Burmese',
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 3),
-]
-),
-Breed(13, 'Burmilla', 14, 'https://en.wikipedia.org/wiki/Burmilla', 'Burmilla', 14, 'Burmilla Full', 'iLt-Ll45aVo', 'https://www.youtube.com/watch?v=Bu-Mfi1y7Kk', 'PLrrwGtN2q9fDflhrkfX2d8JR31N2ydEPZ', 14, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      13,
+      'Burmilla',
+      14,
+      'https://en.wikipedia.org/wiki/Burmilla',
+      'Burmilla',
+      14,
+      'Burmilla Full',
+      'iLt-Ll45aVo',
+      'https://www.youtube.com/watch?v=Bu-Mfi1y7Kk',
+      'PLrrwGtN2q9fDflhrkfX2d8JR31N2ydEPZ',
+      14,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -277,10 +425,21 @@ Breed(13, 'Burmilla', 14, 'https://en.wikipedia.org/wiki/Burmilla', 'Burmilla', 
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 11),
-]
-),
-Breed(14, 'Calico', 15, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'ZOCkAwFerqY', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fCKlvy1kiF_gOacs1PdTLo-', 15, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      14,
+      'Calico',
+      15,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'ZOCkAwFerqY',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fCKlvy1kiF_gOacs1PdTLo-',
+      15,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -296,11 +455,22 @@ Breed(14, 'Calico', 15, 'https://en.wikipedia.org/wiki/American_Shorthair', 'Ame
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 5),
-]
-),
+  ]),
 //Not found
-Breed(15, 'Canadian Hairless', 16, 'https://en.wikipedia.org/wiki/Sphynx_cat', 'Sphynx', 34, 'Sphynx Full', 'y-pUGcrz2XI', 'https://www.youtube.com/watch?v=iuOvHDhMJ-A', 'PLrrwGtN2q9fASUWA5W7cO1coNen9qydyo', 16, 1.0, Colors.white,
-[
+  Breed(
+      15,
+      'Canadian Hairless',
+      16,
+      'https://en.wikipedia.org/wiki/Sphynx_cat',
+      'Sphynx',
+      34,
+      'Sphynx Full',
+      'y-pUGcrz2XI',
+      'https://www.youtube.com/watch?v=iuOvHDhMJ-A',
+      'PLrrwGtN2q9fASUWA5W7cO1coNen9qydyo',
+      16,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 1),
     StatValue('TLC', true, 1),
@@ -316,10 +486,21 @@ Breed(15, 'Canadian Hairless', 16, 'https://en.wikipedia.org/wiki/Sphynx_cat', '
     StatValue('Hair Type', false, 1),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 8),
-]
-),
-Breed(16, 'Chartreux', 17, 'https://en.wikipedia.org/wiki/Chartreux', 'Chartreux', 13, 'Chartreux Full', 'ZYyYWDOJsiw', 'https://www.youtube.com/watch?v=g-piXXEGKME', 'PLrrwGtN2q9fChwIQiCTm9CkqPFqXXFRuL', 597, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      16,
+      'Chartreux',
+      17,
+      'https://en.wikipedia.org/wiki/Chartreux',
+      'Chartreux',
+      13,
+      'Chartreux Full',
+      'ZYyYWDOJsiw',
+      'https://www.youtube.com/watch?v=g-piXXEGKME',
+      'PLrrwGtN2q9fChwIQiCTm9CkqPFqXXFRuL',
+      597,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -335,10 +516,21 @@ Breed(16, 'Chartreux', 17, 'https://en.wikipedia.org/wiki/Chartreux', 'Chartreux
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 12),
-]
-),
-Breed(17, 'Chausie', 18, 'https://en.wikipedia.org/wiki/Chausie', 'Chausie', 1, 'Chausie Full', 'GUL117WoEno', 'https://www.youtube.com/watch?v=wk24F8orbGc', 'PLrrwGtN2q9fChLeCVhvAKIrAUl2IIZ2MZ', 17, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      17,
+      'Chausie',
+      18,
+      'https://en.wikipedia.org/wiki/Chausie',
+      'Chausie',
+      1,
+      'Chausie Full',
+      'GUL117WoEno',
+      'https://www.youtube.com/watch?v=wk24F8orbGc',
+      'PLrrwGtN2q9fChLeCVhvAKIrAUl2IIZ2MZ',
+      17,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -354,11 +546,22 @@ Breed(17, 'Chausie', 18, 'https://en.wikipedia.org/wiki/Chausie', 'Chausie', 1, 
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 5),
-]
-),
+  ]),
 // Not found
-Breed(18, 'Chinchilla', 19, 'https://en.wikipedia.org/wiki/Chantilly-Tiffany', 'Persian', 27, 'Persian Full', 'lbUBpTC1wOQ', 'http://www.animalplanet.com/tv-shows/cats-101/videos/persian/', 'PLrrwGtN2q9fDVL5HQpgWa1MYjSTIhhI16', 19, 1.0, Colors.white,
-[
+  Breed(
+      18,
+      'Chinchilla',
+      19,
+      'https://en.wikipedia.org/wiki/Chantilly-Tiffany',
+      'Persian',
+      27,
+      'Persian Full',
+      'lbUBpTC1wOQ',
+      'http://www.animalplanet.com/tv-shows/cats-101/videos/persian/',
+      'PLrrwGtN2q9fDVL5HQpgWa1MYjSTIhhI16',
+      19,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 1),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -374,10 +577,21 @@ Breed(18, 'Chinchilla', 19, 'https://en.wikipedia.org/wiki/Chantilly-Tiffany', '
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 8),
-]
-),
-Breed(19, 'Cornish Rex', 20, 'https://en.wikipedia.org/wiki/Cornish_Rex', 'Cornish Rex', 12, 'Cornish Rex Full', 'LZMuf4LIglU', 'https://www.youtube.com/watch?v=FwJ5gQDLoHs', 'PLrrwGtN2q9fCir0R28TVIfgpTExied6L7', 20, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      19,
+      'Cornish Rex',
+      20,
+      'https://en.wikipedia.org/wiki/Cornish_Rex',
+      'Cornish Rex',
+      12,
+      'Cornish Rex Full',
+      'LZMuf4LIglU',
+      'https://www.youtube.com/watch?v=FwJ5gQDLoHs',
+      'PLrrwGtN2q9fCir0R28TVIfgpTExied6L7',
+      20,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -393,10 +607,21 @@ Breed(19, 'Cornish Rex', 20, 'https://en.wikipedia.org/wiki/Cornish_Rex', 'Corni
     StatValue('Hair Type', false, 3),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(20, 'Cymric', 21, 'https://en.wikipedia.org/wiki/Cymric_cat', 'Cymric', 11, 'Cymric Full', 'wNZcOqLthDM', 'https://www.youtube.com/watch?v=N58qXWEdznY', 'PLrrwGtN2q9fDeSM3HwO5FdPSepjmSubau', 21, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      20,
+      'Cymric',
+      21,
+      'https://en.wikipedia.org/wiki/Cymric_cat',
+      'Cymric',
+      11,
+      'Cymric Full',
+      'wNZcOqLthDM',
+      'https://www.youtube.com/watch?v=N58qXWEdznY',
+      'PLrrwGtN2q9fDeSM3HwO5FdPSepjmSubau',
+      21,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -412,10 +637,21 @@ Breed(20, 'Cymric', 21, 'https://en.wikipedia.org/wiki/Cymric_cat', 'Cymric', 11
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 3),
-]
-),
-Breed(21, 'Devon Rex', 22, 'https://en.wikipedia.org/wiki/Devon_Rex', 'Devon Rex', 10, 'Devon Rex Full', 'WyH7vz9nin0', 'https://www.youtube.com/watch?v=oJ8f5wK4rqU', 'PLrrwGtN2q9fC9jVGD8zKMa-9uZmE56i_c', 22, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      21,
+      'Devon Rex',
+      22,
+      'https://en.wikipedia.org/wiki/Devon_Rex',
+      'Devon Rex',
+      10,
+      'Devon Rex Full',
+      'WyH7vz9nin0',
+      'https://www.youtube.com/watch?v=oJ8f5wK4rqU',
+      'PLrrwGtN2q9fC9jVGD8zKMa-9uZmE56i_c',
+      22,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -431,10 +667,21 @@ Breed(21, 'Devon Rex', 22, 'https://en.wikipedia.org/wiki/Devon_Rex', 'Devon Rex
     StatValue('Hair Type', false, 3),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(22, 'Dilute Calico', 23, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'UN4tM2T8EGo', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fCKlvy1kiF_gOacs1PdTLo-', 426, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      22,
+      'Dilute Calico',
+      23,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'UN4tM2T8EGo',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fCKlvy1kiF_gOacs1PdTLo-',
+      426,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -450,12 +697,23 @@ Breed(22, 'Dilute Calico', 23, 'https://en.wikipedia.org/wiki/American_Shorthair
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 5),
-]
-),
+  ]),
 //Not found
-Breed(23, 'Dilute Tortoiseshell', 24, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'UN4tM2T8EGo', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fC7HzVI70t4BbL60cUYZut_', 23, 1.0, Colors.white,
-[
-      StatValue('Energy Level', true, 2),
+  Breed(
+      23,
+      'Dilute Tortoiseshell',
+      24,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'UN4tM2T8EGo',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fC7HzVI70t4BbL60cUYZut_',
+      23,
+      1.0,
+      Colors.white, [
+    StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
     StatValue('Companion', true, 2),
@@ -470,10 +728,21 @@ Breed(23, 'Dilute Tortoiseshell', 24, 'https://en.wikipedia.org/wiki/American_Sh
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(24, 'Domestic Long-hair', 25, 'https://en.wikipedia.org/wiki/Domestic_long-haired_cat', 'Domestic Long-hair', 7, 'Domestic Long-hair Full', 'CkdFg_cdLm4', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fAExJ1dcsppfvscO8GBeFi7', 24, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      24,
+      'Domestic Long-hair',
+      25,
+      'https://en.wikipedia.org/wiki/Domestic_long-haired_cat',
+      'Domestic Long-hair',
+      7,
+      'Domestic Long-hair Full',
+      'CkdFg_cdLm4',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fAExJ1dcsppfvscO8GBeFi7',
+      24,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -489,10 +758,21 @@ Breed(24, 'Domestic Long-hair', 25, 'https://en.wikipedia.org/wiki/Domestic_long
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(25, 'Domestic Medium-hair', 26, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', '87RUb18XDws', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fC11XAl1eNNdTNP20PsT76h', 29, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      25,
+      'Domestic Medium-hair',
+      26,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      '87RUb18XDws',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fC11XAl1eNNdTNP20PsT76h',
+      29,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -508,10 +788,21 @@ Breed(25, 'Domestic Medium-hair', 26, 'https://en.wikipedia.org/wiki/American_Sh
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(26, 'Domestic Short-hair', 27, 'https://en.wikipedia.org/wiki/Domestic_short-haired_cat', 'Domestic Short-hair', 7, 'Domestic Short-hair Full', 'BsBeP2tMl_c', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ', 35, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      26,
+      'Domestic Short-hair',
+      27,
+      'https://en.wikipedia.org/wiki/Domestic_short-haired_cat',
+      'Domestic Short-hair',
+      7,
+      'Domestic Short-hair Full',
+      'BsBeP2tMl_c',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      35,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -527,10 +818,21 @@ Breed(26, 'Domestic Short-hair', 27, 'https://en.wikipedia.org/wiki/Domestic_sho
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 11),
-]
-),
-Breed(27, 'Egyptian Mau', 28, 'https://en.wikipedia.org/wiki/Egyptian_Mau', 'Egyptian Mau', 16, 'Egyptian Mau Full', 'gIpmUCIJEXw', 'https://www.youtube.com/watch?v=60zcX3GijYQ', 'PLrrwGtN2q9fApLbwUwAXxqnINFMZFlUXN', 42, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      27,
+      'Egyptian Mau',
+      28,
+      'https://en.wikipedia.org/wiki/Egyptian_Mau',
+      'Egyptian Mau',
+      16,
+      'Egyptian Mau Full',
+      'gIpmUCIJEXw',
+      'https://www.youtube.com/watch?v=60zcX3GijYQ',
+      'PLrrwGtN2q9fApLbwUwAXxqnINFMZFlUXN',
+      42,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -546,10 +848,21 @@ Breed(27, 'Egyptian Mau', 28, 'https://en.wikipedia.org/wiki/Egyptian_Mau', 'Egy
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 7),
-]
-),
-Breed(28, 'Exotic Shorthair', 29, 'https://en.wikipedia.org/wiki/Exotic_Shorthair', 'Exotic Shorthair', 15, 'Exotic Shorthair Full', 'xhdo5BMUsvE', 'https://www.youtube.com/watch?v=tThHIWKL5Ts', 'PLrrwGtN2q9fCFbwDDDsfUV3wXiEmzpbm-', 43, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      28,
+      'Exotic Shorthair',
+      29,
+      'https://en.wikipedia.org/wiki/Exotic_Shorthair',
+      'Exotic Shorthair',
+      15,
+      'Exotic Shorthair Full',
+      'xhdo5BMUsvE',
+      'https://www.youtube.com/watch?v=tThHIWKL5Ts',
+      'PLrrwGtN2q9fCFbwDDDsfUV3wXiEmzpbm-',
+      43,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 1),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -565,10 +878,21 @@ Breed(28, 'Exotic Shorthair', 29, 'https://en.wikipedia.org/wiki/Exotic_Shorthai
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 1),
-]
-),
-Breed(29, 'Extra-Toes Cat (Hemingway Polydactyl)', 30, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'mUhe8PEbZck', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ', 437, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      29,
+      'Extra-Toes Cat (Hemingway Polydactyl)',
+      30,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'mUhe8PEbZck',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      437,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -584,10 +908,21 @@ Breed(29, 'Extra-Toes Cat (Hemingway Polydactyl)', 30, 'https://en.wikipedia.org
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 11),
-]
-),
-Breed(30, 'Havana', 31, 'https://en.wikipedia.org/wiki/Havana_Brown', 'Havana Brown', 18, 'Havana Brown Full', 'HKwMsbxC0RQ', 'https://www.youtube.com/watch?v=LMb9DQuCeAw', 'PLrrwGtN2q9fA8aRLGFWh9sVOp5l6tu0nH', 44, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      30,
+      'Havana',
+      31,
+      'https://en.wikipedia.org/wiki/Havana_Brown',
+      'Havana Brown',
+      18,
+      'Havana Brown Full',
+      'HKwMsbxC0RQ',
+      'https://www.youtube.com/watch?v=LMb9DQuCeAw',
+      'PLrrwGtN2q9fA8aRLGFWh9sVOp5l6tu0nH',
+      44,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 5),
@@ -603,10 +938,21 @@ Breed(30, 'Havana', 31, 'https://en.wikipedia.org/wiki/Havana_Brown', 'Havana Br
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 12),
-]
-),
-Breed(31, 'Himalayan', 32, 'https://en.wikipedia.org/wiki/Himalayan_cat', 'Himalayan', 17, 'Himalayan Full', 'crrnBA9weJI', 'https://www.youtube.com/watch?v=6s5PwEl1Ygs', 'PLrrwGtN2q9fAa306YWUJ8PYOdeWit9UBy', 45, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      31,
+      'Himalayan',
+      32,
+      'https://en.wikipedia.org/wiki/Himalayan_cat',
+      'Himalayan',
+      17,
+      'Himalayan Full',
+      'crrnBA9weJI',
+      'https://www.youtube.com/watch?v=6s5PwEl1Ygs',
+      'PLrrwGtN2q9fAa306YWUJ8PYOdeWit9UBy',
+      45,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 1),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 4),
@@ -622,10 +968,21 @@ Breed(31, 'Himalayan', 32, 'https://en.wikipedia.org/wiki/Himalayan_cat', 'Himal
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 8),
-]
-),
-Breed(32, 'Japanese Bobtail', 33, 'https://en.wikipedia.org/wiki/Japanese_Bobtail', 'Japanese Bobtail', 19, 'Japanese Bobtail Full', '7ILupJIPZI4', 'https://www.youtube.com/watch?v=Id5LsGabYGo', 'PLrrwGtN2q9fA-TXcSIa7RYUJ7YY1wIdX1', 46, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      32,
+      'Japanese Bobtail',
+      33,
+      'https://en.wikipedia.org/wiki/Japanese_Bobtail',
+      'Japanese Bobtail',
+      19,
+      'Japanese Bobtail Full',
+      '7ILupJIPZI4',
+      'https://www.youtube.com/watch?v=Id5LsGabYGo',
+      'PLrrwGtN2q9fA-TXcSIa7RYUJ7YY1wIdX1',
+      46,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -641,10 +998,21 @@ Breed(32, 'Japanese Bobtail', 33, 'https://en.wikipedia.org/wiki/Japanese_Bobtai
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 6),
-]
-),
-Breed(33, 'Javanese', 34, 'https://en.wikipedia.org/wiki/Javanese_cat', 'Javanese', 20, 'Javanese Full', 'x4XBEUO02vw', 'https://www.youtube.com/watch?v=py-np3C15YE', 'PLrrwGtN2q9fDvvXfyLJT-uisxLLPEvQHB', 438, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      33,
+      'Javanese',
+      34,
+      'https://en.wikipedia.org/wiki/Javanese_cat',
+      'Javanese',
+      20,
+      'Javanese Full',
+      'x4XBEUO02vw',
+      'https://www.youtube.com/watch?v=py-np3C15YE',
+      'PLrrwGtN2q9fDvvXfyLJT-uisxLLPEvQHB',
+      438,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -660,10 +1028,21 @@ Breed(33, 'Javanese', 34, 'https://en.wikipedia.org/wiki/Javanese_cat', 'Javanes
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 1),
-]
-),
-Breed(34, 'Korat', 35, 'https://en.wikipedia.org/wiki/Korat', 'Korat', 21, 'Korat Full', 'KfU5I7DA3q4', 'https://www.youtube.com/watch?v=GN6za4hyELg', 'PLrrwGtN2q9fAK_EAirdi4j-htBkssQ9Og', 47, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      34,
+      'Korat',
+      35,
+      'https://en.wikipedia.org/wiki/Korat',
+      'Korat',
+      21,
+      'Korat Full',
+      'KfU5I7DA3q4',
+      'https://www.youtube.com/watch?v=GN6za4hyELg',
+      'PLrrwGtN2q9fAK_EAirdi4j-htBkssQ9Og',
+      47,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -679,10 +1058,21 @@ Breed(34, 'Korat', 35, 'https://en.wikipedia.org/wiki/Korat', 'Korat', 21, 'Kora
     StatValue('Hair Type', false, 3),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 12),
-]
-),
-Breed(35, 'LaPerm', 36, 'https://en.wikipedia.org/wiki/LaPerm', 'LaPerm', 43, 'LaPerm Full', 'aDTpLE_KULw', 'https://www.youtube.com/watch?v=qR1760oJGOk', 'PLrrwGtN2q9fDUZpBUND6pCS5Ly_UjeboQ', 439, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      35,
+      'LaPerm',
+      36,
+      'https://en.wikipedia.org/wiki/LaPerm',
+      'LaPerm',
+      43,
+      'LaPerm Full',
+      'aDTpLE_KULw',
+      'https://www.youtube.com/watch?v=qR1760oJGOk',
+      'PLrrwGtN2q9fDUZpBUND6pCS5Ly_UjeboQ',
+      439,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -698,10 +1088,21 @@ Breed(35, 'LaPerm', 36, 'https://en.wikipedia.org/wiki/LaPerm', 'LaPerm', 43, 'L
     StatValue('Hair Type', false, 3),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(36, 'Maine Coon', 37, 'https://en.wikipedia.org/wiki/Maine_Coon', 'Maine Coon', 22, 'Maine Coon Full', 'srPgMgXruM8', 'https://www.youtube.com/watch?v=meRJKMENg5s', 'PLrrwGtN2q9fBuxcRlIn3gnAaHDWq827Om', 48, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      36,
+      'Maine Coon',
+      37,
+      'https://en.wikipedia.org/wiki/Maine_Coon',
+      'Maine Coon',
+      22,
+      'Maine Coon Full',
+      'srPgMgXruM8',
+      'https://www.youtube.com/watch?v=meRJKMENg5s',
+      'PLrrwGtN2q9fBuxcRlIn3gnAaHDWq827Om',
+      48,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 2),
@@ -717,10 +1118,21 @@ Breed(36, 'Maine Coon', 37, 'https://en.wikipedia.org/wiki/Maine_Coon', 'Maine C
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 6),
-]
-),
-Breed(37, 'Manx', 38, 'https://en.wikipedia.org/wiki/Manx_cat', 'Manx', 23, 'Manx Full', 'QnFfR-mcEQ8', 'https://www.youtube.com/watch?v=N58qXWEdznY', 'PLrrwGtN2q9fAAWJ0wsfCgKi9CFRR0gfxI', 49, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      37,
+      'Manx',
+      38,
+      'https://en.wikipedia.org/wiki/Manx_cat',
+      'Manx',
+      23,
+      'Manx Full',
+      'QnFfR-mcEQ8',
+      'https://www.youtube.com/watch?v=N58qXWEdznY',
+      'PLrrwGtN2q9fAAWJ0wsfCgKi9CFRR0gfxI',
+      49,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -736,10 +1148,21 @@ Breed(37, 'Manx', 38, 'https://en.wikipedia.org/wiki/Manx_cat', 'Manx', 23, 'Man
     StatValue('Hair Type', false, 6),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 3),
-]
-),
-Breed(38, 'Munchkin', 39, 'https://en.wikipedia.org/wiki/Munchkin_cat', 'Munchkin', 41, 'Munchkin Full', 'tBw-mJUKCng', 'https://www.youtube.com/watch?v=0tHRYsnItlM', 'PLrrwGtN2q9fBJVvyj-qKIDzzA1qqoetKw', 440, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      38,
+      'Munchkin',
+      39,
+      'https://en.wikipedia.org/wiki/Munchkin_cat',
+      'Munchkin',
+      41,
+      'Munchkin Full',
+      'tBw-mJUKCng',
+      'https://www.youtube.com/watch?v=0tHRYsnItlM',
+      'PLrrwGtN2q9fBJVvyj-qKIDzzA1qqoetKw',
+      440,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -755,10 +1178,21 @@ Breed(38, 'Munchkin', 39, 'https://en.wikipedia.org/wiki/Munchkin_cat', 'Munchki
     StatValue('Hair Type', false, 6),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 5),
-]
-),
-Breed(39, 'Nebelung', 40, 'https://en.wikipedia.org/wiki/Nebelung', 'Nebelung', 42, 'Nebelung Full', 'YW2K-0MjRmk', 'https://www.youtube.com/watch?v=OTcXt_bkB0I', 'PLrrwGtN2q9fAJGSaCHrD-muelmainGTo7', 441, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      39,
+      'Nebelung',
+      40,
+      'https://en.wikipedia.org/wiki/Nebelung',
+      'Nebelung',
+      42,
+      'Nebelung Full',
+      'YW2K-0MjRmk',
+      'https://www.youtube.com/watch?v=OTcXt_bkB0I',
+      'PLrrwGtN2q9fAJGSaCHrD-muelmainGTo7',
+      441,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -774,10 +1208,21 @@ Breed(39, 'Nebelung', 40, 'https://en.wikipedia.org/wiki/Nebelung', 'Nebelung', 
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 10),
-]
-),
-Breed(40, 'Norwegian Forest Cat', 41, 'https://en.wikipedia.org/wiki/Norwegian_Forest_cat', 'Norwegian Forest Cat', 24, 'Norwegian Forest Cat Full', '4rQKPQX90yU', 'https://www.youtube.com/watch?v=gvT8qy9DvaU', 'PLrrwGtN2q9fCYAeMsgooKFhtq3IZo1_-7', 50, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      40,
+      'Norwegian Forest Cat',
+      41,
+      'https://en.wikipedia.org/wiki/Norwegian_Forest_cat',
+      'Norwegian Forest Cat',
+      24,
+      'Norwegian Forest Cat Full',
+      '4rQKPQX90yU',
+      'https://www.youtube.com/watch?v=gvT8qy9DvaU',
+      'PLrrwGtN2q9fCYAeMsgooKFhtq3IZo1_-7',
+      50,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -793,10 +1238,21 @@ Breed(40, 'Norwegian Forest Cat', 41, 'https://en.wikipedia.org/wiki/Norwegian_F
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 8),
-]
-),
-Breed(41, 'Ocicat', 42, 'https://en.wikipedia.org/wiki/Ocicat', 'Ocicat', 25, 'Ocicat Full', 'csJY9KnwZi0', 'https://www.youtube.com/watch?v=lUHo4LOPivY', 'PLrrwGtN2q9fDgKF7ChaeECZr8gZRcfxxf', 51, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      41,
+      'Ocicat',
+      42,
+      'https://en.wikipedia.org/wiki/Ocicat',
+      'Ocicat',
+      25,
+      'Ocicat Full',
+      'csJY9KnwZi0',
+      'https://www.youtube.com/watch?v=lUHo4LOPivY',
+      'PLrrwGtN2q9fDgKF7ChaeECZr8gZRcfxxf',
+      51,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -812,10 +1268,21 @@ Breed(41, 'Ocicat', 42, 'https://en.wikipedia.org/wiki/Ocicat', 'Ocicat', 25, 'O
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 2),
-]
-),
-Breed(42, 'Oriental', 43, 'https://en.wikipedia.org/wiki/Oriental_Longhair', 'Oriental', 26, 'Oriental Full', '5uyVLLpw8t8', 'https://www.youtube.com/watch?v=nL1SoOsyRr8', 'PLrrwGtN2q9fC4aNHEujfdIL5pcNazm3yI', 52, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      42,
+      'Oriental',
+      43,
+      'https://en.wikipedia.org/wiki/Oriental_Longhair',
+      'Oriental',
+      26,
+      'Oriental Full',
+      '5uyVLLpw8t8',
+      'https://www.youtube.com/watch?v=nL1SoOsyRr8',
+      'PLrrwGtN2q9fC4aNHEujfdIL5pcNazm3yI',
+      52,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -831,10 +1298,21 @@ Breed(42, 'Oriental', 43, 'https://en.wikipedia.org/wiki/Oriental_Longhair', 'Or
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 6),
-]
-),
-Breed(43, 'Persian', 44, 'https://en.wikipedia.org/wiki/Traditional_Persian', 'Persian', 27, 'Persian Full', 'lbUBpTC1wOQ', 'https://www.animalplanet.com/tv-shows/cats-101/videos/persian/', 'PLrrwGtN2q9fDwObxKJw1G9LhcHKLEMBFd', 53, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      43,
+      'Persian',
+      44,
+      'https://en.wikipedia.org/wiki/Traditional_Persian',
+      'Persian',
+      27,
+      'Persian Full',
+      'lbUBpTC1wOQ',
+      'https://www.animalplanet.com/tv-shows/cats-101/videos/persian/',
+      'PLrrwGtN2q9fDwObxKJw1G9LhcHKLEMBFd',
+      53,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 1),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 4),
@@ -850,10 +1328,21 @@ Breed(43, 'Persian', 44, 'https://en.wikipedia.org/wiki/Traditional_Persian', 'P
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 8),
-]
-),
-Breed(44, 'Pixie-Bob', 45, 'https://en.wikipedia.org/wiki/Pixie-bob', 'Pixie-Bob', 40, 'Pixie-Bob Full', '5rJzNCr2_Pk', 'https://www.youtube.com/watch?v=n9ChF8WGOj0', 'PLrrwGtN2q9fBNedFG7wdrvEJv6LaxXbwi', 54, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      44,
+      'Pixie-Bob',
+      45,
+      'https://en.wikipedia.org/wiki/Pixie-bob',
+      'Pixie-Bob',
+      40,
+      'Pixie-Bob Full',
+      '5rJzNCr2_Pk',
+      'https://www.youtube.com/watch?v=n9ChF8WGOj0',
+      'PLrrwGtN2q9fBNedFG7wdrvEJv6LaxXbwi',
+      54,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -869,10 +1358,21 @@ Breed(44, 'Pixie-Bob', 45, 'https://en.wikipedia.org/wiki/Pixie-bob', 'Pixie-Bob
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 9),
-]
-),
-Breed(45, 'Ragamuffin', 46, 'https://en.wikipedia.org/wiki/Ragamuffin_cat', 'Ragamuffin', 28, 'Ragamuffin Full', 'XyRE3o6Gjh8', 'https://www.youtube.com/watch?v=m-YhajU8u9Y', 'PLrrwGtN2q9fDuUc45KII_kXDGc0CtPYq4', 444, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      45,
+      'Ragamuffin',
+      46,
+      'https://en.wikipedia.org/wiki/Ragamuffin_cat',
+      'Ragamuffin',
+      28,
+      'Ragamuffin Full',
+      'XyRE3o6Gjh8',
+      'https://www.youtube.com/watch?v=m-YhajU8u9Y',
+      'PLrrwGtN2q9fDuUc45KII_kXDGc0CtPYq4',
+      444,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 2),
@@ -888,10 +1388,21 @@ Breed(45, 'Ragamuffin', 46, 'https://en.wikipedia.org/wiki/Ragamuffin_cat', 'Rag
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 2),
-]
-),
-Breed(46, 'Ragdoll', 47, 'https://en.wikipedia.org/wiki/Ragdoll', 'Ragdoll', 28, 'Ragdoll Full', '13Si2jW9fk4', 'https://www.youtube.com/watch?v=FIdyDUhuLwk', 'PLrrwGtN2q9fACWLiKjm6sgvh9NvyKlSWh', 55, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      46,
+      'Ragdoll',
+      47,
+      'https://en.wikipedia.org/wiki/Ragdoll',
+      'Ragdoll',
+      28,
+      'Ragdoll Full',
+      '13Si2jW9fk4',
+      'https://www.youtube.com/watch?v=FIdyDUhuLwk',
+      'PLrrwGtN2q9fACWLiKjm6sgvh9NvyKlSWh',
+      55,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 2),
@@ -907,10 +1418,21 @@ Breed(46, 'Ragdoll', 47, 'https://en.wikipedia.org/wiki/Ragdoll', 'Ragdoll', 28,
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(47, 'Russian Blue', 48, 'https://en.wikipedia.org/wiki/Russian_Blue', 'Russian_Blue', 29, 'Russian Blue Full', 'ZqnOhWIk34A', 'https://www.youtube.com/watch?v=RtI7UgN3bxQ', 'PLrrwGtN2q9fCo1TSGkjenaDTBz-r2GjEC', 56, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      47,
+      'Russian Blue',
+      48,
+      'https://en.wikipedia.org/wiki/Russian_Blue',
+      'Russian_Blue',
+      29,
+      'Russian Blue Full',
+      'ZqnOhWIk34A',
+      'https://www.youtube.com/watch?v=RtI7UgN3bxQ',
+      'PLrrwGtN2q9fCo1TSGkjenaDTBz-r2GjEC',
+      56,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -926,11 +1448,22 @@ Breed(47, 'Russian Blue', 48, 'https://en.wikipedia.org/wiki/Russian_Blue', 'Rus
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 10),
-]
-),
+  ]),
 //Not Found
-Breed(48, 'Savannah', 49, 'https://en.wikipedia.org/wiki/Savannah_cat', 'Savannah', 39, 'Savannah Full', 'yik5Fc7i-aA', 'https://www.youtube.com/watch?v=cRCREUqGHmI', 'PLrrwGtN2q9fAgPmIOQAdwKntqGSXMGkn1', 853, 1.0, Colors.white,
-[
+  Breed(
+      48,
+      'Savannah',
+      49,
+      'https://en.wikipedia.org/wiki/Savannah_cat',
+      'Savannah',
+      39,
+      'Savannah Full',
+      'yik5Fc7i-aA',
+      'https://www.youtube.com/watch?v=cRCREUqGHmI',
+      'PLrrwGtN2q9fAgPmIOQAdwKntqGSXMGkn1',
+      853,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 1),
     StatValue('TLC', true, 1),
@@ -946,10 +1479,21 @@ Breed(48, 'Savannah', 49, 'https://en.wikipedia.org/wiki/Savannah_cat', 'Savanna
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 3),
-]
-),
-Breed(49, 'Scottish Fold', 50, 'https://en.wikipedia.org/wiki/Scottish_Fold', 'Scottish Fold', 30, 'Scottish Fold Full', 'jCEKIrJkAPo', 'https://www.youtube.com/watch?v=TmyDjs1guKs', 'PLrrwGtN2q9fAdAcwlFyIl4qRnXMk7UUFW', 57, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      49,
+      'Scottish Fold',
+      50,
+      'https://en.wikipedia.org/wiki/Scottish_Fold',
+      'Scottish Fold',
+      30,
+      'Scottish Fold Full',
+      'jCEKIrJkAPo',
+      'https://www.youtube.com/watch?v=TmyDjs1guKs',
+      'PLrrwGtN2q9fAdAcwlFyIl4qRnXMk7UUFW',
+      57,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -965,10 +1509,21 @@ Breed(49, 'Scottish Fold', 50, 'https://en.wikipedia.org/wiki/Scottish_Fold', 'S
     StatValue('Hair Type', false, 6),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 9),
-]
-),
-Breed(50, 'Selkirk Rex', 51, 'https://en.wikipedia.org/wiki/Selkirk_Rex', 'Selkirk Rex', 43, 'Selkirk Rex Full', 'khNYZm1SD8M', 'https://www.youtube.com/watch?v=FpchnHH8Uoo', 'PLrrwGtN2q9fCk45OMo2lBCuWqzmlnI2RN', 58, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      50,
+      'Selkirk Rex',
+      51,
+      'https://en.wikipedia.org/wiki/Selkirk_Rex',
+      'Selkirk Rex',
+      43,
+      'Selkirk Rex Full',
+      'khNYZm1SD8M',
+      'https://www.youtube.com/watch?v=FpchnHH8Uoo',
+      'PLrrwGtN2q9fCk45OMo2lBCuWqzmlnI2RN',
+      58,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 4),
@@ -984,10 +1539,21 @@ Breed(50, 'Selkirk Rex', 51, 'https://en.wikipedia.org/wiki/Selkirk_Rex', 'Selki
     StatValue('Hair Type', false, 6),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(51, 'Siamese', 52, 'https://en.wikipedia.org/wiki/Siamese_cat', 'Siamese', 31, 'Siamese Full', 'u7MMKAE2xnM', 'https://www.youtube.com/watch?v=G4PmBnCZwvA', 'PLrrwGtN2q9fALVoa3-3aGkcUxtba1X78P', 59, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      51,
+      'Siamese',
+      52,
+      'https://en.wikipedia.org/wiki/Siamese_cat',
+      'Siamese',
+      31,
+      'Siamese Full',
+      'u7MMKAE2xnM',
+      'https://www.youtube.com/watch?v=G4PmBnCZwvA',
+      'PLrrwGtN2q9fALVoa3-3aGkcUxtba1X78P',
+      59,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -1003,10 +1569,21 @@ Breed(51, 'Siamese', 52, 'https://en.wikipedia.org/wiki/Siamese_cat', 'Siamese',
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 1),
-]
-),
-Breed(52, 'Siberian', 53, 'https://en.wikipedia.org/wiki/Siberian_cat', 'Siberian', 32, 'Siberian Full', 'lUxuVr5a1PQ', 'https://www.youtube.com/watch?v=6cczgBaDccs', 'PLrrwGtN2q9fDm0TepoT-TZ82emN3tTXLg', 446, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      52,
+      'Siberian',
+      53,
+      'https://en.wikipedia.org/wiki/Siberian_cat',
+      'Siberian',
+      32,
+      'Siberian Full',
+      'lUxuVr5a1PQ',
+      'https://www.youtube.com/watch?v=6cczgBaDccs',
+      'PLrrwGtN2q9fDm0TepoT-TZ82emN3tTXLg',
+      446,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1022,11 +1599,22 @@ Breed(52, 'Siberian', 53, 'https://en.wikipedia.org/wiki/Siberian_cat', 'Siberia
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 1),
-]
-),
+  ]),
 //Not Found
-Breed(53, 'Silver', 54, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'UN4tM2T8EGo', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fDNdTnU-qFUxNF1yWa35Pft', 0, 1.0, Colors.white,
-[
+  Breed(
+      53,
+      'Silver',
+      54,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'UN4tM2T8EGo',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fDNdTnU-qFUxNF1yWa35Pft',
+      0,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1042,10 +1630,21 @@ Breed(53, 'Silver', 54, 'https://en.wikipedia.org/wiki/American_Shorthair', 'Ame
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(54, 'Singapura', 55, 'https://en.wikipedia.org/wiki/Singapura_cat', 'Singapura', 33, 'Singapura Full', 'ZHgO9GDhz8c', 'https://www.youtube.com/watch?v=2arjynd1tIA', 'PLrrwGtN2q9fDWRVZJzolONkToeg2a3mg7', 447, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      54,
+      'Singapura',
+      55,
+      'https://en.wikipedia.org/wiki/Singapura_cat',
+      'Singapura',
+      33,
+      'Singapura Full',
+      'ZHgO9GDhz8c',
+      'https://www.youtube.com/watch?v=2arjynd1tIA',
+      'PLrrwGtN2q9fDWRVZJzolONkToeg2a3mg7',
+      447,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -1061,10 +1660,21 @@ Breed(54, 'Singapura', 55, 'https://en.wikipedia.org/wiki/Singapura_cat', 'Singa
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 5),
-]
-),
-Breed(55, 'Snowshoe', 56, 'https://en.wikipedia.org/wiki/Snowshoe_cat', 'Snowshoe', 44, 'Snowshoe Full', 'yBiLXTNJHyg', 'https://www.youtube.com/watch?v=j76cW_ZkYfQ', 'PLrrwGtN2q9fByxHnoT1ehZ0xnmGogE5km', 60, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      55,
+      'Snowshoe',
+      56,
+      'https://en.wikipedia.org/wiki/Snowshoe_cat',
+      'Snowshoe',
+      44,
+      'Snowshoe Full',
+      'yBiLXTNJHyg',
+      'https://www.youtube.com/watch?v=j76cW_ZkYfQ',
+      'PLrrwGtN2q9fByxHnoT1ehZ0xnmGogE5km',
+      60,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1080,10 +1690,21 @@ Breed(55, 'Snowshoe', 56, 'https://en.wikipedia.org/wiki/Snowshoe_cat', 'Snowsho
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 11),
-]
-),
-Breed(56, 'Somali', 57, 'https://en.wikipedia.org/wiki/Somali_cat', 'Somali', 35, 'Somali Full', 'nntDnLoeG-E', 'http://www.animalplanet.com/tv-shows/cats-101/videos/somali/', 'PLrrwGtN2q9fA7Edg-O-vxTg_6a5jD-Joh', 61, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      56,
+      'Somali',
+      57,
+      'https://en.wikipedia.org/wiki/Somali_cat',
+      'Somali',
+      35,
+      'Somali Full',
+      'nntDnLoeG-E',
+      'http://www.animalplanet.com/tv-shows/cats-101/videos/somali/',
+      'PLrrwGtN2q9fA7Edg-O-vxTg_6a5jD-Joh',
+      61,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1099,10 +1720,21 @@ Breed(56, 'Somali', 57, 'https://en.wikipedia.org/wiki/Somali_cat', 'Somali', 35
     StatValue('Hair Type', false, 5),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 6),
-]
-),
-Breed(57, 'Sphynx', 58, 'https://en.wikipedia.org/wiki/Sphynx_cat', 'Sphynx', 34, 'Sphynx Full', 'y-pUGcrz2XI', 'https://www.youtube.com/watch?v=iuOvHDhMJ-A', 'PLrrwGtN2q9fB3c-_q17QMmvxOI6AnWkws', 62, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      57,
+      'Sphynx',
+      58,
+      'https://en.wikipedia.org/wiki/Sphynx_cat',
+      'Sphynx',
+      34,
+      'Sphynx Full',
+      'y-pUGcrz2XI',
+      'https://www.youtube.com/watch?v=iuOvHDhMJ-A',
+      'PLrrwGtN2q9fB3c-_q17QMmvxOI6AnWkws',
+      62,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -1118,10 +1750,21 @@ Breed(57, 'Sphynx', 58, 'https://en.wikipedia.org/wiki/Sphynx_cat', 'Sphynx', 34
     StatValue('Hair Type', false, 1),
     StatValue('Size', false, 1),
     StatValue('Zodicat', false, 8),
-]
-),
-Breed(58, 'Tabby', 59, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'UN4tM2T8EGo', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ', 63, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      58,
+      'Tabby',
+      59,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'UN4tM2T8EGo',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      63,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1137,10 +1780,21 @@ Breed(58, 'Tabby', 59, 'https://en.wikipedia.org/wiki/American_Shorthair', 'Amer
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(59, 'Toyger', 60, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'UN4tM2T8EGo', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ', 68, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      59,
+      'Toyger',
+      60,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'UN4tM2T8EGo',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      68,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -1156,10 +1810,21 @@ Breed(59, 'Toyger', 60, 'https://en.wikipedia.org/wiki/American_Shorthair', 'Ame
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(60, 'Tonkinese', 61, 'https://en.wikipedia.org/wiki/Tonkinese_cat', 'Tonkinese', 36, 'Tonkinese Full', 'dCIgiG7Tlfc', 'https://www.youtube.com/watch?v=nHqjUK6oVFw', 'PLrrwGtN2q9fBJB7DjIgiUxesGtDPI5z8o', 69, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      60,
+      'Tonkinese',
+      61,
+      'https://en.wikipedia.org/wiki/Tonkinese_cat',
+      'Tonkinese',
+      36,
+      'Tonkinese Full',
+      'dCIgiG7Tlfc',
+      'https://www.youtube.com/watch?v=nHqjUK6oVFw',
+      'PLrrwGtN2q9fBJB7DjIgiUxesGtDPI5z8o',
+      69,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1175,11 +1840,22 @@ Breed(60, 'Tonkinese', 61, 'https://en.wikipedia.org/wiki/Tonkinese_cat', 'Tonki
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 7),
-]
-),
+  ]),
 //Not Found
-Breed(61, 'Torbie', 62, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'UN4tM2T8EGo', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ', 70, 1.0, Colors.white,
-[
+  Breed(
+      61,
+      'Torbie',
+      62,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'UN4tM2T8EGo',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      70,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1195,10 +1871,21 @@ Breed(61, 'Torbie', 62, 'https://en.wikipedia.org/wiki/American_Shorthair', 'Ame
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
-Breed(62, 'Tortoiseshell', 63, 'https://en.wikipedia.org/wiki/American_Shorthair', 'American Shorthair', 7, 'American Shorthair Full', 'UN4tM2T8EGo', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ', 71, 1.0, Colors.white,
-[
+  ]),
+  Breed(
+      62,
+      'Tortoiseshell',
+      63,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'American Shorthair',
+      7,
+      'American Shorthair Full',
+      'UN4tM2T8EGo',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      71,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -1214,11 +1901,22 @@ Breed(62, 'Tortoiseshell', 63, 'https://en.wikipedia.org/wiki/American_Shorthair
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 2),
-]
-),
+  ]),
 //To Do Hair Build Size Zodicat
-Breed(63, 'Turkish Angora', 64, 'https://en.wikipedia.org/wiki/Turkish_Angora', 'Turkish Angora', 37, 'Turkish Angora Full', 'EN2Cz33s764', 'https://www.youtube.com/watch?v=xrvM-eymMNI', 'PLrrwGtN2q9fDATNy_IVlYnpdTTGNhxzP2', 450, 1.0, Colors.white,
-[
+  Breed(
+      63,
+      'Turkish Angora',
+      64,
+      'https://en.wikipedia.org/wiki/Turkish_Angora',
+      'Turkish Angora',
+      37,
+      'Turkish Angora Full',
+      'EN2Cz33s764',
+      'https://www.youtube.com/watch?v=xrvM-eymMNI',
+      'PLrrwGtN2q9fDATNy_IVlYnpdTTGNhxzP2',
+      450,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -1234,11 +1932,22 @@ Breed(63, 'Turkish Angora', 64, 'https://en.wikipedia.org/wiki/Turkish_Angora', 
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 4),
-]
-),
+  ]),
 //To Do Hair Build Size Zodicat
-Breed(64, 'Turkish Van', 65, 'https://en.wikipedia.org/wiki/Turkish_Van', 'Turkish Van', 38, 'Turkish Van Full', 'FwRItsZR0R0', 'https://www.youtube.com/watch?v=GDJ8SvkoN0Y', 'PLrrwGtN2q9fDy3pvT31vcr3UX4gA27uEi', 72, 1.0, Colors.white,
-[
+  Breed(
+      64,
+      'Turkish Van',
+      65,
+      'https://en.wikipedia.org/wiki/Turkish_Van',
+      'Turkish Van',
+      38,
+      'Turkish Van Full',
+      'FwRItsZR0R0',
+      'https://www.youtube.com/watch?v=GDJ8SvkoN0Y',
+      'PLrrwGtN2q9fDy3pvT31vcr3UX4gA27uEi',
+      72,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1254,11 +1963,22 @@ Breed(64, 'Turkish Van', 65, 'https://en.wikipedia.org/wiki/Turkish_Van', 'Turki
     StatValue('Hair Type', false, 4),
     StatValue('Size', false, 3),
     StatValue('Zodicat', false, 6),
-]
-),
+  ]),
 //To Do Hair Build Size Zodicat
-Breed(65, 'Tuxedo', 66, 'https://en.wikipedia.org/wiki/American_Shorthair', 'Tuxedo', 7, 'Tuxedo Full', 'nFrPPcgFUQY', 'https://www.youtube.com/watch?v=MCL8ljteX9Y', 'PLrrwGtN2q9fBAvUnc2_mWFloX08SmDdcN', 73, 1.0, Colors.white,
-[
+  Breed(
+      65,
+      'Tuxedo',
+      66,
+      'https://en.wikipedia.org/wiki/American_Shorthair',
+      'Tuxedo',
+      7,
+      'Tuxedo Full',
+      'nFrPPcgFUQY',
+      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'PLrrwGtN2q9fBAvUnc2_mWFloX08SmDdcN',
+      73,
+      1.0,
+      Colors.white, [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -1274,20 +1994,14 @@ Breed(65, 'Tuxedo', 66, 'https://en.wikipedia.org/wiki/American_Shorthair', 'Tux
     StatValue('Hair Type', false, 2),
     StatValue('Size', false, 2),
     StatValue('Zodicat', false, 7),
-]
-),
-  ];
-}
+  ]),
+];
 
 class StatValue {
   String name;
   bool isPercent;
   double value;
-  StatValue(
-    this.name,
-    this.isPercent,
-    this.value
-  );
+  StatValue(this.name, this.isPercent, this.value);
 }
 
 class StatMeta {
@@ -1297,12 +2011,6 @@ class StatMeta {
   String shortDesc;
   bool isPercentage;
   bool show;
-  StatMeta(
-    this.id,
-    this.desciption,
-    this.order,
-    this.shortDesc,
-    this.isPercentage,
-    this.show
-  );
+  StatMeta(this.id, this.desciption, this.order, this.shortDesc,
+      this.isPercentage, this.show);
 }

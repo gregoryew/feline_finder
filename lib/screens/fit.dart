@@ -149,10 +149,10 @@ class FitState extends State<Fit> {
                       }
                     }
 
-                    for (var i = 0; i < Breed.breeds.length; i++) {
+                    for (var i = 0; i < breeds.length; i++) {
                       double sum = 0;
                       for (var j = 0; j < desired.length; j++) {
-                        StatValue stat = Breed.breeds[i].stats.firstWhere(
+                        StatValue stat = breeds[i].stats.firstWhere(
                             (element) => element.name == desired[j].name);
                         Question q = Question.questions.firstWhere(
                             (element) => element.name == desired[j].name);
@@ -167,15 +167,15 @@ class FitState extends State<Fit> {
                         }
                       }
                       if (desired.isEmpty) {
-                        Breed.breeds[i].percentMatch = 1.0;
+                        breeds[i].percentMatch = 1.0;
                       } else {
-                        Breed.breeds[i].percentMatch =
+                        breeds[i].percentMatch =
                             ((sum / desired.length) * 100).floorToDouble() /
                                 100;
                       }
                     }
 
-                    Breed.breeds.sort((a, b) {
+                    breeds.sort((a, b) {
                       if (a.percentMatch.compareTo(b.percentMatch) == -1) {
                         return -1;
                       }
@@ -186,7 +186,7 @@ class FitState extends State<Fit> {
 
                       return 1;
                     });
-                    Breed.breeds = List.from(Breed.breeds.reversed);
+                    breeds = List.from(breeds.reversed);
                   });
                 },
                 // 14
@@ -252,7 +252,7 @@ class FitState extends State<Fit> {
 
   Widget buildMatches() {
     return ListView.builder(
-      itemCount: Breed.breeds.length,
+      itemCount: breeds.length,
       itemBuilder: (BuildContext context, int index) {
         return GestureDetector(
           // 8
@@ -263,12 +263,12 @@ class FitState extends State<Fit> {
               MaterialPageRoute(
                 builder: (context) {
                   // 10
-                  return BreedDetail(breed: Breed.breeds[index]);
+                  return BreedDetail(breed: breeds[index]);
                 },
               ),
             );
           },
-          child: buildBreedCard(Breed.breeds[index]),
+          child: buildBreedCard(breeds[index]),
         );
       },
     );

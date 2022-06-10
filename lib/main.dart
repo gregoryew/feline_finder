@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '/screens/fit.dart';
 import '/screens/adoptGrid.dart';
+import '/screens/breedList.dart';
 import 'dart:async';
 import 'package:get/get.dart';
 
@@ -65,7 +66,7 @@ class _HomeScreen extends State<HomeScreen> {
 
   static List<Widget> pages = <Widget>[
     Fit(),
-    Container(color: Colors.green),
+    BreedList(title: "Breed List"),
     AdoptGrid(),
     Container(color: Colors.orange)
   ];

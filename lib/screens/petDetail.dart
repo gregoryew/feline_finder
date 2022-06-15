@@ -1,7 +1,6 @@
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:like_button/like_button.dart';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../main.dart';
@@ -11,14 +10,14 @@ import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petDetailData.dart';
 import '/models/shelter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../globals.dart';
+import 'globals.dart' as globals;
 import 'package:linkify_text/linkify_text.dart';
 import 'package:html/parser.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
   String userID = "";
-  final server = FelineFinderServer();
+  final server = globals.FelineFinderServer.instance;
   bool isLiked = false;
 
   petDetail(this.petID, {Key? key}) : super(key: key);
@@ -41,8 +40,6 @@ class petDetailState extends State<petDetail> with RouteAware {
   PetDetailData? petDetailInstance;
   Shelter? shelterDetailInstance;
   int selectedImage = 0;
-  double _height = 20.0;
-  late WebViewController _webViewController;
 
   @override
   void initState() {
@@ -119,7 +116,8 @@ class petDetailState extends State<petDetail> with RouteAware {
 
   selectedIndexChanged(int _selectedIndex) {
     setState(() {
-      buttonChangedHighlight.add(_selectedIndex);
+      print("#############selectedIndexChanged");
+      buttonChangedHighlight.sink.add(_selectedIndex);
       selectedImage = _selectedIndex;
     });
   }

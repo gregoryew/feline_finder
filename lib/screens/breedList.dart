@@ -16,9 +16,10 @@ class BreedList extends StatefulWidget {
   // always marked "final".
 
   final String title;
+
   List<Breed> filteredBreedsList = breeds;
 
-  var letters = Map();
+  var letters = {};
   List<dynamic> keys = [];
 
   @override
@@ -29,11 +30,14 @@ class _BreedList extends State<BreedList> {
   @override
   initState() {
     super.initState();
+    breeds.sort((b1, b2) => b1.name.compareTo(b2.name));
+    widget.filteredBreedsList = breeds;
     categorize();
   }
 
   categorize() {
     widget.letters.clear();
+    widget.filteredBreedsList.sort((b1, b2) => b1.name.compareTo(b2.name));
     for (var breed in widget.filteredBreedsList) {
       if (!widget.letters.containsKey(breed.name[0])) {
         widget.letters[breed.name[0]] = [];
@@ -51,8 +55,13 @@ class _BreedList extends State<BreedList> {
           padding: const EdgeInsets.all(8),
           child: TextField(
             onChanged: (value) {
-              var list = breeds.where((breed) =>
-                  breed.name.toLowerCase().contains(value.toLowerCase()));
+              Iterable<Breed> list = [];
+              if (value == "") {
+                list = breeds;
+              } else {
+                list = breeds.where((breed) =>
+                    breed.name.toLowerCase().contains(value.toLowerCase()));
+              }
               setState(() {
                 widget.filteredBreedsList = list.toList();
                 categorize();

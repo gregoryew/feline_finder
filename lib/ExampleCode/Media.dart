@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:recipes/main.dart';
 
 // ignore: must_be_immutable
 class Media extends StatefulWidget {
@@ -8,10 +9,8 @@ class Media extends StatefulWidget {
   int order = 0;
   String photo = "";
   late Function(int) selectedChanged;
-  final Stream<int> stream;
 
-  Media(
-      this.selected, this.order, this.photo, this.selectedChanged, this.stream);
+  Media(this.selected, this.order, this.photo, this.selectedChanged);
 
   @override
   State<StatefulWidget> createState() {
@@ -30,11 +29,23 @@ class _Media extends State<Media> {
   @override
   void initState() {
     super.initState();
-    widget.stream.listen((index) {
-      setSelected(index);
-    });
+    ;
   }
+}
 
+// ignore: must_be_immutable
+class SmallPhoto extends Media {
+  SmallPhoto(
+      bool selected, int order, String photo, Function(int p1) selectedChanged)
+      : super(selected, order, photo, selectedChanged);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _SmallPhoto();
+  }
+}
+
+class _SmallPhoto extends State<SmallPhoto> {
   void setSelected(int pic) {
     setState(() {
       print("****************setState button");
@@ -45,23 +56,13 @@ class _Media extends State<Media> {
       }
     });
   }
-}
 
-// ignore: must_be_immutable
-class SmallPhoto extends Media {
-  SmallPhoto(bool selected, int order, String photo,
-      Function(int p1) selectedChanged, Stream<int> stream)
-      : super(selected, order, photo, selectedChanged, stream);
-
-  @override
-  State<StatefulWidget> createState() {
-    return _SmallPhoto();
-  }
-}
-
-class _SmallPhoto extends State<SmallPhoto> {
   @override
   Widget build(BuildContext context) {
+    buttonChangedHighlight.stream.listen((index) {
+      print("===============I am listening...");
+      setSelected(index);
+    });
     return GestureDetector(
       onTap: () {
         widget.selectedChanged(widget.order);

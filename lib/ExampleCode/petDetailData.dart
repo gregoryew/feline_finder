@@ -52,7 +52,6 @@ class PetDetailData {
           i,
           picturesIncluded[i].attributes!.small!.url!,
           selectedIndexChanged,
-          buttonChangedHighlightStream
           );
       media.add(photo);
     }

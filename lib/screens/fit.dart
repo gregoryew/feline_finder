@@ -1,8 +1,10 @@
+import 'package:crop/crop.dart';
 import 'package:flutter/material.dart';
 import 'package:recipes/Models/question.dart';
-import 'package:syncfusion_flutter_sliders/sliders.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
-import 'package:crop/crop.dart';
+import 'package:syncfusion_flutter_sliders/sliders.dart';
+
+import 'globals.dart' as globals;
 import '/models/breed.dart';
 import '/screens/breedDetail.dart';
 
@@ -24,7 +26,6 @@ class Fit extends StatefulWidget {
 }
 
 class FitState extends State<Fit> {
-  final _sliderValue = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   final _descriptionVisible = [
     false,
     false,
@@ -123,10 +124,15 @@ class FitState extends State<Fit> {
                 showTicks: false,
                 showDividers: true,
                 enableTooltip: true,
-                value: _sliderValue[question.id].toDouble(),
+                value: globals
+                    .FelineFinderServer.instance.sliderValue[question.id]
+                    .toDouble(),
                 tooltipTextFormatterCallback:
                     (dynamic actualValue, String formattedText) {
-                  return question.choices[_sliderValue[question.id]].name;
+                  return question
+                      .choices[globals
+                          .FelineFinderServer.instance.sliderValue[question.id]]
+                      .name;
                 },
                 thumbIcon: Container(
                   decoration: const BoxDecoration(
@@ -139,13 +145,18 @@ class FitState extends State<Fit> {
                 ),
                 onChanged: (newValue) {
                   setState(() {
-                    _sliderValue[question.id] = newValue.round();
+                    globals.FelineFinderServer.instance
+                        .sliderValue[question.id] = newValue.round();
 
                     final desired = <StatValue>[];
                     for (var i = 0; i < Question.questions.length; i++) {
-                      if (_sliderValue[i] > 0) {
-                        desired.add(StatValue(Question.questions[i].name, true,
-                            _sliderValue[i].toDouble()));
+                      if (globals.FelineFinderServer.instance.sliderValue[i] >
+                          0) {
+                        desired.add(StatValue(
+                            Question.questions[i].name,
+                            true,
+                            globals.FelineFinderServer.instance.sliderValue[i]
+                                .toDouble()));
                       }
                     }
 
@@ -226,21 +237,21 @@ class FitState extends State<Fit> {
       case 11:
         {
           return AssetImage(
-              "assets/Fit_Examples/Body/${q.choices[_sliderValue[q.id]].name.replaceAll("/", "-")}.png");
+              "assets/Fit_Examples/Body/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll("/", "-")}.png");
         }
       case 12:
         {
           return AssetImage(
-              "assets/Fit_Examples/Hair/${q.choices[_sliderValue[q.id]].name.replaceAll(" ", "_")}.png");
+              "assets/Fit_Examples/Hair/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll(" ", "_")}.png");
         }
       case 14:
         {
           if (q.id == 1) {
             return AssetImage(
-                "assets/Fit_Examples/Zodicat/${q.choices[_sliderValue[q.id]].name}.jpg");
+                "assets/Fit_Examples/Zodicat/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name}.jpg");
           } else {
             return AssetImage(
-                "assets/Fit_Examples/Zodicat/${q.choices[_sliderValue[q.id]].name}.png");
+                "assets/Fit_Examples/Zodicat/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name}.png");
           }
         }
       default:
@@ -251,6 +262,19 @@ class FitState extends State<Fit> {
   }
 
   Widget buildMatches() {
+    breeds.sort((a, b) {
+      if (a.percentMatch.compareTo(b.percentMatch) == -1) {
+        return -1;
+      }
+
+      if (a.percentMatch.compareTo(b.percentMatch) == 0) {
+        return -1 * a.name.compareTo(b.name);
+      }
+
+      return 1;
+    });
+    breeds = List.from(breeds.reversed);
+
     return ListView.builder(
       itemCount: breeds.length,
       itemBuilder: (BuildContext context, int index) {

@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:linkify_text/linkify_text.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import 'package:recipes/screens/petDetail.dart';
+import 'package:transparent_image/transparent_image.dart';
 import '/models/breed.dart';
 import '/models/question.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +12,12 @@ import 'dart:convert' as convert;
 import '/models/playlist.dart';
 import '/widgets/playlist-row.dart';
 import '/utils/constants.dart';
+import '/models/wikipediaExtract.dart';
+import 'globals.dart' as globals;
+import '/ExampleCode/RescueGroups.dart';
+import '/ExampleCode/RescueGroupsQuery.dart';
+import '/ExampleCode/petTileData.dart';
+import 'package:get/get.dart';
 
 enum WidgetMarker { adopt, videos, stats, info }
 
@@ -28,16 +38,20 @@ class BreedDetail extends StatefulWidget {
 class _BreedDetailState extends State<BreedDetail>
     with SingleTickerProviderStateMixin<BreedDetail> {
   WidgetMarker selectedWidgetMarker = WidgetMarker.info;
+  late String BreedDescription = "";
   late AnimationController _controller;
   late Animation<double> _animation;
   List<Playlist> playlists = [];
   final maxValues = [5, 5, 5, 5, 5, 5, 5, 5, 4, 5, 5, 11, 6, 3, 12];
 
-  InAppWebViewController? webView;
   String url = "";
   double progress = 0;
 
-  bool fullScreen = true;
+  int maxPets = -1;
+  int loadedPets = 0;
+  int tilesPerLoad = 100;
+
+  List<PetTileData> tiles = [];
 
   @override
   void initState() {
@@ -46,6 +60,95 @@ class _BreedDetailState extends State<BreedDetail>
         AnimationController(vsync: this, duration: const Duration(seconds: 3));
     _animation = Tween(begin: 0.0, end: 1.0).animate(_controller);
     getPlaylists();
+    getBreedDescription(widget.breed.htmlUrl);
+    getPets(widget.breed.id.toString());
+  }
+
+  void getPets(String breedID) async {
+    print('Getting Pets');
+
+    int currentPage = ((loadedPets + tilesPerLoad) / tilesPerLoad).floor();
+    loadedPets += tilesPerLoad;
+    var url =
+        "https://api.rescuegroups.org/v5/public/animals/search/available/haspic?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText&limit=100&page=$currentPage";
+
+    print("***********BreedID = " + breedID);
+
+    Map<String, dynamic> data = {
+      "data": {
+        "filterRadius": {"miles": 1000, "postalcode": "94043"},
+        "filters": [
+          {
+            "fieldName": "species.singular",
+            "operation": "equal",
+            "criteria": "cat"
+          },
+          {
+            "fieldName": "animals.breedPrimaryId",
+            "operation": "equal",
+            "criteria": breedID
+          }
+        ]
+      }
+    };
+
+    var data2 = RescueGroupsQuery.fromJson(data);
+
+    var response = await http.post(Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': '0doJkmYU'
+        },
+        body: json.encode(data2.toJson()));
+
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      print("status 200");
+      var petDecoded = pet.fromJson(jsonDecode(response.body));
+      if (maxPets == -1) {
+        maxPets = (petDecoded.meta?.count ?? 0);
+      }
+      setState(() {
+        petDecoded.data?.forEach((petData) {
+          tiles.add(PetTileData(petData, petDecoded.included!));
+        });
+      });
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      throw Exception('Failed to load pet ' + response.body);
+    }
+  }
+
+  Future<void> getBreedDescription(String breedName) async {
+    var url =
+        "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&format=json&titles=$breedName";
+
+    print("URL = $url");
+
+    var response = await http.get(Uri.parse(url), headers: {
+      'Content-Type': 'application/json;charset=UTF-8',
+      'Charset': 'utf-8'
+    });
+
+    if (response.statusCode == 200) {
+      // If the server did return a 200 OK response,
+      // then parse the JSON.
+      print("status 200");
+      var json = convert.jsonDecode(response.body);
+      var BreedDescriptionObj = WikipediaTextExtract.fromJson(json);
+      setState(() {
+        BreedDescription =
+            BreedDescriptionObj.query!.pages!.page?.extract ?? "";
+      });
+    } else {
+      // If the server did not return a 200 OK response,
+      // then throw an exception.
+      print("response.statusCode = " + response.statusCode.toString());
+      throw Exception(
+          'Failed to load wikipedia breed description ' + response.body);
+    }
   }
 
   Future<void> getPlaylists() async {
@@ -68,6 +171,48 @@ class _BreedDetailState extends State<BreedDetail>
     }
   }
 
+  List<String> icons = [
+    "adopt_icon.png",
+    "youtube_icon.png",
+    "stats_icon.png",
+    "info_icon.png"
+  ];
+  int hilightedCell = 3;
+  List<WidgetMarker> selectedIcon = [
+    WidgetMarker.adopt,
+    WidgetMarker.videos,
+    WidgetMarker.stats,
+    WidgetMarker.info
+  ];
+
+  Widget bar(double percentage, bool isTraitValue) {
+    List<Color> barColors = [];
+    if (isTraitValue) {
+      barColors.add(const Color.fromARGB(255, 181, 234, 73));
+      barColors.add(const Color.fromARGB(255, 134, 209, 63));
+    } else {
+      barColors.add(const Color.fromARGB(255, 108, 195, 245));
+      barColors.add(const Color.fromARGB(255, 73, 147, 235));
+    }
+    return Container(
+      width: MediaQuery.of(context).size.width * percentage,
+      decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: barColors,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const [
+              0.1,
+              0.5,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20)),
+      child: const SizedBox(
+        height: 40.0,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // 1
@@ -76,236 +221,275 @@ class _BreedDetailState extends State<BreedDetail>
         title: Text(widget.breed.name),
       ),
       // 2
-      body: SafeArea(
-        // 3
-        child: Column(
-          children: <Widget>[
-            // 4
-            Visibility(
-              visible: fullScreen,
-              child: Column(
-                children: [
-                  Image(
-                    height: 200,
-                    width: MediaQuery.of(context).size.width,
-                    image: AssetImage(
-                        'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
-                  ),
-                  const SizedBox(
-                    height: 4,
-                  ),
-                  // 6
-                  Text(
-                    widget.breed.name,
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ],
-              ),
-            ),
-            // 5
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: SingleChildScrollView(
+        child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
               children: <Widget>[
-                IconButton(
-                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.adopt)
-                      ? 'assets/Icons/Tool_Filled_Cat.png'
-                      : 'assets/Icons/Tool_Cat.png'),
-                  onPressed: () {
-                    setState(() {
-                      selectedWidgetMarker = WidgetMarker.adopt;
-                    });
+                // 4
+                ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image(
+                      width: MediaQuery.of(context).size.width,
+                      fit: BoxFit.fitHeight,
+                      image: AssetImage(
+                          'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
+                    )),
+                const SizedBox(
+                  height: 4,
+                ),
+                // 6
+                const SizedBox(height: 30),
+                SizedBox(
+                  height: 70,
+                  width: MediaQuery.of(context).size.width,
+                  child: Container(
+                    decoration: BoxDecoration(
+                        border: Border.all(
+                            color: const Color.fromARGB(184, 111, 97, 97)),
+                        color: const Color.fromARGB(255, 225, 215, 215),
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(20))),
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      widget.breed.name,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+                // 5
+                const SizedBox(height: 30),
+                GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4, childAspectRatio: 4 / 3),
+                  itemCount: 4,
+                  itemBuilder: (BuildContext context, int index) {
+                    return GestureDetector(
+                      onTap: () => {
+                        setState(
+                          () {
+                            hilightedCell = index;
+                            selectedWidgetMarker = selectedIcon[index];
+                          },
+                        ),
+                      },
+                      child: Card(
+                        color: index == hilightedCell
+                            ? Color.fromARGB(255, 220, 219, 219)
+                            : Colors.white,
+                        child: Center(
+                          child: Image(
+                              width: 30,
+                              fit: BoxFit.fitWidth,
+                              image:
+                                  AssetImage("assets/Icons/${icons[index]}")),
+                        ),
+                      ),
+                    );
                   },
                 ),
-                IconButton(
-                  icon: Image.asset(
-                      (selectedWidgetMarker == WidgetMarker.videos)
-                          ? 'assets/Icons/Tool_Filled_Video.png'
-                          : 'assets/Icons/Tool_Video.png'),
-                  onPressed: () {
-                    setState(() {
-                      selectedWidgetMarker = WidgetMarker.videos;
-                    });
-                  },
+                Visibility(
+                  visible: selectedWidgetMarker == WidgetMarker.adopt,
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2, childAspectRatio: 3 / 4),
+                    itemCount: tiles.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return GestureDetector(
+                        onTap: () => {
+                          Get.to(
+                            petDetail(tiles[index].id.toString()),
+                          ),
+                        },
+                        child: Card(
+                          child: Stack(
+                            children: [
+                              FadeInImage.memoryNetwork(
+                                placeholder: kTransparentImage,
+                                image: tiles[index].picture ?? "",
+                                width: 200,
+                                height: 200,
+                                fit: BoxFit.cover,
+                                imageErrorBuilder:
+                                    (context, error, stackTrace) {
+                                  return Image.asset(
+                                      "assets/Icons/No_Cat_Image.png",
+                                      width: 200,
+                                      height: 400);
+                                },
+                              ),
+                              Positioned.fill(
+                                child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Text(
+                                      tiles[index].name ?? "Name Unknown",
+                                      textAlign: TextAlign.center),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                IconButton(
-                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.stats)
-                      ? 'assets/Icons/Tool_Filled_Stats.png'
-                      : 'assets/Icons/Tool_Stats.png'),
-                  onPressed: () {
-                    setState(() {
-                      selectedWidgetMarker = WidgetMarker.stats;
-                    });
-                  },
+                Visibility(
+                  visible: selectedWidgetMarker == WidgetMarker.videos,
+                  child: ListView.separated(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    separatorBuilder: (context, index) => Divider(
+                      thickness: 2.0,
+                    ),
+                    itemCount: playlists.length,
+                    itemBuilder: (context, index) {
+                      return PlaylistRow(
+                        playlist: playlists[index],
+                      );
+                    },
+                  ),
                 ),
-                IconButton(
-                  icon: Image.asset((selectedWidgetMarker == WidgetMarker.info)
-                      ? 'assets/Icons/Tool_Filled_Info.png'
-                      : 'assets/Icons/Tool_Info.png'),
-                  onPressed: () {
-                    setState(() {
-                      selectedWidgetMarker = WidgetMarker.info;
-                    });
-                  },
+                Visibility(
+                  visible: selectedWidgetMarker == WidgetMarker.stats,
+                  child: (Column(
+                    children: [
+                      const Center(
+                          child: Text("🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
+                              textAlign: TextAlign.center)),
+                      const SizedBox(height: 20),
+                      ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        separatorBuilder: (context, index) => const Divider(
+                          thickness: 2.0,
+                          color: Colors.white,
+                        ),
+                        itemCount: widget.breed.stats.length,
+                        itemBuilder: (context, index) {
+                          var statPrecentage =
+                              (widget.breed.stats[index].isPercent)
+                                  ? widget.breed.stats[index].value.toDouble() /
+                                      maxValues[index].toDouble()
+                                  : 1.0;
+                          var userPreference =
+                              (widget.breed.stats[index].isPercent)
+                                  ? globals.FelineFinderServer.instance
+                                          .sliderValue[index] /
+                                      maxValues[index].toDouble()
+                                  : 1.0;
+                          if (statPrecentage < userPreference) {
+                            return Stack(
+                              //alignment:new Alignment(x, y)
+                              children: <Widget>[
+                                bar(userPreference, true),
+                                Positioned(
+                                  child: bar(statPrecentage, false),
+                                ),
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      widget.breed.stats[index].name +
+                                          ': ' +
+                                          Question
+                                              .questions[index]
+                                              .choices[widget
+                                                  .breed.stats[index].value
+                                                  .toInt()]
+                                              .name,
+                                      style: const TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Stack(
+                              //alignment:new Alignment(x, y)
+                              children: <Widget>[
+                                bar(statPrecentage, false),
+                                Positioned(
+                                  child: bar(userPreference, true),
+                                ),
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      widget.breed.stats[index].name +
+                                          ': ' +
+                                          Question
+                                              .questions[index]
+                                              .choices[widget
+                                                  .breed.stats[index].value
+                                                  .toInt()]
+                                              .name +
+                                          ((statPrecentage == userPreference &&
+                                                  widget.breed.stats[index]
+                                                      .isPercent)
+                                              ? " 🎯"
+                                              : ""),
+                                      style: const TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  )),
                 ),
-                IconButton(
-                  icon: Image.asset((fullScreen)
-                      ? 'assets/Icons/fullScreen.png'
-                      : 'assets/Icons/collapsedScreen.png'),
-                  onPressed: () {
-                    setState(() {
-                      if (fullScreen) {
-                        fullScreen = false;
-                      } else {
-                        fullScreen = true;
-                      }
-                    });
-                  },
-                )
+                Visibility(
+                    visible: selectedWidgetMarker == WidgetMarker.info,
+                    child: Container(
+                        child: textBox(widget.breed.name, BreedDescription))),
               ],
-            ),
-            FutureBuilder(
-                future: _playAnimation(),
-                builder: (BuildContext context, AsyncSnapshot snapshot) {
-                  return Expanded(
-                      child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: getCustomContainer(),
-                  ));
-                })
-          ],
-        ),
+            )),
       ),
     );
   }
 
-  _playAnimation() {
-    _controller.forward();
-  }
-
-  Widget getCustomContainer() {
-    switch (selectedWidgetMarker) {
-      case WidgetMarker.adopt:
-        return getAdoptContainer();
-      case WidgetMarker.videos:
-        return getVideosContainer();
-      case WidgetMarker.stats:
-        return getStatsContainer();
-      case WidgetMarker.info:
-        return getInfoContainer();
-    }
-  }
-
-  Widget getAdoptContainer() {
-    return FadeTransition(
-        opacity: _animation,
-        child: Container(
-          color: Colors.red,
-        ));
-  }
-
-  Widget getVideosContainer() {
-    return FadeTransition(
-      opacity: _animation,
-      child: ListView.separated(
-          separatorBuilder: (context, index) => Divider(
-                thickness: 2.0,
-              ),
-          itemCount: playlists.length,
-          itemBuilder: (context, index) {
-            return PlaylistRow(
-              playlist: playlists[index],
-            );
-          }),
-    );
-  }
-
-  Widget getStatsContainer() {
-    return FadeTransition(
-      opacity: _animation,
-      child: ListView.separated(
-          separatorBuilder: (context, index) => Divider(
-                thickness: 2.0,
-              ),
-          itemCount: widget.breed.stats.length,
-          itemBuilder: (context, index) {
-            return new LinearPercentIndicator(
-              lineHeight: 14.0,
-              percent: (widget.breed.stats[index].isPercent)
-                  ? widget.breed.stats[index].value.toDouble() /
-                      maxValues[index].toDouble()
-                  : 1.0,
-              backgroundColor: Colors.grey,
-              progressColor: Colors.blue,
-              center: Text(
-                widget.breed.stats[index].name +
-                    ': ' +
-                    Question.questions[index]
-                        .choices[widget.breed.stats[index].value.toInt()].name,
-                style: new TextStyle(fontSize: 12.0),
-              ),
-            );
-          }),
-    );
-  }
-
-  Widget getInfoContainer() {
-    return FadeTransition(
-        opacity: _animation,
+  Widget textBox(String title, String textBlock) {
+    return Center(
+      child: Container(
+        decoration: BoxDecoration(
+            border: Border.all(color: const Color.fromARGB(184, 111, 97, 97)),
+            color: const Color.fromARGB(255, 225, 215, 215),
+            borderRadius: const BorderRadius.all(Radius.circular(20))),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Expanded(
-              child: InAppWebView(
-                initialUrlRequest:
-                    URLRequest(url: Uri.parse(widget.breed.htmlUrl)),
-                initialOptions: InAppWebViewGroupOptions(
-                    crossPlatform: InAppWebViewOptions(),
-                    ios: IOSInAppWebViewOptions(),
-                    android:
-                        AndroidInAppWebViewOptions(useHybridComposition: true)),
-                onWebViewCreated: (InAppWebViewController controller) {
-                  webView = controller;
-                },
-                onLoadStart: (controller, url) {
-                  setState(() {
-                    this.url = url?.toString() ?? '';
-                  });
-                },
-                onLoadStop: (controller, url) async {
-                  setState(() {
-                    this.url = url?.toString() ?? '';
-                  });
-                },
-                onProgressChanged: (controller, progress) {
-                  setState(() {
-                    this.progress = progress / 100;
-                  });
-                },
-              ),
+            Text(
+              title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.grey),
+              textAlign: TextAlign.left,
             ),
-            ButtonBar(
-              alignment: MainAxisAlignment.center,
-              children: <Widget>[
-                ElevatedButton(
-                  child: Icon(Icons.arrow_back),
-                  onPressed: () {
-                    webView?.goBack();
-                  },
-                ),
-                ElevatedButton(
-                  child: Icon(Icons.arrow_forward),
-                  onPressed: () {
-                    webView?.goForward();
-                  },
-                ),
-                ElevatedButton(
-                  child: Icon(Icons.refresh),
-                  onPressed: () {
-                    webView?.reload();
-                  },
-                ),
-              ],
+            Divider(
+              thickness: 1,
+              color: Colors.grey[100],
             ),
+            Text(textBlock),
           ],
-        ));
+        ),
+      ),
+    );
   }
 }

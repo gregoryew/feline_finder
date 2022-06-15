@@ -1,21 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Favorites {
   // 1
   String userid;
   List<String> favorites = [];
 
   String? referenceId;
-
+/*
   factory Favorites.fromSnapshot(DocumentSnapshot snapshot) {
     final newFavorite = Favorites.fromJson(snapshot.data() as Map<String, dynamic>);
     newFavorite.referenceId = snapshot.reference.id;
     return newFavorite;
   }
+*/
 
   // 2
-  Favorites(this.userid,
-      {required this.favorites, this.referenceId});
+  Favorites(this.userid, {required this.favorites, this.referenceId});
   // 3
   factory Favorites.fromJson(Map<String, dynamic> json) =>
       _favoritesFromJson(json);
@@ -33,9 +31,9 @@ Favorites _favoritesFromJson(Map<String, dynamic> json) {
     favorites: (json['favorites'] as List<String>).toList(),
   );
 }
+
 // 2
-Map<String, dynamic> _favoritesToJson(Favorites instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _favoritesToJson(Favorites instance) => <String, dynamic>{
       'userid': instance.userid,
       'favorites': instance.favorites,
     };

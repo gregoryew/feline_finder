@@ -1,3 +1,5 @@
+// ignore_for_file: dead_code
+
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +9,7 @@ import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import '/screens/petDetail.dart';
 import 'package:transparent_image/transparent_image.dart';
+import 'globals.dart' as globals;
 
 class AdoptGrid extends StatefulWidget {
   // This widget is the home page of your application. It is stateful, meaning
@@ -17,10 +20,11 @@ class AdoptGrid extends StatefulWidget {
   // case the title) provided by the parent (in this case the App widget) and
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
+
+  const AdoptGrid({Key? key}) : super(key: key);
+
   @override
-  AdoptGridState createState() {
-    return AdoptGridState();
-  }
+  AdoptGridState createState() => AdoptGridState();
 }
 
 class AdoptGridState extends State<AdoptGrid> {
@@ -29,11 +33,24 @@ class AdoptGridState extends State<AdoptGrid> {
   int loadedPets = 0;
   int tilesPerLoad = 25;
   late ScrollController controller;
+  List<String> favorites = [];
+  late String userID;
+  List<String> listOfFavorites = [];
+  final server = globals.FelineFinderServer.instance;
 
   @override
   void initState() {
     super.initState();
     controller = ScrollController()..addListener(_scrollListener);
+    () async {
+      String user = await server.getUser();
+      favorites = await server.getFavorites(user);
+      setState(() {
+        listOfFavorites = favorites;
+        userID = user;
+      });
+    }();
+
     getPets();
   }
 
@@ -47,13 +64,17 @@ class AdoptGridState extends State<AdoptGrid> {
     }
   }
 
+  void setFavorites(bool favorited) {
+    print("Favorites pressed. ${(favorited) ? "Favorited" : "Unfavorited"}");
+  }
+
   void getPets() async {
     print('Getting Pets');
 
     int currentPage = ((loadedPets + tilesPerLoad) / tilesPerLoad).floor();
     loadedPets += tilesPerLoad;
     var url =
-        "https://api.rescuegroups.org/v5/public/animals/search/available/haspic?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status&limit=25&page=$currentPage";
+        "https://api.rescuegroups.org/v5/public/animals/search/available?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status&limit=25&page=$currentPage";
 
     Map<String, dynamic> data = {
       "data": {
@@ -120,14 +141,26 @@ class AdoptGridState extends State<AdoptGrid> {
               // display each item with a card
               return GestureDetector(
                   onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (BuildContext context) =>
-                                petDetail(tiles[index].id!)));
+                    _navigateAndDisplaySelection(context, index);
                   },
                   child: petCard(tiles[index]));
             }));
+  }
+
+  Future<void> _navigateAndDisplaySelection(
+      BuildContext context, int index) async {
+    // Navigator.push returns a Future that completes after calling
+    // Navigator.pop on the Selection Screen.
+    final result = await Navigator.push(
+      context,
+      // Create the SelectionScreen in the next step.
+      MaterialPageRoute(builder: (context) => petDetail(tiles[index].id!)),
+    );
+
+    favorites = await server.getFavorites(userID);
+    setState(() {
+      listOfFavorites = favorites;
+    });
   }
 
   Widget petCard(PetTileData tile) {
@@ -147,27 +180,25 @@ class AdoptGridState extends State<AdoptGrid> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: Container(
-                  child: ClipRRect(
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(
-                          10,
-                        ),
-                        topRight: Radius.circular(
-                          10,
-                        ),
-                      ),
-                      child: FadeInImage.memoryNetwork(
-                        placeholder: kTransparentImage,
-                        image: tile.picture ?? "",
-                        fit: BoxFit.fitWidth,
-                        imageErrorBuilder: (context, error, stackTrace) {
-                          return Image.asset("assets/Icons/No_Cat_Image.png",
-                              width: 200, height: 500);
-                        },
-                      )
-                      //(tile == null || tile.picture == null || tile.picture == "") ? Image(image: AssetImage("assets/Icons/No_Cat_Image.png"), width: 200, fit: BoxFit.fitWidth) : Image(image: NetworkImage(tile.picture ?? ""), width: 200, fit: BoxFit.fitWidth),
-                      ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(
+                      10,
+                    ),
+                    topRight: Radius.circular(
+                      10,
+                    ),
+                  ),
+                  child: FadeInImage.memoryNetwork(
+                    placeholder: kTransparentImage,
+                    image: tile.picture ?? "",
+                    fit: BoxFit.fitWidth,
+                    imageErrorBuilder: (context, error, stackTrace) {
+                      return Image.asset("assets/Icons/No_Cat_Image.png",
+                          width: 200, height: 500);
+                    },
+                  ),
+                  //(tile == null || tile.picture == null || tile.picture == "") ? Image(image: AssetImage("assets/Icons/No_Cat_Image.png"), width: 200, fit: BoxFit.fitWidth) : Image(image: NetworkImage(tile.picture ?? ""), width: 200, fit: BoxFit.fitWidth),
                 ),
               ),
               Container(
@@ -188,7 +219,9 @@ class AdoptGridState extends State<AdoptGrid> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      tile.name ?? "No Name",
+                      ((tile.name ?? "No Name") +
+                          (tile.hasVideos! ? " ▶️" : "") +
+                          ((listOfFavorites.contains(tile.id)) ? " ❤️" : "")),
                       style: TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,

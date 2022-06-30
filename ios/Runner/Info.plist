@@ -60,5 +60,7 @@
 	<array>
 		<string>comgooglemaps</string>
 	</array>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Feline Finder requires your current location to find cats near you.</string>
 </dict>
 </plist>

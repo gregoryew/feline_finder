@@ -1,10 +1,12 @@
 library felinefinderapp.globals;
 
 import 'dart:convert';
-
-import 'package:uuid/uuid.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+
+const serverName = "stingray-app-uadxu.ondigitalocean.app";
 
 class FelineFinderServer {
   static FelineFinderServer _instance = FelineFinderServer._();
@@ -18,6 +20,38 @@ class FelineFinderServer {
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   late String _userID;
+
+/*
+  Future<String> getZipCode() async {
+    bool _serviceEnabled;
+    PermissionStatus _permissionGranted;
+    Location location = Location();
+    LocationData _currentPosition;
+
+    _serviceEnabled = await location.serviceEnabled();
+    if (!_serviceEnabled) {
+      _serviceEnabled = await location.requestService();
+      if (!_serviceEnabled) {
+        return "";
+      }
+    }
+
+    _permissionGranted = await location.hasPermission();
+    if (_permissionGranted == PermissionStatus.denied) {
+      _permissionGranted = await location.requestPermission();
+      if (_permissionGranted != PermissionStatus.granted) {
+        return "";
+      }
+    }
+
+    _currentPosition = await location.getLocation();
+    final coordinates =
+        new Coordinates(_currentPosition.latitude, _currentPosition.longitude);
+    List<Address> add =
+        await Geocoder.local.findAddressesFromCoordinates(coordinates);
+    return add.first.postalCode;
+  }
+*/
 
   Future<String> getUser() async {
     print("getUser called");
@@ -37,8 +71,9 @@ class FelineFinderServer {
 
   void createUser(String userID, String userName, String password) async {
     print("createUser called");
+    print("https://$serverName/addUser/");
     var response = await http.post(
-      Uri.parse('https://octopus-app-s7q5v.ondigitalocean.app/addUser/'),
+      Uri.parse('https://$serverName/addUser/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -58,31 +93,27 @@ class FelineFinderServer {
 
   void favoritePet(String userID, String petID) async {
     print("favoritePet called");
+    print("-------------https://${serverName}/favorite/");
     var response2 = await http.post(
-      Uri.parse('https://octopus-app-s7q5v.ondigitalocean.app/favoritePet/'),
+      Uri.parse('https://${serverName}/favorite/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
       body: jsonEncode(<String, String>{'userid': userID, 'petid': petID}),
     );
     print(response2.statusCode);
-    print(response2.body);
-    print(userID);
-    print(petID);
     if (response2.statusCode == 200) {
-      print("favoritePet success");
+      print("favorite SUCCESS");
     } else {
       print(response2.toString());
-      print("favoritePet failed");
+      print("favoritePet FAILED");
     }
   }
 
   Future<bool> isFavorite(String userID, String petID) async {
     print("isFavorite called");
-    return false;
-    /*
-    var response = await http.post(
-        Uri.parse('https://octopus-app-s7q5v.ondigitalocean.app/isFavorite/'),
+    print("https://$serverName/isFavorite/");
+    var response = await http.post(Uri.parse('https://$serverName/isFavorite/'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
         },
@@ -92,19 +123,42 @@ class FelineFinderServer {
       throw Exception("BAD statusCode: $statusCode");
     }
     String responseBody = response.body;
-    final List<dynamic> dataList = jsonDecode(responseBody);
+    var dataList = jsonDecode(responseBody);
     if (dataList.isEmpty) {
       throw Exception("isFavorite returned unknown data");
     } else {
-      return dataList[0]["isFavorite"];
+      print("***************isFavorite=" + dataList["IsFavorite"].toString());
+      return dataList["IsFavorite"];
     }
-    */
+  }
+
+  Future<List<String>> getFavorites(String userID) async {
+    print("getFavorites called");
+    print("https://$serverName/getFavorites?userid=$userID");
+    var response = await http.get(
+        Uri.parse('https://$serverName/getFavorites?userid=$userID'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        });
+    int statusCode = response.statusCode;
+    if (statusCode != 200) {
+      throw Exception("BAD statusCode: $statusCode");
+    }
+    String responseBody = response.body;
+    var dataList = jsonDecode(responseBody);
+    if (dataList.isEmpty) {
+      throw Exception("isFavorite returned unknown data");
+    } else {
+      print("***************isFavorite=" + dataList["Favorites"].toString());
+      return dataList["Favorites"].toString().split(",");
+    }
   }
 
   void unfavoritePet(String userID, String petID) async {
     print("unfavorite pet called");
+    print("https://$serverName/unfavorite/");
     var response = await http.post(
-      Uri.parse('https://octopus-app-s7q5v.ondigitalocean.app/unfavoritePet/'),
+      Uri.parse("https://$serverName/unfavorite/"),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },

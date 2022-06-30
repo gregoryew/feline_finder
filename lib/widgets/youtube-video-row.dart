@@ -3,12 +3,19 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '/models/playlist.dart';
 
 class YouTubeVideoRow extends StatefulWidget {
-  final Playlist playlist;
+  final Playlist? playlist;
+  final String? videoid;
+  final String? title;
 
-  const YouTubeVideoRow({
-    Key? key,
-    required this.playlist
-  }) : super(key: key);
+  const YouTubeVideoRow._(
+      {required this.playlist, required this.videoid, required this.title});
+
+  const YouTubeVideoRow(
+      {Key? key,
+      required this.playlist,
+      required this.videoid,
+      required this.title})
+      : super(key: key);
 
   @override
   _YouTubeVideoRowState createState() => _YouTubeVideoRowState();
@@ -21,8 +28,13 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
   void initState() {
     super.initState();
 
+    String? id =
+        (widget.videoid == "") ? widget.playlist!.videoId : widget.videoid;
+
+    print("===============PLAY VIDEO VideoID = " + id!);
+
     _controller = YoutubePlayerController(
-      initialVideoId: widget.playlist.videoId,
+      initialVideoId: id!,
       flags: const YoutubePlayerFlags(
         autoPlay: true,
         mute: false,
@@ -32,28 +44,24 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
 
   @override
   Widget build(BuildContext context) {
-        // 1
+    // 1
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.playlist.title),
-      ),
-      // 2
-      body: (
-        YoutubePlayerBuilder(
-        player: YoutubePlayer(
-          controller: _controller,
+        appBar: AppBar(
+          title: Text(widget.title ?? widget.playlist!.title),
         ),
-        builder: (context, player) {
-          return Column(children:[
-          player,
-          Padding(
-    padding: const EdgeInsets.all(10.0),
-    child:
-          Text(widget.playlist.description)
-          )]);
-        }
-        )
-      )
-    );
+        // 2
+        body: (YoutubePlayerBuilder(
+            player: YoutubePlayer(
+              controller: _controller,
+            ),
+            builder: (context, player) {
+              return Column(children: [
+                player,
+                Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: SingleChildScrollView(
+                        child: Text(widget.playlist?.description ?? "")))
+              ]);
+            })));
   }
 }

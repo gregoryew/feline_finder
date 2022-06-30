@@ -1,7 +1,8 @@
 import 'package:flutter/widgets.dart';
+import 'package:recipes/models/video.dart';
 import '../main.dart';
+import 'Media.dart';
 import 'RescueGroups.dart';
-import 'media.dart';
 
 class PetDetailData {
   String? id;
@@ -48,15 +49,29 @@ class PetDetailData {
     print("******* URL = " + picturesIncluded[0].attributes!.small!.url!);
     for (int i = 0; i < picturesIncluded.length; i++) {
       var photo = SmallPhoto(
-          i == 0,
-          i,
-          picturesIncluded[i].attributes!.small!.url!,
-          selectedIndexChanged,
-          );
+        i == 0,
+        i,
+        picturesIncluded[i].attributes!.small!.url!,
+        selectedIndexChanged,
+      );
       media.add(photo);
     }
-    List<Included> videoListIncluded =
-        findAllOfACertainType(pet, included, "videos", IncludedType.VIDEOS);
+    List<Included> videoListIncluded = findAllOfACertainType(
+        pet, included, "videourls", IncludedType.VIDEOURLS);
+    for (int i = 0; i < videoListIncluded.length; i++) {
+      print("---------------Set Video-----------------");
+      print(videoListIncluded[i].attributes?.name ?? "");
+      print(videoListIncluded[i].attributes?.videoId ?? "");
+      print("-----------------------------------------");
+      var video = YouTubeVideo(
+          false,
+          i,
+          videoListIncluded[i].attributes!.urlThumbnail ?? "",
+          selectedIndexChanged,
+          videoListIncluded[i].attributes?.name ?? "",
+          videoListIncluded[i].attributes?.videoId ?? "");
+      media.add(video);
+    }
     /*
     for (int i = 0; i < videoListIncluded.length; i++) {
       YouTubeVideo video = YouTubeVideo();

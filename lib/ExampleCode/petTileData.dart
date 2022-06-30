@@ -17,9 +17,11 @@ class PetTileData {
     id = pet.id;
     name = pet.attributes!.name;
     primaryBreed = pet.attributes!.breedPrimary;
-    var locationsList = findAllOfACertainType(pet, included, "locations", IncludedType.LOCATIONS);
+    var locationsList = findAllOfACertainType(
+        pet, included, "locations", IncludedType.LOCATIONS);
     cityState = locationsList[0].attributes!.citystate;
-    var statusList = findAllOfACertainType(pet, included, "statuses", IncludedType.STATUSES);
+    var statusList =
+        findAllOfACertainType(pet, included, "statuses", IncludedType.STATUSES);
     status = statusList[0].attributes!.name;
     switch (pet.attributes!.ageGroup ?? AgeGroup.YOUNG) {
       case AgeGroup.ADULT:
@@ -56,15 +58,24 @@ class PetTileData {
         size = "X-Large";
         break;
     }
-    var picturesList = findAllOfACertainType(pet, included, "pictures", IncludedType.PICTURES);
-    picture = picturesList.isEmpty ? "assets/Icons/No_Cat_Image.png" : picturesList[0].attributes!.small!.url;
-    resolutionY = picturesList.isEmpty ? 0 : picturesList[0].attributes!.small!.resolutionY?.toDouble();
-    var videoList = findAllOfACertainType(pet, included, "videos", IncludedType.VIDEOS);
+    var picturesList =
+        findAllOfACertainType(pet, included, "pictures", IncludedType.PICTURES);
+    picture = picturesList.isEmpty
+        ? "assets/Icons/No_Cat_Image.png"
+        : picturesList[0].attributes!.small!.url;
+    resolutionY = picturesList.isEmpty
+        ? 0
+        : picturesList[0].attributes!.small!.resolutionY?.toDouble();
+    var videoList =
+        findAllOfACertainType(pet, included, "videos", IncludedType.VIDEOS);
+    //print("@@@@@@@@@@@@@@@@VIDEO LIST = " + videoList.length.toString());
     hasVideos = (videoList.isNotEmpty) ? true : false;
   }
 
-  List<Included> findAllOfACertainType(petDatum pet, List<Included> included, String includeType, IncludedType type) {
-    if (pet.relationships![includeType] == null || pet.relationships![includeType]!.data == null) return [];
+  List<Included> findAllOfACertainType(petDatum pet, List<Included> included,
+      String includeType, IncludedType type) {
+    if (pet.relationships![includeType] == null ||
+        pet.relationships![includeType]!.data == null) return [];
     final includedData = pet.relationships![includeType]!.data!;
     final includeds = included.where((l) => l.type == type).toList();
     List<Included> includedList = [];
@@ -73,5 +84,4 @@ class PetTileData {
     }
     return includedList;
   }
-
 }

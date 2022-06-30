@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '/screens/fit.dart';
+import 'package:get/get.dart';
+
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
-import 'dart:async';
-import 'package:get/get.dart';
+import '/screens/fit.dart';
 
 StreamController<int> buttonChangedHighlight =
     StreamController<int>.broadcast();
@@ -31,7 +33,7 @@ class _SplashPageState extends State<SplashPage> {
   @override
   Widget build(BuildContext context) {
     Timer(const Duration(seconds: 3),
-        () => Get.to(const HomeScreen(title: 'Feline Finder')));
+        () => Get.off(const HomeScreen(title: 'Feline Finder')));
     return GetMaterialApp(
       title: 'Feline Finder',
       theme: ThemeData(fontFamily: 'Poppins'),
@@ -63,6 +65,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreen extends State<HomeScreen> {
   int _selectedIndex = 0;
+  bool favoritesSelected = false;
+  late GlobalObjectKey<AdoptGridState> AdoptionGridKey;
 
   static List<Widget> pages = <Widget>[
     Fit(),
@@ -78,13 +82,35 @@ class _HomeScreen extends State<HomeScreen> {
     });
   }
 
+  Widget? getLeadingButtons(selectedIndex) {
+    if (selectedIndex == 2) {
+      return GestureDetector(
+          onTap: () {
+            var _favoritesSelected = (favoritesSelected) ? false : true;
+            AdoptionGridKey.currentState!.setFavorites(_favoritesSelected);
+            setState(() {
+              favoritesSelected = _favoritesSelected;
+            });
+          },
+          child: Icon(
+            Icons.favorite,
+            color: (favoritesSelected) ? Colors.red : Colors.grey,
+            size: 40,
+          ));
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    AdoptionGridKey = GlobalObjectKey<AdoptGridState>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Feline Finder"),
-      ),
-      body: pages[_selectedIndex],
+          title: const Text("Feline Finder"),
+          leading: getLeadingButtons(_selectedIndex)),
+      body: (_selectedIndex == 2)
+          ? AdoptGrid(key: AdoptionGridKey)
+          : pages[_selectedIndex],
       // 4
       bottomNavigationBar: BottomNavigationBar(
         // 5
@@ -101,14 +127,17 @@ class _HomeScreen extends State<HomeScreen> {
             label: 'Fit',
           ),
           BottomNavigationBarItem(
+            backgroundColor: Colors.grey,
             icon: Icon(Icons.list),
             label: 'Breeds',
           ),
           BottomNavigationBarItem(
+            backgroundColor: Colors.grey,
             icon: Icon(Icons.card_membership),
             label: 'Adopt',
           ),
           BottomNavigationBarItem(
+            backgroundColor: Colors.grey,
             icon: Icon(Icons.favorite),
             label: 'Favorites',
           ),

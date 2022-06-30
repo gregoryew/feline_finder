@@ -1,26 +1,30 @@
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:like_button/like_button.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:html/parser.dart';
+import 'package:http/http.dart' as http;
+import 'package:like_button/like_button.dart';
+import 'package:linkify_text/linkify_text.dart';
+
 import '../main.dart';
 import '../widgets/toolbar.dart';
 import '/ExampleCode/RescueGroups.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petDetailData.dart';
 import '/models/shelter.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'globals.dart' as globals;
-import 'package:linkify_text/linkify_text.dart';
-import 'package:html/parser.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
-  String userID = "";
+  late String userID;
   final server = globals.FelineFinderServer.instance;
-  bool isLiked = false;
 
-  petDetail(this.petID, {Key? key}) : super(key: key);
+  petDetail(
+    this.petID,
+  );
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -39,53 +43,22 @@ class petDetail extends StatefulWidget {
 class petDetailState extends State<petDetail> with RouteAware {
   PetDetailData? petDetailInstance;
   Shelter? shelterDetailInstance;
+  bool isFavorited = false;
   int selectedImage = 0;
+  late String userID;
 
   @override
   void initState() {
-    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
-      routeObserver.subscribe(this, ModalRoute.of(context)!);
-    });
-    getPetDetail(widget.petID);
     super.initState();
-  }
-
-  @override
-  void didPush() async {
-    print("********* DID PUSH");
-    widget.userID = await widget.server.getUser();
-    widget.isLiked =
-        await widget.server.isFavorite(widget.userID, widget.petID);
-    print("isLiked = ${widget.isLiked}");
-    print('HomePage: Called didPush');
-    super.didPush();
-  }
-
-  @override
-  void didPop() {
-    print("******** DID POP");
-    print("IsLiked=${widget.isLiked}");
-    if (widget.isLiked) {
-      print("unfavoritePet called");
-      widget.server.unfavoritePet(widget.userID, widget.petID);
-    } else {
-      print("favoritePet called");
-      widget.server.favoritePet(widget.userID, widget.petID);
-    }
-    print('HomePage: Called didPop');
-    super.didPop();
-  }
-
-  @override
-  void didPopNext() {
-    print('HomePage: Called didPopNext');
-    super.didPopNext();
-  }
-
-  @override
-  void didPushNext() {
-    print('HomePage: Called didPushNext');
-    super.didPushNext();
+    () async {
+      String user = await widget.server.getUser();
+      bool favorited = await widget.server.isFavorite(user, widget.petID);
+      setState(() {
+        isFavorited = favorited;
+        userID = user;
+      });
+    }();
+    getPetDetail(widget.petID);
   }
 
   void getShelterDetail(String orgID) async {
@@ -130,7 +103,7 @@ class petDetailState extends State<petDetail> with RouteAware {
     print("id = ${id2}");
 
     var url =
-        "https://api.rescuegroups.org/v5/public/animals/${id2}?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText&limit=1&page=1";
+        "https://api.rescuegroups.org/v5/public/animals/${id2}?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText";
 
     print("URL = $url");
 
@@ -218,29 +191,37 @@ class petDetailState extends State<petDetail> with RouteAware {
           : "Not Available.";
     }
     return Scaffold(
-      appBar:
-          AppBar(title: Text(petDetailInstance?.name ?? ""), actions: <Widget>[
-        Padding(
+      appBar: AppBar(
+        title: Text(petDetailInstance?.name ?? ""),
+        actions: <Widget>[
+          Padding(
             padding: EdgeInsets.only(right: 10.0),
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (widget.isLiked == true) {
-                    widget.isLiked = false;
-                  } else if (widget.isLiked == false) {
-                    widget.isLiked = true;
-                  }
-                });
+            child: LikeButton(
+              onTap: (isLiked) async {
+                print("userID = " +
+                    userID.toString() +
+                    "petID = " +
+                    widget.petID.toString());
+                if (isLiked == true) {
+                  widget.server.unfavoritePet(userID, widget.petID);
+                  isFavorited = false;
+                } else if (isLiked == false) {
+                  widget.server.favoritePet(userID, widget.petID);
+                  isFavorited = true;
+                }
+                print("Set changed to " + isFavorited.toString());
+                return isFavorited;
               },
-              child: LikeButton(
-                  size: 40,
-                  isLiked: widget.isLiked,
-                  likeBuilder: (isLiked) {
-                    final color = isLiked ? Colors.red : Colors.blueGrey;
-                    return Icon(Icons.favorite, color: color, size: 40);
-                  }),
-            ))
-      ]),
+              size: 40,
+              isLiked: isFavorited,
+              likeBuilder: (isLiked) {
+                final color = isLiked ? Colors.red : Colors.blueGrey;
+                return Icon(Icons.favorite, color: color, size: 40);
+              },
+            ),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(10),

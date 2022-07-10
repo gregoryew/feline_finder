@@ -36,6 +36,7 @@ dependencies:
   like_button: ^2.0.4
   url_launcher: ^6.1.2
   geocoding: ^2.0.4
+  geolocator: ^8.0.1
   percent_indicator: ^4.2.2
   path_provider: ^2.0.10
   cached_network_image: ^3.2.1

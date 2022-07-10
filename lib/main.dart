@@ -114,32 +114,51 @@ class _HomeScreen extends State<HomeScreen> {
       // 4
       bottomNavigationBar: BottomNavigationBar(
         // 5
-        selectedItemColor: Theme.of(context).textSelectionTheme.selectionColor,
+        unselectedItemColor: Colors.black12,
+        showUnselectedLabels: true,
+        showSelectedLabels: true,
+        selectedItemColor: Colors.blue,
         // 10
         currentIndex: _selectedIndex,
         // 11
         onTap: _onItemTapped,
         // 6
-        items: const <BottomNavigationBarItem>[
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            backgroundColor: Colors.grey,
-            icon: Icon(Icons.search),
+            backgroundColor: Colors.white,
+            icon: ImageIcon(
+                AssetImage(_selectedIndex == 0
+                    ? "assets/Icons/fit_selected.png"
+                    : "assets/Icons/fit_unselected.png"),
+                color: Colors.blue),
             label: 'Fit',
           ),
           BottomNavigationBarItem(
-            backgroundColor: Colors.grey,
-            icon: Icon(Icons.list),
+            backgroundColor: Colors.white,
+            icon: ImageIcon(
+                AssetImage(_selectedIndex == 1
+                    ? "assets/Icons/breeds_selected.png"
+                    : "assets/Icons/breeds_unselected.png"),
+                color: Colors.blue),
             label: 'Breeds',
           ),
           BottomNavigationBarItem(
-            backgroundColor: Colors.grey,
-            icon: Icon(Icons.card_membership),
+            backgroundColor: Colors.white,
+            icon: ImageIcon(
+                AssetImage(_selectedIndex == 2
+                    ? "assets/Icons/adopt_selected.png"
+                    : "assets/Icons/adopt_unselected.png"),
+                color: Colors.blue),
             label: 'Adopt',
           ),
           BottomNavigationBarItem(
-            backgroundColor: Colors.grey,
-            icon: Icon(Icons.favorite),
-            label: 'Favorites',
+            backgroundColor: Colors.white,
+            icon: ImageIcon(
+                AssetImage(_selectedIndex == 3
+                    ? "assets/Icons/zoom_selected.png"
+                    : "assets/Icons/zoom_unselected.png"),
+                color: Colors.blue),
+            label: 'Meet',
           ),
         ],
       ),

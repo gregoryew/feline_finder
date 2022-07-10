@@ -1,14 +1,19 @@
 // ignore_for_file: dead_code
 
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:transparent_image/transparent_image.dart';
+
 import '/ExampleCode/RescueGroups.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import '/screens/petDetail.dart';
-import 'package:transparent_image/transparent_image.dart';
 import 'globals.dart' as globals;
 
 class AdoptGrid extends StatefulWidget {
@@ -35,23 +40,124 @@ class AdoptGridState extends State<AdoptGrid> {
   late ScrollController controller;
   List<String> favorites = [];
   late String userID;
+  String zip = "?";
   List<String> listOfFavorites = [];
   final server = globals.FelineFinderServer.instance;
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  bool favorited = false;
+  late List<Map<dynamic, dynamic>> filters;
 
   @override
   void initState() {
     super.initState();
     controller = ScrollController()..addListener(_scrollListener);
+    controller2 = TextEditingController();
     () async {
       String user = await server.getUser();
       favorites = await server.getFavorites(user);
+      var _zip = await _getZip();
       setState(() {
         listOfFavorites = favorites;
         userID = user;
+        zip = _zip;
+        getPets();
       });
     }();
+  }
 
-    getPets();
+  Future<String> _getZip() async {
+    SharedPreferences prefs = await _prefs;
+    String? zipCode = "";
+    if (prefs.containsKey('zipCode')) {
+      print("got zipCode");
+      var _zip = prefs.getString('zipCode') ?? "";
+      setState(() {
+        zipCode = _zip;
+      });
+    }
+    if (zipCode!.isEmpty) {
+      var _zip = await _getGPSZip();
+      setState(() {
+        zipCode = _zip;
+        prefs.setString("zipCode", zipCode!);
+      });
+    }
+    if (zipCode == "ERROR") {
+      zipCode = await openDialog();
+      if (zipCode == null || zipCode!.isEmpty) {
+        zipCode = "66952";
+      }
+      prefs.setString("zipCode", zipCode!);
+    }
+    print("%%%%%%%%% ZIP CODE = " + zipCode!);
+    return zipCode!;
+  }
+
+  late TextEditingController controller2;
+
+  Future<String?> openDialog() => showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+              title: const Text("Enter Zip Code"),
+              content: TextField(
+                autofocus: true,
+                decoration: const InputDecoration(hintText: "Zip Code"),
+                controller: controller2,
+                onSubmitted: (_) => submit(),
+              ),
+              actions: [
+                TextButton(onPressed: submit, child: const Text("Submit"))
+              ]));
+
+  void submit() {
+    Navigator.of(context).pop(controller2.text);
+    controller2.clear();
+  }
+
+  Future<String> _getGPSZip() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Location services are not enabled don't continue
+      // accessing the position and request users of the
+      // App to enable the location services.
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Permissions are denied, next time you could try
+        // requesting permissions again (this is also where
+        // Android's shouldShowRequestPermissionRationale
+        // returned true. According to Android guidelines
+        // your App should show an explanatory UI now.
+        return "ERROR";
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever, handle appropriately.
+      return "ERROR";
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+
+    print('location: ${position.latitude}');
+    List<Placemark> addresses =
+        await placemarkFromCoordinates(position.latitude, position.longitude);
+
+    var first = addresses.first;
+    print("${first.name} : ${first..administrativeArea}");
+    if (first.postalCode == null) {
+      return "ERROR";
+    } else {
+      return first.postalCode!;
+    }
   }
 
   void _scrollListener() {
@@ -65,7 +171,14 @@ class AdoptGridState extends State<AdoptGrid> {
   }
 
   void setFavorites(bool favorited) {
+    this.favorited = favorited;
     print("Favorites pressed. ${(favorited) ? "Favorited" : "Unfavorited"}");
+    setState(() {
+      tiles = [];
+      loadedPets = 0;
+      maxPets = -1;
+      getPets();
+    });
   }
 
   void getPets() async {
@@ -74,18 +187,32 @@ class AdoptGridState extends State<AdoptGrid> {
     int currentPage = ((loadedPets + tilesPerLoad) / tilesPerLoad).floor();
     loadedPets += tilesPerLoad;
     var url =
-        "https://api.rescuegroups.org/v5/public/animals/search/available?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status&limit=25&page=$currentPage";
+        "https://api.rescuegroups.org/v5/public/animals/search/available?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status&sort=animals.distance&limit=25&page=$currentPage";
 
-    Map<String, dynamic> data = {
+    print("&&&&&& zip = " + zip);
+
+    if (favorited) {
+      filters = [
+        {
+          "fieldName": "animals.id",
+          "operation": "equal",
+          "criteria": listOfFavorites
+        }
+      ];
+    } else {
+      filters = [
+        {
+          "fieldName": "species.singular",
+          "operation": "equal",
+          "criteria": "cat"
+        }
+      ];
+    }
+
+    Map<dynamic, dynamic> data = {
       "data": {
-        "filterRadius": {"miles": 1000, "postalcode": "94043"},
-        "filters": [
-          {
-            "fieldName": "species.singular",
-            "operation": "equal",
-            "criteria": "cat"
-          }
-        ]
+        "filterRadius": {"miles": 1000, "postalcode": zip},
+        "filters": filters,
       }
     };
 
@@ -121,30 +248,40 @@ class AdoptGridState extends State<AdoptGrid> {
   @override
   void dispose() {
     controller.removeListener(_scrollListener);
+    controller2.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: MasonryGridView.count(
-            controller: controller,
-            itemCount: tiles.isNotEmpty ? tiles.length : 0,
-            padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 10),
-            // the number of columns
-            crossAxisCount: 2,
-            // vertical gap between two items
-            mainAxisSpacing: 10,
-            // horizontal gap between two items
-            crossAxisSpacing: 10,
-            itemBuilder: (context, index) {
-              // display each item with a card
-              return GestureDetector(
-                  onTap: () {
-                    _navigateAndDisplaySelection(context, index);
-                  },
-                  child: petCard(tiles[index]));
-            }));
+      body: Column(
+        children: [
+          Text("Zip: " + zip),
+          Expanded(
+            child: MasonryGridView.count(
+              controller: controller,
+              itemCount: tiles.isNotEmpty ? tiles.length : 0,
+              padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 10),
+              // the number of columns
+              crossAxisCount: 2,
+              // vertical gap between two items
+              mainAxisSpacing: 10,
+              // horizontal gap between two items
+              crossAxisSpacing: 10,
+              itemBuilder: (context, index) {
+                // display each item with a card
+                return GestureDetector(
+                    onTap: () {
+                      _navigateAndDisplaySelection(context, index);
+                    },
+                    child: petCard(tiles[index]));
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _navigateAndDisplaySelection(
@@ -160,6 +297,12 @@ class AdoptGridState extends State<AdoptGrid> {
     favorites = await server.getFavorites(userID);
     setState(() {
       listOfFavorites = favorites;
+      if (favorited) {
+        tiles = [];
+        loadedPets = 0;
+        maxPets = -1;
+        getPets();
+      }
     });
   }
 
@@ -174,7 +317,7 @@ class AdoptGridState extends State<AdoptGrid> {
         ),
         margin: EdgeInsets.all(5),
         child: Container(
-          height: (tile.resolutionY == 0 ? 100 : tile.resolutionY!) + 176,
+          height: (tile.resolutionY == 0 ? 100 : tile.resolutionY!) + 300,
           width: 200,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -242,26 +385,73 @@ class AdoptGridState extends State<AdoptGrid> {
                     SizedBox(
                       height: 5,
                     ),
-                    Text(
-                      (tile.status ?? "") +
-                          " | " +
-                          (tile.age ?? "") +
-                          " | " +
-                          (tile.sex ?? "") +
-                          " | " +
-                          (tile.size ?? "") +
-                          " | " +
-                          (tile.cityState ?? ""),
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                      ),
-                    ),
+                    getStats(tile)
                   ],
                 ),
               ),
             ],
           ),
         ));
+  }
+
+  Widget getStats(PetTileData tile) {
+    if (tile == null) {
+      return const SizedBox.shrink();
+    }
+
+    List<String> stats = [];
+    if (tile.status != null) {
+      stats.add(tile.status ?? "");
+    }
+    if (tile.age != null) {
+      stats.add(tile.age ?? "");
+    }
+    if (tile.sex != null) {
+      stats.add(tile.sex ?? "");
+    }
+    if (tile.size != null) {
+      stats.add(tile.size ?? "");
+    }
+    if (tile.cityState != null) {
+      stats.add(tile.cityState ?? "");
+    }
+    List<Color> foreground = [
+      const Color.fromRGBO(101, 164, 43, 1),
+      const Color.fromRGBO(3, 122, 254, 1),
+      const Color.fromRGBO(245, 76, 10, 1.0),
+      Colors.deepPurple,
+      Colors.deepOrange
+    ];
+    List<Color> background = [
+      const Color.fromRGBO(222, 234, 209, 1),
+      const Color.fromRGBO(209, 224, 239, 1),
+      const Color.fromARGB(255, 246, 193, 167),
+      Colors.purpleAccent.shade100,
+      Colors.orangeAccent
+    ];
+    return Center(
+        child: SizedBox(
+            width: MediaQuery.of(context).size.width,
+            child: Wrap(
+                alignment: WrapAlignment.spaceEvenly,
+                spacing: 10,
+                runSpacing: 10,
+                direction: Axis.horizontal,
+                children: stats.map((item) {
+                  return Container(
+                      width: 100,
+                      decoration: BoxDecoration(
+                          border: Border.all(
+                              color: foreground[stats.indexOf(item)]),
+                          color: background[stats.indexOf(item)],
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5))),
+                      child: Text(stats[stats.indexOf(item)].trim(),
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: foreground[stats.indexOf(item)]),
+                          textAlign: TextAlign.center));
+                }).toList())));
   }
 }

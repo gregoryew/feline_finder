@@ -1,13 +1,15 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:async';
 import 'dart:convert';
-
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:like_button/like_button.dart';
-import 'package:linkify_text/linkify_text.dart';
+import 'package:linkfy_text/linkfy_text.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
 import '../widgets/toolbar.dart';
@@ -397,6 +399,8 @@ class petDetailState extends State<petDetail> with RouteAware {
   Widget textBox(String title, String textBlock) {
     var document = parseFragment(textBlock);
     var textString = document.text ?? "";
+    final textStyle =
+        GoogleFonts.karla(fontSize: 16, fontWeight: FontWeight.w500);
 
     return Center(
       child: Container(
@@ -419,18 +423,37 @@ class petDetailState extends State<petDetail> with RouteAware {
               thickness: 1,
               color: Colors.grey[100],
             ),
-            LinkifyText(
-              textString,
-              fontSize: 15.0,
-              linkColor: Colors.blue,
-              fontColor: Colors.black,
-              fontWeight: FontWeight.w500,
-              isLinkNavigationEnable: true,
-            ),
+            //linkify(textString)
+            /*
+            Linkify(
+              onOpen: _onOpen,
+              textScaleFactor: 2,
+              text: textString,
+            )
+            */
+            LinkifyText(textString,
+                textAlign: TextAlign.left,
+                textStyle: textStyle,
+                linkTypes: const [LinkType.email, LinkType.url],
+                linkStyle: textStyle.copyWith(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+                onTap: (link) => _onOpen(link.value!)
+                ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _onOpen(String link) async {
+    var l = Uri.parse((!link.startsWith("http") ? "http://" : "") + link);
+    if (await canLaunchUrl(l)) {
+      await launchUrl(l);
+    } else {
+      throw 'Could not launch $link';
+    }
   }
 
   Widget getStats() {

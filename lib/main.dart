@@ -82,6 +82,29 @@ class _HomeScreen extends State<HomeScreen> {
     });
   }
 
+  List<Widget>? getTrailingButtons(selectedIndex) {
+    if (selectedIndex == 2) {
+      return <Widget>[
+        GestureDetector(
+          onTap: () {
+            AdoptionGridKey.currentState!.whileYourAwaySearch();
+          },
+          child: const ImageIcon(AssetImage("assets/Icons/away.png"), size: 30),
+        ),
+        const SizedBox(width: 10, height: 30),
+        GestureDetector(
+          onTap: () {
+            AdoptionGridKey.currentState!.search();
+          },
+          child:
+              const ImageIcon(AssetImage("assets/Icons/search.png"), size: 30),
+        ),
+        const SizedBox(width: 15, height: 30)
+      ];
+    }
+    return null;
+  }
+
   Widget? getLeadingButtons(selectedIndex) {
     if (selectedIndex == 2) {
       return GestureDetector(
@@ -106,8 +129,9 @@ class _HomeScreen extends State<HomeScreen> {
     AdoptionGridKey = GlobalObjectKey<AdoptGridState>(context);
     return Scaffold(
       appBar: AppBar(
-          title: const Text("Feline Finder"),
-          leading: getLeadingButtons(_selectedIndex)),
+          title: const Center(child: Text("Feline Finder")),
+          leading: getLeadingButtons(_selectedIndex),
+          actions: getTrailingButtons(_selectedIndex)),
       body: (_selectedIndex == 2)
           ? AdoptGrid(key: AdoptionGridKey)
           : pages[_selectedIndex],

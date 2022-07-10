@@ -27,6 +27,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  intl: ^0.17.0
   flutter:
     sdk: flutter
   http: ^0.13.4
@@ -42,7 +43,6 @@ dependencies:
   cached_network_image: ^3.2.1
   uuid: ^3.0.6
   shared_preferences: ^2.0.15
-  linkfy_text: ^1.1.5
   email_launcher: ^1.1.1
   share_plus: ^4.0.5
   transparent_image: ^2.0.0
@@ -53,8 +53,9 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
-  linkify_text: ^0.0.9
+  linkfy_text: ^1.1.5
   crop: ^0.5.2
+  google_fonts: ^3.0.1
 
 dev_dependencies:
   flutter_test:

@@ -170,6 +170,14 @@ class AdoptGridState extends State<AdoptGrid> {
     }
   }
 
+  void search() {
+    print("Search");
+  }
+
+  void whileYourAwaySearch() {
+    print("While Your Away");
+  }
+
   void setFavorites(bool favorited) {
     this.favorited = favorited;
     print("Favorites pressed. ${(favorited) ? "Favorited" : "Unfavorited"}");
@@ -257,7 +265,11 @@ class AdoptGridState extends State<AdoptGrid> {
     return Scaffold(
       body: Column(
         children: [
-          Text("Zip: " + zip),
+          Text("Zip: " +
+              zip +
+              " " +
+              (favorited ? "Favorites: " : "Found: ") +
+              maxPets.toString()),
           Expanded(
             child: MasonryGridView.count(
               controller: controller,
@@ -413,7 +425,7 @@ class AdoptGridState extends State<AdoptGrid> {
       stats.add(tile.size ?? "");
     }
     if (tile.cityState != null) {
-      stats.add(tile.cityState ?? "");
+      stats.add("📌" + (tile.cityState ?? "Unknown"));
     }
     List<Color> foreground = [
       const Color.fromRGBO(101, 164, 43, 1),

@@ -50,8 +50,13 @@ class listOption {
 }
 
 List<filterOption> filteringOptions = [
+  /*filterOption("Save", "Save", "Save", true, true, CatClassification.saves, 1,
+      [], [], false, FilterType.simple),
+  filterOption("Zip Code", "ZipCode", "ZipCode", true, true,
+      CatClassification.zipCode, 1, [], [], false, FilterType.simple),
   filterOption("Breed", "Breed", "breedPrimaryId", true, true,
-      CatClassification.breed, 1, [], [], false, FilterType.advanced),
+      CatClassification.breed, 1, [], [], false, FilterType.simple),
+  */
   filterOption(
       "Sort By",
       "Sort By",
@@ -112,7 +117,7 @@ List<filterOption> filteringOptions = [
       false,
       CatClassification.sort,
       5,
-      [listOption("Search Daily?", "", 1), listOption("Don't Search", "", 0)],
+      [listOption("Search", "Search", 1), listOption("Don't", "Don't", 0)],
       [],
       false,
       FilterType.advanced),
@@ -380,7 +385,7 @@ List<filterOption> filteringOptions = [
       "New People",
       "newPeopleReaction",
       false,
-      false,
+      true,
       CatClassification.personality,
       19,
       [
@@ -398,7 +403,7 @@ List<filterOption> filteringOptions = [
       "Activity Level",
       "activityLevel",
       false,
-      false,
+      true,
       CatClassification.personality,
       20,
       [
@@ -416,7 +421,7 @@ List<filterOption> filteringOptions = [
       "Energy level",
       "energyLevel",
       false,
-      false,
+      true,
       CatClassification.personality,
       21,
       [
@@ -433,7 +438,7 @@ List<filterOption> filteringOptions = [
       "Exercise Needs",
       "exerciseNeeds",
       false,
-      false,
+      true,
       CatClassification.personality,
       22,
       [
@@ -451,7 +456,7 @@ List<filterOption> filteringOptions = [
       "Obedience training",
       "obedienceTraining",
       false,
-      false,
+      true,
       CatClassification.personality,
       23,
       [
@@ -468,7 +473,7 @@ List<filterOption> filteringOptions = [
       "Likes to vocalize",
       "vocalLevel",
       false,
-      false,
+      true,
       CatClassification.personality,
       24,
       [
@@ -494,7 +499,7 @@ List<filterOption> filteringOptions = [
       "Housetrained",
       "isHousetrained",
       false,
-      false,
+      true,
       CatClassification.personality,
       25,
       [
@@ -542,7 +547,7 @@ List<filterOption> filteringOptions = [
       "Ear type",
       "ear",
       false,
-      false,
+      true,
       CatClassification.physical,
       26,
       [
@@ -566,18 +571,18 @@ List<filterOption> filteringOptions = [
       "Color",
       "colorDetails",
       false,
-      false,
+      true,
       CatClassification.physical,
       27,
       [
         listOption("Black", "Black", 0),
-        listOption("Black and White", "Black and White", 1),
+        listOption("B&W", "Black and White", 1),
         listOption("Tuxedo", "Tuxedo", 2),
         listOption("Blue", "Blue", 3),
-        listOption("Salt & Pepper", "Salt & Pepper", 4),
-        listOption("Brown or Chocolate", "Brown or Chocolate", 5),
+        listOption("Salt & Pep", "Salt & Pepper", 4),
+        listOption("Brown/Choc", "Brown or Chocolate", 5),
         listOption("Brown Tabby", "Brown Tabby", 6),
-        listOption("Calico or Dilute Calico", "Calico or Dilute Calico", 7),
+        listOption("Calico/Dilute", "Calico or Dilute Calico", 7),
         listOption("Cream", "Cream", 8),
         listOption("Ivory", "Ivory", 9),
         listOption("Gray", "Gray", 10),
@@ -600,7 +605,7 @@ List<filterOption> filteringOptions = [
       "Eye color",
       "eyeColor",
       false,
-      false,
+      true,
       CatClassification.physical,
       28,
       [
@@ -626,7 +631,7 @@ List<filterOption> filteringOptions = [
       "Tail type",
       "tailType",
       false,
-      false,
+      true,
       CatClassification.physical,
       29,
       [
@@ -666,7 +671,7 @@ List<filterOption> filteringOptions = [
       "Sex",
       "sex",
       true,
-      true,
+      false,
       CatClassification.physical,
       31,
       [
@@ -682,7 +687,7 @@ List<filterOption> filteringOptions = [
       "Coat Length",
       "coatLength",
       false,
-      false,
+      true,
       CatClassification.physical,
       32,
       [
@@ -699,7 +704,7 @@ List<filterOption> filteringOptions = [
       "Grooming needs",
       "groomingNeeds",
       false,
-      false,
+      true,
       CatClassification.physical,
       33,
       [
@@ -717,7 +722,7 @@ List<filterOption> filteringOptions = [
       "Shedding amount",
       "sheddingLevel",
       false,
-      false,
+      true,
       CatClassification.physical,
       34,
       [

@@ -14,6 +14,7 @@ import '/ExampleCode/RescueGroups.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import '/screens/petDetail.dart';
+import '/screens/search.dart';
 import 'globals.dart' as globals;
 
 class AdoptGrid extends StatefulWidget {
@@ -170,8 +171,12 @@ class AdoptGridState extends State<AdoptGrid> {
     }
   }
 
-  void search() {
-    print("Search");
+  void search() async {
+    final result = await Navigator.push(
+      context,
+      // Create the SelectionScreen in the next step.
+      MaterialPageRoute(builder: (context) => searchScreen()),
+    );
   }
 
   void whileYourAwaySearch() {

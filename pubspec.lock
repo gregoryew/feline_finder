@@ -14,7 +14,7 @@ packages:
       name: accordion
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.3.0"
+    version: "2.5.0"
   analyzer:
     dependency: transitive
     description:
@@ -638,7 +638,7 @@ packages:
       name: scroll_to_index
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.1.1"
+    version: "3.0.1"
   share_plus:
     dependency: "direct main"
     description:

@@ -1,14 +1,20 @@
 library felinefinderapp.globals;
 
+import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import '../models/searchPageConfig.dart';
+import '../models/zippopotam.dart';
+import 'package:get/get.dart';
 
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
 
 class FelineFinderServer {
   static FelineFinderServer _instance = FelineFinderServer._();
+
+  String zip = "?";
 
   FelineFinderServer._();
 
@@ -20,119 +26,7 @@ class FelineFinderServer {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   String _userID = "";
 
-/*
-  Future<String> getZipCode() async {
-    bool _serviceEnabled;
-    PermissionStatus _permissionGranted;
-    Location location = Location();
-    LocationData _currentPosition;
-
-    _serviceEnabled = await location.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await location.requestService();
-      if (!_serviceEnabled) {
-        return "";
-      }
-    }
-
-    _permissionGranted = await location.hasPermission();
-    if (_permissionGranted == PermissionStatus.denied) {
-      _permissionGranted = await location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) {
-        return "";
-      }
-    }
-
-    _currentPosition = await location.getLocation();
-    final coordinates =
-        new Coordinates(_currentPosition.latitude, _currentPosition.longitude);
-    List<Address> add =
-        await Geocoder.local.findAddressesFromCoordinates(coordinates);
-    return add.first.postalCode;
-  }
-*/
-
-/*
-  Future<String> _zipCode;
-
-  Future<String> zipCode() async {
-    SharedPreferences prefs = await _prefs;
-    if (prefs.containsKey('zipCode')) {
-      print("got zipCode");
-      _zipCode = (prefs.getString('zipCode') ?? "");
-    }
-    if (_zipCode.isEmpty) {
-      //var position = await _determinePosition();
-      //_zipCode = await _getAddress(position);
-      var _zipCode = _getZip() as String;
-      prefs.setString("zipCode", _zipCode);
-    }
-    if (_zipCode.isEmpty) {
-      _zipCode = "66952";
-    }
-    print("%%%%%%%%% ZIP CODE = " + _zipCode);
-    return _zipCode;
-  }
-*/
-
-/*
-  Future<String?> GetAddressFromLatLong(LocationData position) async {
-    List<Placemark> placemarks =
-        await placemarkFromCoordinates(position.latitude, position.longitude);
-    print(placemarks);
-    Placemark place = placemarks[0];
-    return place.postalCode;
-  }
-*/
-/*
-  Future<String> _getZip() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // Location services are not enabled don't continue
-      // accessing the position and request users of the
-      // App to enable the location services.
-      return Future.error('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        // Permissions are denied, next time you could try
-        // requesting permissions again (this is also where
-        // Android's shouldShowRequestPermissionRationale
-        // returned true. According to Android guidelines
-        // your App should show an explanatory UI now.
-        return Future.error('Location permissions are denied');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever, handle appropriately.
-      return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
-    }
-
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-
-    print('location: ${position.latitude}');
-    List<Placemark> addresses =
-        await placemarkFromCoordinates(position.latitude, position.longitude);
-
-    var first = addresses.first;
-    print("${first.name} : ${first..administrativeArea}");
-    if (first.postalCode == null) {
-      return "66952";
-    } else {
-      return first.postalCode!;
-    }
-  }
-  */
+  CatClassification? whichCategory = CatClassification.basic;
 
   Future<String> getUser() async {
     print("getUser called");
@@ -250,6 +144,42 @@ class FelineFinderServer {
     } else {
       print(response.toString());
       print("favoritePet failed");
+    }
+  }
+
+  Future<bool?> isZipCodeValid(String zipCode) async {
+    var url = "https://api.zippopotam.us/us/${zipCode}";
+
+    print("URL = $url");
+
+    try {
+      var response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        var places = Zippopotam.fromJson(jsonDecode(response.body));
+        return places.toString() != "{}";
+      } else {
+        if (response.statusCode != 404) {
+          await Get.dialog(
+            AlertDialog(
+              title: const Text("Server Error"),
+              content: Text(
+                  "There was a server error while validating zip code.  The error code is ${response.statusCode}"),
+              actions: <Widget>[
+                ElevatedButton(
+                  child: const Text("CLOSE"),
+                  onPressed: () {
+                    Get.back(result: true);
+                  },
+                ),
+              ],
+            ),
+          );
+        }
+        return false;
+        //throw Exception('Failed to validate zip code ' + response.body);
+      }
+    } catch (e) {
+      return false;
     }
   }
 }

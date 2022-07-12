@@ -49,17 +49,30 @@ class listOption {
   listOption(this.displayName, this.search, this.value);
 }
 
+List<filterOption> persistentFilteringOptions = [];
+
 List<filterOption> filteringOptions = [
-  /*filterOption("Save", "Save", "Save", true, true, CatClassification.saves, 1,
-      [], [], false, FilterType.simple),
-  filterOption("Zip Code", "ZipCode", "ZipCode", true, true,
+  filterOption("Save", "Save", "Save", true, true, CatClassification.saves, 1,
+      [listOption("New...", "New", 0)], [], false, FilterType.simple),
+  filterOption(
+      "Breed",
+      "",
+      "breedPrimaryId",
+      true,
+      true,
+      CatClassification.breed,
+      1,
+      [listOption("Change...", "Change", 0)],
+      [],
+      false,
+      FilterType.simple),
+/*
+  filterOption("Zip Code", "ZipCode", "ZipCode", true, false,
       CatClassification.zipCode, 1, [], [], false, FilterType.simple),
-  filterOption("Breed", "Breed", "breedPrimaryId", true, true,
-      CatClassification.breed, 1, [], [], false, FilterType.simple),
-  */
+*/
   filterOption(
       "Sort By",
-      "Sort By",
+      "",
       "sortBy",
       false,
       false,
@@ -74,7 +87,7 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Distance",
-      "Distance",
+      "",
       "distance",
       false,
       false,
@@ -93,7 +106,7 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Updated Since",
-      "Updated Since",
+      "",
       "date",
       false,
       false,
@@ -111,7 +124,7 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "While Your Away",
-      "While Your Away",
+      "",
       "While Your Away",
       false,
       false,
@@ -122,11 +135,81 @@ List<filterOption> filteringOptions = [
       false,
       FilterType.advanced),
 
+  //Basic
+  filterOption(
+      "Size",
+      "",
+      "animals.sizeGroup",
+      true,
+      true,
+      CatClassification.basic,
+      30,
+      [
+        listOption("Small", "Small", 0),
+        listOption("Medium", "Medium", 1),
+        listOption("Large", "Large", 2),
+        listOption("X-Large", "X-Large", 3),
+        listOption("Any", "Any", 4)
+      ],
+      [],
+      false,
+      FilterType.simple),
+  filterOption(
+      "Age",
+      "",
+      "animals.ageGroup",
+      true,
+      true,
+      CatClassification.basic,
+      25,
+      [
+        listOption("Baby", "Baby", 0),
+        listOption("Young", "Young", 1),
+        listOption("Adult", "Adult", 2),
+        listOption("Senior", "Senior", 3),
+        listOption("Any", "Any", 4)
+      ],
+      [],
+      false,
+      FilterType.simple),
+  filterOption(
+      "Sex",
+      "",
+      "animals.sex",
+      true,
+      false,
+      CatClassification.basic,
+      31,
+      [
+        listOption("Male", "Male", 0),
+        listOption("Female", "Female", 1),
+        listOption("Any", "Any", 2)
+      ],
+      [],
+      false,
+      FilterType.simple),
+  filterOption(
+      "Coat Length",
+      "",
+      "animals.coatLength",
+      false,
+      true,
+      CatClassification.basic,
+      32,
+      [
+        listOption("Short", "Short", 0),
+        listOption("Medium", "Medium", 1),
+        listOption("Long", "Long", 2),
+        listOption("Any", "Any", 3)
+      ],
+      [],
+      false,
+      FilterType.advanced),
   //Admin
   filterOption(
       "Adoption pending",
-      "Adoption pending",
-      "isAdoptionPending",
+      "",
+      "animals.isAdoptionPending",
       false,
       false,
       CatClassification.admin,
@@ -141,8 +224,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Courtesy Listing",
-      "Courtesy Listing",
-      "isCourtesyListing",
+      "",
+      "animals.isCourtesyListing",
       false,
       false,
       CatClassification.admin,
@@ -157,8 +240,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Found",
-      "Found",
-      "isFound",
+      "",
+      "animals.isFound",
       false,
       false,
       CatClassification.admin,
@@ -173,8 +256,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Needs a Foster",
-      "Needs a Foster",
-      "isNeedingFoster",
+      "",
+      "animals.isNeedingFoster",
       false,
       false,
       CatClassification.admin,
@@ -189,8 +272,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Allow sponsorship",
-      "Allow sponsorship",
-      "isSponsorable",
+      "",
+      "animals.isSponsorable",
       false,
       false,
       CatClassification.admin,
@@ -205,8 +288,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Current on vaccations",
-      "Current on vaccations",
-      "isCurrentVaccinations",
+      "",
+      "animals.isCurrentVaccinations",
       false,
       false,
       CatClassification.admin,
@@ -223,8 +306,8 @@ List<filterOption> filteringOptions = [
   //compatibiity
   filterOption(
       "Requires a Yard",
-      "Requires a Yard",
-      "isYardRequired",
+      "",
+      "animals.isYardRequired",
       false,
       false,
       CatClassification.compatibility,
@@ -239,8 +322,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "In/Outdoor",
-      "In/Outdoor",
-      "indoorOutdoor",
+      "",
+      "animals.indoorOutdoor",
       false,
       false,
       CatClassification.compatibility,
@@ -256,8 +339,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "OK with dogs",
-      "OK with dogs",
-      "isDogsOk",
+      "",
+      "animals.isDogsOk",
       false,
       false,
       CatClassification.compatibility,
@@ -272,8 +355,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "OK with cats",
-      "OK with cats",
-      "isCatsOk",
+      "",
+      "animals.isCatsOk",
       false,
       false,
       CatClassification.compatibility,
@@ -288,8 +371,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Seniors",
-      "Seniors",
-      "isSeniorsOk",
+      "",
+      "animals.isSeniorsOk",
       false,
       false,
       CatClassification.compatibility,
@@ -300,8 +383,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Adults",
-      "Adults",
-      "adultSexesOk",
+      "",
+      "animals.adultSexesOk",
       false,
       false,
       CatClassification.compatibility,
@@ -317,8 +400,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Farm Animals",
-      "Farm Animals",
-      "isFarmAnimalsOk",
+      "",
+      "animals.isFarmAnimalsOk",
       false,
       false,
       CatClassification.compatibility,
@@ -329,8 +412,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "OK with kids",
-      "OK with kids",
-      "isKidsOk",
+      "",
+      "animals.isKidsOk",
       false,
       false,
       CatClassification.compatibility,
@@ -345,8 +428,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Owner experience needed",
-      "Owner experience needed",
-      "ownerExperience",
+      "",
+      "animals.ownerExperience",
       false,
       false,
       CatClassification.compatibility,
@@ -362,8 +445,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Fence Needs",
-      "Fence Needs",
-      "fenceNeeds",
+      "",
+      "animals.fenceNeeds",
       false,
       false,
       CatClassification.compatibility,
@@ -382,8 +465,8 @@ List<filterOption> filteringOptions = [
   //Personality
   filterOption(
       "New People",
-      "New People",
-      "newPeopleReaction",
+      "",
+      "animals.newPeopleReaction",
       false,
       true,
       CatClassification.personality,
@@ -400,8 +483,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Activity Level",
-      "Activity Level",
-      "activityLevel",
+      "",
+      "animals.activityLevel",
       false,
       true,
       CatClassification.personality,
@@ -418,8 +501,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Energy level",
-      "Energy level",
-      "energyLevel",
+      "",
+      "animals.energyLevel",
       false,
       true,
       CatClassification.personality,
@@ -435,8 +518,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Exercise Needs",
-      "Exercise Needs",
-      "exerciseNeeds",
+      "",
+      "animals.exerciseNeeds",
       false,
       true,
       CatClassification.personality,
@@ -453,8 +536,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Obedience training",
-      "Obedience training",
-      "obedienceTraining",
+      "",
+      "animals.obedienceTraining",
       false,
       true,
       CatClassification.personality,
@@ -470,8 +553,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Likes to vocalize",
-      "Likes to vocalize",
-      "vocalLevel",
+      "",
+      "animals.vocalLevel",
       false,
       true,
       CatClassification.personality,
@@ -496,8 +579,8 @@ List<filterOption> filteringOptions = [
   //filterOption("Goofy", "animalGoofy", false,  CatClassification.personality, [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][], false, FilterType.advanced))
   filterOption(
       "Housetrained",
-      "Housetrained",
-      "isHousetrained",
+      "",
+      "animals.isHousetrained",
       false,
       true,
       CatClassification.personality,
@@ -525,27 +608,9 @@ List<filterOption> filteringOptions = [
 
   //physical
   filterOption(
-      "Age",
-      "Age",
-      "ageGroup",
-      true,
-      true,
-      CatClassification.physical,
-      25,
-      [
-        listOption("Baby", "Baby", 0),
-        listOption("Young", "Young", 1),
-        listOption("Adult", "Adult", 2),
-        listOption("Senior", "Senior", 3),
-        listOption("Any", "Any", 4)
-      ],
-      [],
-      false,
-      FilterType.simple),
-  filterOption(
       "Ear type",
-      "Ear type",
-      "ear",
+      "",
+      "animals.ear",
       false,
       true,
       CatClassification.physical,
@@ -568,8 +633,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Color",
-      "Color",
-      "colorDetails",
+      "",
+      "animals.colorDetails",
       false,
       true,
       CatClassification.physical,
@@ -602,8 +667,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Eye color",
-      "Eye color",
-      "eyeColor",
+      "",
+      "animals.eyeColor",
       false,
       true,
       CatClassification.physical,
@@ -628,8 +693,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Tail type",
-      "Tail type",
-      "tailType",
+      "",
+      "animals.tailType",
       false,
       true,
       CatClassification.physical,
@@ -649,60 +714,9 @@ List<filterOption> filteringOptions = [
       false,
       FilterType.advanced),
   filterOption(
-      "Size",
-      "Size",
-      "sizeGroup",
-      true,
-      true,
-      CatClassification.physical,
-      30,
-      [
-        listOption("Small", "Small", 0),
-        listOption("Medium", "Medium", 1),
-        listOption("Large", "Large", 2),
-        listOption("X-Large", "X-Large", 3),
-        listOption("Any", "Any", 4)
-      ],
-      [],
-      false,
-      FilterType.simple),
-  filterOption(
-      "Sex",
-      "Sex",
-      "sex",
-      true,
-      false,
-      CatClassification.physical,
-      31,
-      [
-        listOption("Male", "Male", 0),
-        listOption("Female", "Female", 1),
-        listOption("Any", "Any", 2)
-      ],
-      [],
-      false,
-      FilterType.simple),
-  filterOption(
-      "Coat Length",
-      "Coat Length",
-      "coatLength",
-      false,
-      true,
-      CatClassification.physical,
-      32,
-      [
-        listOption("Short", "Short", 0),
-        listOption("Medium", "Medium", 1),
-        listOption("Long", "Long", 2),
-        listOption("Any", "Any", 3)
-      ],
-      [],
-      false,
-      FilterType.advanced),
-  filterOption(
       "Grooming needs",
-      "Grooming needs",
-      "groomingNeeds",
+      "",
+      "animals.groomingNeeds",
       false,
       true,
       CatClassification.physical,
@@ -719,8 +733,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Shedding amount",
-      "Shedding amount",
-      "sheddingLevel",
+      "",
+      "animals.sheddingLevel",
       false,
       true,
       CatClassification.physical,
@@ -736,8 +750,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Altered",
-      "Altered",
-      "isAltered",
+      "",
+      "animals.isAltered",
       false,
       false,
       CatClassification.physical,
@@ -752,8 +766,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Declawed",
-      "Declawed",
-      "isDeclawed",
+      "",
+      "animals.isDeclawed",
       false,
       false,
       CatClassification.physical,
@@ -771,8 +785,8 @@ List<filterOption> filteringOptions = [
   //filterOption( "Hypoallergenic",  "animalHypoallergenic", false, CatClassification.physical, [listOption( "Yes", "Yes",  0),listOption( "Any", "Any",  1)], FilterType.Advanced),
   filterOption(
       "Microchipped",
-      "Microchipped",
-      "isMicrochipped",
+      "",
+      "animals.isMicrochipped",
       false,
       false,
       CatClassification.physical,
@@ -787,8 +801,8 @@ List<filterOption> filteringOptions = [
       FilterType.advanced),
   filterOption(
       "Mixed breed",
-      "Mixed breed",
-      "isBreedMixed",
+      "",
+      "animals.isBreedMixed",
       false,
       false,
       CatClassification.physical,
@@ -805,8 +819,8 @@ List<filterOption> filteringOptions = [
   //filterOption( "Special diet",  "animalSpecialDiet", false, CatClassification.physical, [listOption( "Yes", "Yes",  0),listOption( "Any", "Any",  1)], FilterType.Advanced),
   filterOption(
       "Has special needs",
-      "Has special needs",
-      "isSpecialNeeds",
+      "",
+      "animals.isSpecialNeeds",
       false,
       false,
       CatClassification.physical,

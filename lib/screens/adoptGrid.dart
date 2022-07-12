@@ -16,6 +16,7 @@ import '/ExampleCode/petTileData.dart';
 import '/screens/petDetail.dart';
 import '/screens/search.dart';
 import 'globals.dart' as globals;
+import 'package:get/get.dart';
 
 class AdoptGrid extends StatefulWidget {
   // This widget is the home page of your application. It is stateful, meaning
@@ -41,18 +42,20 @@ class AdoptGridState extends State<AdoptGrid> {
   late ScrollController controller;
   List<String> favorites = [];
   late String userID;
-  String zip = "?";
   List<String> listOfFavorites = [];
   final server = globals.FelineFinderServer.instance;
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   bool favorited = false;
-  late List<Map<dynamic, dynamic>> filters;
+  List<Filters> filters = [];
+  List<Filters> filters_backup = [];
 
   @override
   void initState() {
     super.initState();
     controller = ScrollController()..addListener(_scrollListener);
     controller2 = TextEditingController();
+    filters.add(Filters(
+        fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
     () async {
       String user = await server.getUser();
       favorites = await server.getFavorites(user);
@@ -60,7 +63,7 @@ class AdoptGridState extends State<AdoptGrid> {
       setState(() {
         listOfFavorites = favorites;
         userID = user;
-        zip = _zip;
+        server.zip = _zip;
         getPets();
       });
     }();
@@ -101,6 +104,7 @@ class AdoptGridState extends State<AdoptGrid> {
       builder: (context) => AlertDialog(
               title: const Text("Enter Zip Code"),
               content: TextField(
+                keyboardType: TextInputType.number,
                 autofocus: true,
                 decoration: const InputDecoration(hintText: "Zip Code"),
                 controller: controller2,
@@ -177,6 +181,18 @@ class AdoptGridState extends State<AdoptGrid> {
       // Create the SelectionScreen in the next step.
       MaterialPageRoute(builder: (context) => searchScreen()),
     );
+    if (result.length > 0) {
+      setState(
+        () {
+          filters = result;
+          filters_backup = filters;
+          tiles = [];
+          loadedPets = 0;
+          maxPets = -1;
+          getPets();
+        },
+      );
+    }
   }
 
   void whileYourAwaySearch() {
@@ -202,30 +218,32 @@ class AdoptGridState extends State<AdoptGrid> {
     var url =
         "https://api.rescuegroups.org/v5/public/animals/search/available?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status&sort=animals.distance&limit=25&page=$currentPage";
 
-    print("&&&&&& zip = " + zip);
+    print("&&&&&& zip = " + server.zip);
 
     if (favorited) {
       filters = [
-        {
-          "fieldName": "animals.id",
-          "operation": "equal",
-          "criteria": listOfFavorites
-        }
+        Filters(
+            fieldName: "animals.id",
+            operation: "equal",
+            criteria: listOfFavorites)
       ];
     } else {
-      filters = [
-        {
-          "fieldName": "species.singular",
-          "operation": "equal",
-          "criteria": "cat"
-        }
-      ];
+      filters = filters_backup;
+    }
+
+    List<Map<dynamic, dynamic>> filtersJson = [];
+    for (var element in filters) {
+      filtersJson.add({
+        "fieldName": element.fieldName,
+        "operation": "equal",
+        "criteria": element.criteria
+      });
     }
 
     Map<dynamic, dynamic> data = {
       "data": {
-        "filterRadius": {"miles": 1000, "postalcode": zip},
-        "filters": filters,
+        "filterRadius": {"miles": 1000, "postalcode": server.zip},
+        "filters": filtersJson,
       }
     };
 
@@ -265,16 +283,80 @@ class AdoptGridState extends State<AdoptGrid> {
     super.dispose();
   }
 
+  Future<void> askForZip() async {
+    late String? _zip;
+    late bool? valid = false;
+    late bool canceled = false;
+    do {
+      _zip = await openDialog();
+      if (_zip != null && _zip.isNotEmpty) {
+        var _valid = await server.isZipCodeValid(_zip);
+        setState(() {
+          valid = _valid;
+        });
+      }
+      if (!valid!) {
+        await Get.defaultDialog(
+            title: "Invalid Zip Code",
+            middleText: "Please enter a valid zip code.",
+            backgroundColor: Colors.red,
+            titleStyle: TextStyle(color: Colors.white),
+            middleTextStyle: TextStyle(color: Colors.white),
+            textConfirm: "OK",
+            confirmTextColor: Colors.white,
+            onConfirm: () {
+              valid = false;
+              canceled = false;
+              Get.back();
+            },
+            textCancel: "Cancel",
+            cancelTextColor: Colors.white,
+            onCancel: () {
+              valid = true;
+              canceled = true;
+              Get.back();
+            },
+            buttonColor: Colors.black,
+            barrierDismissible: false,
+            radius: 30);
+      }
+    } while (valid! == false);
+
+    if (canceled == false) {
+      setState(() {
+        server.zip = _zip!;
+      });
+      SharedPreferences prefs = await _prefs;
+      prefs.setString("zipCode", _zip!);
+      setState(() {
+        tiles = [];
+        loadedPets = 0;
+        maxPets = -1;
+        getPets();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    String? zipCode;
     return Scaffold(
       body: Column(
         children: [
-          Text("Zip: " +
-              zip +
-              " " +
-              (favorited ? "Favorites: " : "Found: ") +
-              maxPets.toString()),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                  child: Text("Zip: ${server.zip}"),
+                  style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(130, 25),
+                      maximumSize: const Size(130, 25)),
+                  onPressed: () => {askForZip()}),
+              Text(
+                (favorited ? " Favorites: " : " Cats: ") + maxPets.toString(),
+              ),
+            ],
+          ),
           Expanded(
             child: MasonryGridView.count(
               controller: controller,

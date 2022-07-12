@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:recipes/ExampleCode/Media.dart';
 
+import '../ExampleCode/RescueGroupsQuery.dart';
 import '../models/searchPageConfig.dart';
 import '../widgets/filterRow.dart';
+import '../widgets/filterZipCodeRow.dart';
 import 'globals.dart' as globals;
 
 class searchScreen extends StatefulWidget {
@@ -52,13 +54,16 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
       if (!widget.categories.containsKey(filterOption.classification)) {
         widget.categories[filterOption.classification] = [];
       }
-      if (filterOption.list) {
-        filterOption.choosenListValues = [
-          filterOption.options[filterOption.options.length - 1].value
-        ];
-      } else {
-        filterOption.choosenValue =
-            filterOption.options[filterOption.options.length - 1].search;
+      if (filterOption.options.isNotEmpty) {
+        if (filterOption.list) {
+          if (filterOption.choosenListValues.isEmpty) {
+            filterOption.choosenListValues = [filterOption.options.last.value];
+          }
+        } else {
+          if (filterOption.choosenValue.isEmpty) {
+            filterOption.choosenValue = filterOption.options.last.search;
+          }
+        }
       }
       widget.categories[filterOption.classification].add(filterOption);
     }
@@ -114,7 +119,7 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
         }
       case CatClassification.basic:
         {
-          return Icons.folder_open;
+          return Icons.add;
         }
       case CatClassification.breed:
         {
@@ -153,7 +158,6 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
       color: Color(0xff999999), fontSize: 14, fontWeight: FontWeight.w700);
   final _contentStyle = const TextStyle(
       color: Color(0xff999999), fontSize: 14, fontWeight: FontWeight.normal);
-  CatClassification? whichCategory;
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +166,7 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
       print(widget.categories[category].length);
       print(categoryString(category));
       sections.add(AccordionSection(
-          isOpen: category == whichCategory,
+          isOpen: category == widget.server.whichCategory,
           leftIcon: Icon(icon(category), color: Colors.white),
           headerBackgroundColor: Colors.blue,
           headerBackgroundColorOpened: Colors.grey,
@@ -182,15 +186,22 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
             shrinkWrap: true,
             itemCount: widget.categories[category].length,
             itemBuilder: (context, position) {
-              return FilterRow(
-                  position: position,
-                  classification: category,
-                  filter: widget.categories[category][position]);
+              if (category == CatClassification.zipCode) {
+                return FilterZipCodeRow(
+                    position: position,
+                    classification: category,
+                    filter: widget.categories[category][position]);
+              } else {
+                return FilterRow(
+                    position: position,
+                    classification: category,
+                    filter: widget.categories[category][position]);
+              }
             },
           ),
           contentHorizontalPadding: 10,
           contentBorderWidth: 1,
-          onOpenSection: () => whichCategory = category));
+          onOpenSection: () => widget.server.whichCategory = category));
     }
 
     var buttonWidth = MediaQuery.of(context).size.width;
@@ -242,7 +253,7 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
                   borderRadius: BorderRadius.circular(12.0),
                 ),
               ),
-              onPressed: () => {},
+              onPressed: () => {Navigator.pop(context, generateFilters())},
               icon: const Icon(
                 Icons.search,
                 color: Colors.white,
@@ -251,10 +262,46 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
                   style: TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold)),
             ),
-            SizedBox(height: 50, width: 10),
+            const SizedBox(height: 50, width: 10),
           ],
         ),
       ),
     );
+  }
+
+  List<Filters> generateFilters() {
+    List<Filters> filters = [];
+    filters.add(Filters(
+        fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
+    for (var item in filteringOptions) {
+      if (item.classification == CatClassification.saves ||
+          item.classification == CatClassification.sort) {
+        continue;
+      }
+      if (item.list) {
+        if (!item.choosenListValues.contains(item.options.last.value)) {
+          List<String> criteria = [];
+          for (var choosenValue in item.choosenListValues) {
+            criteria.add(item.options
+                .where((element) => element.value == choosenValue)
+                .first
+                .search);
+          }
+          filters.add(Filters(
+              fieldName: item.fieldName,
+              operation: "equals",
+              criteria: criteria));
+        }
+      } else {
+        if (item.choosenValue == "Any") {
+          continue;
+        }
+        filters.add(Filters(
+            fieldName: item.fieldName,
+            operation: "equals",
+            criteria: [item.choosenValue]));
+      }
+    }
+    return filters;
   }
 }

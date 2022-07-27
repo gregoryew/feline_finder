@@ -4,6 +4,7 @@ import 'package:accordion/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:recipes/ExampleCode/Media.dart';
+import 'package:recipes/models/breed.dart';
 
 import '../ExampleCode/RescueGroupsQuery.dart';
 import '../models/searchPageConfig.dart';
@@ -16,13 +17,6 @@ class searchScreen extends StatefulWidget {
 
   var categories = {};
   List<dynamic> categoryKeys = [];
-
-/*
-  searchScreen(
-    Key? key,
-    this.categoryKeys,
-  ) : super(key: key);
-*/
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -56,7 +50,8 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
       }
       if (filterOption.options.isNotEmpty) {
         if (filterOption.list) {
-          if (filterOption.choosenListValues.isEmpty) {
+          if (filterOption.choosenListValues.isEmpty &&
+              filterOption.classification != CatClassification.breed) {
             filterOption.choosenListValues = [filterOption.options.last.value];
           }
         } else {
@@ -279,13 +274,23 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
         continue;
       }
       if (item.list) {
-        if (!item.choosenListValues.contains(item.options.last.value)) {
+        if (!item.choosenListValues.contains(item.options.last.value) ||
+            (item.classification == CatClassification.breed)) {
           List<String> criteria = [];
           for (var choosenValue in item.choosenListValues) {
-            criteria.add(item.options
-                .where((element) => element.value == choosenValue)
-                .first
-                .search);
+            if (item.classification == CatClassification.breed) {
+              criteria.add(item.options
+                  .where((element) =>
+                      element.value == breeds[choosenValue - 1].rid)
+                  .first
+                  .value
+                  .toString());
+            } else {
+              criteria.add(item.options
+                  .where((element) => element.value == choosenValue)
+                  .first
+                  .search);
+            }
           }
           filters.add(Filters(
               fieldName: item.fieldName,

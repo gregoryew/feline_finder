@@ -57,7 +57,7 @@ List<filterOption> filteringOptions = [
   filterOption(
       "Breed",
       "",
-      "breedPrimaryId",
+      "animals.breedPrimaryId",
       true,
       true,
       CatClassification.breed,
@@ -113,7 +113,7 @@ List<filterOption> filteringOptions = [
       CatClassification.sort,
       4,
       [
-        listOption("Day", "0", 0),
+        listOption("Day", "Day", 0),
         listOption("Week", "Week", 1),
         listOption("Month", "Month", 2),
         listOption("Year", "Year", 3),

@@ -60,7 +60,7 @@ class _BreedDetailState extends State<BreedDetail>
     _animation = Tween(begin: 0.0, end: 1.0).animate(_controller);
     getPlaylists();
     getBreedDescription(widget.breed.htmlUrl);
-    getPets(widget.breed.id.toString());
+    getPets(widget.breed.rid.toString());
   }
 
   void getPets(String breedID) async {

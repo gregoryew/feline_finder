@@ -145,6 +145,8 @@ class FitState extends State<Fit> {
                 ),
                 onChanged: (newValue) {
                   setState(() {
+                    _descriptionVisible[question.id] = true;
+
                     globals.FelineFinderServer.instance
                         .sliderValue[question.id] = newValue.round();
 
@@ -237,22 +239,22 @@ class FitState extends State<Fit> {
       case 11:
         {
           return AssetImage(
-              "assets/Fit_Examples/Body/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll("/", "-")}.png");
+              "assets/Fit_Examples/Body/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll("/", "-").replaceAll("'", "").replaceAll(" ", "_")}.jpg");
         }
       case 12:
         {
           return AssetImage(
-              "assets/Fit_Examples/Hair/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll(" ", "_")}.png");
+              "assets/Fit_Examples/Hair/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll(" ", "_").replaceAll("/", "-").replaceAll("'", "")}.jpg");
+        }
+      case 13:
+        {
+          return AssetImage(
+              "assets/Fit_Examples/Size/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll(" ", "_").replaceAll("/", "-").replaceAll("'", "")}.jpg");
         }
       case 14:
         {
-          if (q.id == 1) {
-            return AssetImage(
-                "assets/Fit_Examples/Zodicat/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name}.jpg");
-          } else {
-            return AssetImage(
-                "assets/Fit_Examples/Zodicat/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name}.png");
-          }
+          return AssetImage(
+              "assets/Fit_Examples/Zodicat/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll("'", "")}.png");
         }
       default:
         {

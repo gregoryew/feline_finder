@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:recipes/models/searchPageConfig.dart';
+import 'package:recipes/screens/breedList.dart';
+import '../screens/filterBreedSelection.dart';
+import '../models/breed.dart';
 
 class FilterRow extends StatefulWidget {
   int position;
@@ -31,6 +35,24 @@ class _FilterRow extends State<FilterRow> {
     }
   }
 
+  goToBreedSelectionScreen() async {
+    var selected = await Get.to(
+        FilterBreedSelection(choosenValues: widget.filter.choosenListValues));
+    List<int> selectedBreeds = [];
+    List<listOption> options = [];
+    options.add(listOption("Change...", "Change", 0));
+    for (var i = 0; i < selected.length; i++) {
+      if (selected[i]) {
+        selectedBreeds.add(breeds[i].id);
+        options.add(listOption(breeds[i].name, breeds[i].name, breeds[i].rid));
+      }
+    }
+    setState(() {
+      widget.filter.choosenListValues = selectedBreeds;
+      widget.filter.options = options;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -47,46 +69,56 @@ class _FilterRow extends State<FilterRow> {
               (item) {
                 return GestureDetector(
                   onTap: () => {
-                    setState(
-                      () => {
-                        if (widget.filter.list)
-                          {
-                            if (item.search == "Any")
+                    if (widget.filter.classification == CatClassification.breed)
+                      {goToBreedSelectionScreen()}
+                    else
+                      {
+                        setState(
+                          () => {
+                            if (widget.filter.list)
                               {
-                                widget.filter.choosenListValues = [
-                                  widget.filter.options.last.value
-                                ]
-                              }
-                            else
-                              {
-                                if (!widget.filter.choosenListValues
-                                    .contains(item.value))
+                                if (item.search == "Any")
                                   {
-                                    widget.filter.choosenListValues.remove(
-                                        widget.filter.options.last.value),
-                                    widget.filter.choosenListValues
-                                        .add(item.value)
+                                    widget.filter.choosenListValues = [
+                                      widget.filter.options.last.value
+                                    ]
                                   }
                                 else
                                   {
-                                    widget.filter.choosenListValues
-                                        .remove(item.value),
-                                    if (widget.filter.choosenListValues.isEmpty)
+                                    if (!widget.filter.choosenListValues
+                                        .contains(item.value))
                                       {
-                                        widget.filter.choosenListValues.add(
-                                            widget.filter.options.last.value)
+                                        widget.filter.choosenListValues.remove(
+                                            widget.filter.options.last.value),
+                                        widget.filter.choosenListValues
+                                            .add(item.value)
+                                      }
+                                    else
+                                      {
+                                        widget.filter.choosenListValues
+                                            .remove(item.value),
+                                        if (widget
+                                            .filter.choosenListValues.isEmpty)
+                                          {
+                                            widget.filter.choosenListValues.add(
+                                                widget
+                                                    .filter.options.last.value)
+                                          }
                                       }
                                   }
                               }
-                          }
-                        else
-                          {widget.filter.choosenValue = item.search}
+                            else
+                              {widget.filter.choosenValue = item.search}
+                          },
+                        ),
                       },
-                    ),
                   },
                   child: Container(
                     height: 20,
-                    width: 105,
+                    width: ((widget.filter.classification ==
+                            CatClassification.breed)
+                        ? 210
+                        : 105),
                     alignment: Alignment.center,
                     padding: const EdgeInsets.only(left: 5, right: 5),
                     decoration: BoxDecoration(

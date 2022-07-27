@@ -881,7 +881,7 @@ List<Breed> breeds = [
   ]),
   Breed(
       29,
-      'Extra-Toes Cat (Hemingway Polydactyl)',
+      'Extra-Toes Cat',
       30,
       'American_Shorthair',
       'American Shorthair',
@@ -1783,7 +1783,7 @@ List<Breed> breeds = [
   ]),
   Breed(
       59,
-      'Toyger',
+      'Tiger',
       60,
       'American_Shorthair',
       'American Shorthair',

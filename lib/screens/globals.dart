@@ -1,6 +1,7 @@
 library felinefinderapp.globals;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../models/searchPageConfig.dart';
 import '../models/zippopotam.dart';
 import 'package:get/get.dart';
+import '../ExampleCode/RescueGroupsQuery.dart';
 
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
 
@@ -27,6 +29,8 @@ class FelineFinderServer {
   String _userID = "";
 
   CatClassification? whichCategory = CatClassification.basic;
+
+  String currentFilterName = "";
 
   Future<String> getUser() async {
     print("getUser called");
@@ -181,5 +185,83 @@ class FelineFinderServer {
     } catch (e) {
       return false;
     }
+  }
+
+  Future<List<String>> getQueries(String userID) async {
+    print("getFavorites called");
+    print("https://$serverName/getQueries?userid=$userID");
+    var response = await http.get(
+        Uri.parse('https://$serverName/getQueries?userid=$userID'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        });
+    int statusCode = response.statusCode;
+    if (statusCode != 200) {
+      throw Exception("BAD statusCode: $statusCode");
+    }
+    String responseBody = response.body;
+    var dataList = jsonDecode(responseBody);
+    if (dataList.isEmpty) {
+      throw Exception("getQueries returned unknown data");
+    } else {
+      print("***************getQueries=" + dataList["Queries"].toString());
+      if (dataList["Queries"].toString() == "null") {
+        return [];
+      } else {
+        return dataList["Queries"].toString().split(",");
+      }
+    }
+  }
+
+  Future<RescueGroupsQuery> getQuery(String userID, String filterName) async {
+    print("loadFilter called");
+    print("https://$serverName/getQuery?userid=$userID&name=$filterName");
+    var response = await http.get(
+        (Uri.parse(Uri.encodeFull(
+            'https://$serverName/getQuery?userid=$userID&name=$filterName'))),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        });
+    int statusCode = response.statusCode;
+    if (statusCode != 200) {
+      throw Exception("BAD statusCode: $statusCode");
+    } else {
+      return RescueGroupsQuery.fromJson(
+          jsonDecode(jsonDecode(response.body)['Query']));
+    }
+  }
+
+  Future<bool> saveFilter(
+      String userID, String filterName, Object filter) async {
+    print("saveFilter called");
+    print("https://$serverName/insertQuery/");
+    var response = await http.post(
+      Uri.parse('https://$serverName/insertQuery/'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, dynamic>{
+        'userid': userID,
+        'name': filterName,
+        'query': filter
+      }),
+    );
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future<bool> deleteQuery(String userID, String query) async {
+    print("deleteQuery called");
+    print("https://$serverName/deleteQuery?userid=$userID&name=$query");
+    var response = await http.delete(Uri.parse(Uri.encodeFull(
+        'https://$serverName/deleteQuery?userid=$userID&name=$query')));
+    int statusCode = response.statusCode;
+    if (statusCode != 200) {
+      throw Exception("BAD statusCode: $statusCode");
+    }
+    return true;
   }
 }

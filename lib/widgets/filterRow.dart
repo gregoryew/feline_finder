@@ -4,16 +4,24 @@ import 'package:recipes/models/searchPageConfig.dart';
 import 'package:recipes/screens/breedList.dart';
 import '../screens/filterBreedSelection.dart';
 import '../models/breed.dart';
+import '../screens/globals.dart' as globals;
+import '../screens/search.dart';
 
 class FilterRow extends StatefulWidget {
   int position;
   CatClassification classification;
   late filterOption filter;
+  final server = globals.FelineFinderServer.instance;
+  late Function(String) loadSearch;
+  late Function() getQueries;
+
   FilterRow(
       {Key? key,
       required this.position,
       required this.classification,
-      required this.filter})
+      required this.filter,
+      required this.loadSearch,
+      required this.getQueries})
       : super(key: key);
 
   @override
@@ -23,7 +31,18 @@ class FilterRow extends StatefulWidget {
 class _FilterRow extends State<FilterRow> {
   bool shouldSelect(listOption choosen) {
     if (widget.filter.list) {
-      if (widget.filter.choosenListValues.contains(choosen.value)) {
+      if (widget.filter.classification == CatClassification.breed) {
+        return false;
+      } else if (widget.filter.choosenListValues.contains(choosen.value)) {
+        return true;
+      } else {
+        return false;
+      }
+    } else if (widget.filter.classification == CatClassification.saves) {
+      if (widget.server.currentFilterName == "" &&
+          choosen.displayName == "New...") {
+        return true;
+      } else if (widget.server.currentFilterName == choosen.search) {
         return true;
       } else {
         return false;
@@ -51,6 +70,16 @@ class _FilterRow extends State<FilterRow> {
       widget.filter.choosenListValues = selectedBreeds;
       widget.filter.options = options;
     });
+  }
+
+  deleteQuery(String name) async {
+    String localUserID = "";
+    var userID = await widget.server.getUser();
+    setState(() {
+      localUserID = userID;
+    });
+    await widget.server.deleteQuery(localUserID, name);
+    await widget.getQueries();
   }
 
   @override
@@ -108,35 +137,85 @@ class _FilterRow extends State<FilterRow> {
                                   }
                               }
                             else
-                              {widget.filter.choosenValue = item.search}
+                              {
+                                if (widget.classification ==
+                                    CatClassification.saves)
+                                  {
+                                    widget.server.currentFilterName = "",
+                                    widget.loadSearch(item.search)
+                                  }
+                                else
+                                  {widget.filter.choosenValue = item.search}
+                              }
                           },
                         ),
                       },
                   },
                   child: Container(
-                    height: 20,
-                    width: ((widget.filter.classification ==
-                            CatClassification.breed)
-                        ? 210
-                        : 105),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.only(left: 5, right: 5),
-                    decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black),
-                        color: shouldSelect(item)
-                            ? Colors.blue
-                            : Colors.blueGrey[100],
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(5))),
-                    child: Text(item.displayName.trim(),
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: (shouldSelect(item)
-                                ? Colors.white
-                                : Colors.black)),
-                        textAlign: TextAlign.center),
-                  ),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: Text(item.displayName.trim(),
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: (shouldSelect(item)
+                                              ? Colors.white
+                                              : Colors.black)),
+                                      textAlign: TextAlign.center),
+                                ),
+                                Positioned(
+                                  right: 0,
+                                  top: -1,
+                                  child: Visibility(
+                                    visible: (widget.filter.classification ==
+                                            CatClassification.saves &&
+                                        item.displayName != "New..."),
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: TextButton(
+                                        style: ButtonStyle(
+                                            padding: MaterialStateProperty.all<
+                                                    EdgeInsets>(
+                                                const EdgeInsets.all(0))),
+                                        child: const Text(
+                                          "X",
+                                          style: TextStyle(
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              color: Colors.black),
+                                        ),
+                                        onPressed: () {
+                                          deleteQuery(item.displayName);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      height: 40,
+                      width: ((widget.filter.classification ==
+                                  CatClassification.breed ||
+                              widget.filter.classification ==
+                                  CatClassification.saves)
+                          ? 210
+                          : 105),
+                      //padding: const EdgeInsets.only(left: 5, right: 5),
+                      decoration: BoxDecoration(
+                          border: Border.all(color: Colors.black),
+                          color: shouldSelect(item)
+                              ? Colors.blue
+                              : Colors.blueGrey[100],
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5)))),
                 );
               },
             ).toList(),

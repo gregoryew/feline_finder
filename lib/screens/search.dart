@@ -1,8 +1,12 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:convert';
+
 import 'package:accordion/accordion.dart';
 import 'package:accordion/controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:get/get.dart';
+import 'package:http/http.dart';
 import 'package:recipes/ExampleCode/Media.dart';
 import 'package:recipes/models/breed.dart';
 
@@ -17,6 +21,7 @@ class searchScreen extends StatefulWidget {
 
   var categories = {};
   List<dynamic> categoryKeys = [];
+  String userID = "";
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -33,10 +38,35 @@ class searchScreen extends StatefulWidget {
 }
 
 class SearchScreenState extends State<searchScreen> with RouteAware {
+  late TextEditingController controller2;
+
   @override
   void initState() {
+    controller2 = TextEditingController();
     super.initState();
     categorize();
+    getQueries();
+  }
+
+  void getQueries() async {
+    var user = await widget.server.getUser();
+    setState(() {
+      widget.userID = user;
+    });
+    var queriesFuture = await widget.server.getQueries(widget.userID);
+    setState(() {
+      filterOption savedList = filteringOptions
+          .where((element) => element.classification == CatClassification.saves)
+          .first;
+      savedList.options.clear();
+      List<listOption> options = [];
+      List queries = queriesFuture;
+      options.add(listOption("New...", "New", 0));
+      for (var query in queries) {
+        options.add(listOption(query, query, 0));
+      }
+      savedList.options = options;
+    });
   }
 
   void categorize() {
@@ -147,12 +177,180 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
     }
   }
 
+  Future<String?> openDialog() => showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+              title: const Text("Please Enter Filter Name:"),
+              content: TextField(
+                keyboardType: TextInputType.name,
+                autofocus: true,
+                decoration: const InputDecoration(hintText: "Filter Name"),
+                controller: controller2,
+                onSubmitted: (_) => submit(),
+              ),
+              actions: [
+                TextButton(onPressed: submit, child: const Text("Submit"))
+              ]));
+
+  void submit() {
+    Navigator.of(context).pop(controller2.text);
+    controller2.clear();
+  }
+
+  saveSearch() async {
+    late bool? valid = false;
+    late bool canceled = false;
+    late String? FilterName = "";
+    do {
+      controller2.text = widget.server.currentFilterName;
+      FilterName = await openDialog();
+      if (FilterName != widget.server.currentFilterName) {
+        filterOption savedList = filteringOptions
+            .where(
+                (element) => element.classification == CatClassification.saves)
+            .first;
+        valid = savedList.options
+            .where((element) => element.displayName == FilterName)
+            .isEmpty;
+      } else {
+        valid = true;
+      }
+      if (!valid!) {
+        await Get.defaultDialog(
+            title: "Duplicate Filter Name",
+            middleText:
+                "This filter name has already been used.  Please enter another name.",
+            backgroundColor: Colors.red,
+            titleStyle: const TextStyle(color: Colors.white),
+            middleTextStyle: const TextStyle(color: Colors.white),
+            textConfirm: "OK",
+            confirmTextColor: Colors.white,
+            onConfirm: () {
+              valid = false;
+              canceled = false;
+              Get.back();
+            },
+            textCancel: "Cancel",
+            cancelTextColor: Colors.white,
+            onCancel: () {
+              valid = true;
+              canceled = true;
+              Get.back();
+            },
+            buttonColor: Colors.black,
+            barrierDismissible: false,
+            radius: 30);
+      }
+    } while (valid == false);
+
+    if (canceled == false) {
+      List<Filters> filters = generateFilters();
+      List<Map<dynamic, dynamic>> filtersJson = [];
+      for (var element in filters) {
+        filtersJson.add({
+          "fieldName": element.fieldName,
+          "operation": "equal",
+          "criteria": element.criteria
+        });
+      }
+
+      Map<dynamic, dynamic> data = {
+        "data": {
+          "filterRadius": {"miles": 2892, "postalcode": widget.server.zip},
+          "filters": filtersJson,
+        }
+      };
+
+      await widget.server.saveFilter(widget.userID, FilterName!, data);
+      getQueries();
+      widget.server.currentFilterName = FilterName;
+    }
+  }
+
+  loadSearch(String name) async {
+    setState(() {
+      for (var filterOption in filteringOptions) {
+        if (filterOption.fieldName == "species.singular" ||
+            filterOption.classification == CatClassification.saves) {
+          continue;
+        }
+        if (filterOption.classification == CatClassification.breed) {
+          filterOption.options = [];
+          filterOption.options.add(listOption("Change...", "Change", 0));
+          filterOption.choosenListValues = [];
+        } else if (filterOption.list) {
+          filterOption.choosenListValues = [filterOption.options.last.value];
+        } else {
+          filterOption.choosenValue = filterOption.options.last.search;
+        }
+      }
+    });
+
+    if (name == "New...") {
+      widget.server.currentFilterName = "";
+      return;
+    }
+
+    var SavedQuery = await widget.server.getQuery(widget.userID, name);
+
+    setState(() {
+      late RescueGroupsQuery query;
+      query = SavedQuery;
+
+      for (var filter in query.data.filters) {
+        if (filter.fieldName == "species.singular") {
+          continue;
+        }
+
+        var filterOption = filteringOptions
+            .where((element) => element.fieldName == filter.fieldName)
+            .first;
+
+        if (filter.fieldName == "animals.breedPrimaryId") {
+          filterOption.choosenListValues = [];
+          for (var criteria in filter.criteria) {
+            var breed = breeds
+                .where((element) => element.rid == int.parse(criteria))
+                .first;
+            filterOption.options
+                .add(listOption(breed.name, breed.name, breed.rid));
+            filterOption.choosenListValues.add(breed.id);
+          }
+          continue;
+        }
+
+        if (filterOption.list) {
+          filterOption.choosenListValues = [];
+          for (var criteria in filter.criteria) {
+            filterOption.choosenListValues.add(filterOption.options
+                .where((element) => element.displayName == criteria)
+                .first
+                .value);
+          }
+        } else {
+          filterOption.choosenValue = filterOption.options
+              .where((element) => element.displayName == filter.criteria.first)
+              .first
+              .search;
+        }
+      }
+      widget.server.currentFilterName = name;
+      print("%%%% LOAD SEARCH = " + name);
+    });
+  }
+
   final _headerStyle = const TextStyle(
       color: Color(0xffffffff), fontSize: 15, fontWeight: FontWeight.bold);
   final _contentStyleHeader = const TextStyle(
       color: Color(0xff999999), fontSize: 14, fontWeight: FontWeight.w700);
   final _contentStyle = const TextStyle(
       color: Color(0xff999999), fontSize: 14, fontWeight: FontWeight.normal);
+
+  @override
+  void dispose() {
+    controller2.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +388,9 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
                 return FilterRow(
                     position: position,
                     classification: category,
-                    filter: widget.categories[category][position]);
+                    filter: widget.categories[category][position],
+                    loadSearch: loadSearch,
+                    getQueries: getQueries,);
               }
             },
           ),
@@ -231,7 +431,7 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
                   borderRadius: BorderRadius.circular(12.0),
                 ),
               ),
-              onPressed: () => {},
+              onPressed: () => {saveSearch()},
               icon: const Icon(Icons.save_alt, color: Colors.white),
               label: const Text('Save Search',
                   style: TextStyle(
@@ -292,10 +492,12 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
                   .search);
             }
           }
-          filters.add(Filters(
-              fieldName: item.fieldName,
-              operation: "equals",
-              criteria: criteria));
+          if (criteria.isNotEmpty) {
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "equals",
+                criteria: criteria));
+          }
         }
       } else {
         if (item.choosenValue == "Any") {

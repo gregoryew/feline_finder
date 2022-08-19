@@ -34,6 +34,8 @@ class BreedDetail extends StatefulWidget {
   }
 }
 
+enum BarType { traitBar, percentageBar, backgroundBar }
+
 class _BreedDetailState extends State<BreedDetail>
     with SingleTickerProviderStateMixin<BreedDetail> {
   WidgetMarker selectedWidgetMarker = WidgetMarker.info;
@@ -93,10 +95,16 @@ class _BreedDetailState extends State<BreedDetail>
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
+    String? RescueGroupApi = "";
+    setState(() async {
+      var mapKeys = await globals.FelineFinderServer.instance.parseStringToMap(assetsFileName: '.env')
+      RescueGroupApi = mapKeys["RescueGroupsAPIKey"]; 
+    });
+
     var response = await http.post(Uri.parse(url),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': '0doJkmYU'
+          'Authorization': RescueGroupApi!
         },
         body: json.encode(data2.toJson()));
 
@@ -184,14 +192,21 @@ class _BreedDetailState extends State<BreedDetail>
     WidgetMarker.info
   ];
 
-  Widget bar(double percentage, bool isTraitValue) {
+  Widget bar(double percentage, BarType barType) {
     List<Color> barColors = [];
-    if (isTraitValue) {
-      barColors.add(const Color.fromARGB(255, 181, 234, 73));
-      barColors.add(const Color.fromARGB(255, 134, 209, 63));
-    } else {
-      barColors.add(const Color.fromARGB(255, 108, 195, 245));
-      barColors.add(const Color.fromARGB(255, 73, 147, 235));
+    switch (barType) {
+      case BarType.backgroundBar:
+        barColors.add(Colors.grey[500]!);
+        barColors.add(Colors.grey[500]!);
+        break;
+      case BarType.traitBar:
+        barColors.add(const Color.fromARGB(255, 181, 234, 73));
+        barColors.add(const Color.fromARGB(255, 134, 209, 63));
+        break;
+      case BarType.percentageBar:
+        barColors.add(const Color.fromARGB(255, 108, 195, 245));
+        barColors.add(const Color.fromARGB(255, 73, 147, 235));
+        break;
     }
     return Container(
       width: MediaQuery.of(context).size.width * percentage,
@@ -261,6 +276,7 @@ class _BreedDetailState extends State<BreedDetail>
                 // 5
                 const SizedBox(height: 30),
                 GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 4, childAspectRatio: 4 / 3),
@@ -386,15 +402,17 @@ class _BreedDetailState extends State<BreedDetail>
                             return Stack(
                               //alignment:new Alignment(x, y)
                               children: <Widget>[
-                                bar(userPreference, true),
+                                bar(1, BarType.backgroundBar),
+                                bar(userPreference, BarType.percentageBar),
                                 Positioned(
-                                  child: bar(statPrecentage, false),
+                                  child: bar(statPrecentage, BarType.traitBar),
                                 ),
                                 Positioned.fill(
                                   child: Align(
                                     alignment: Alignment.center,
                                     child: Text(
-                                      widget.breed.stats[index].name +
+                                      "         " +
+                                          widget.breed.stats[index].name +
                                           ': ' +
                                           Question
                                               .questions[index]
@@ -414,35 +432,44 @@ class _BreedDetailState extends State<BreedDetail>
                             );
                           } else {
                             return Stack(
-                              //alignment:new Alignment(x, y)
                               children: <Widget>[
-                                bar(statPrecentage, false),
+                                bar(100, BarType.backgroundBar),
+                                bar(statPrecentage, BarType.percentageBar),
                                 Positioned(
-                                  child: bar(userPreference, true),
+                                  child: bar(userPreference, BarType.traitBar),
+                                ),
+                                Positioned(
+                                  left: 13,
+                                  top: 4,
+                                  child: Text(statPrecentage ==
+                                              userPreference &&
+                                          (widget.breed.stats[index].isPercent)
+                                      ? "🎯"
+                                      : ""),
                                 ),
                                 Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      widget.breed.stats[index].name +
-                                          ': ' +
-                                          Question
-                                              .questions[index]
-                                              .choices[widget
-                                                  .breed.stats[index].value
-                                                  .toInt()]
-                                              .name +
-                                          ((statPrecentage == userPreference &&
-                                                  widget.breed.stats[index]
-                                                      .isPercent)
-                                              ? " 🎯"
-                                              : ""),
-                                      style: const TextStyle(
-                                          fontSize: 16.0,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.center,
-                                    ),
+                                  child: Row(
+                                    children: <Widget>[
+                                      Align(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          "         " +
+                                              widget.breed.stats[index].name +
+                                              ': ' +
+                                              Question
+                                                  .questions[index]
+                                                  .choices[widget
+                                                      .breed.stats[index].value
+                                                      .toInt()]
+                                                  .name,
+                                          style: const TextStyle(
+                                              fontSize: 16.0,
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.bold),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

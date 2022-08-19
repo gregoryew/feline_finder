@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart';
@@ -68,9 +69,15 @@ class petDetailState extends State<petDetail> with RouteAware {
 
     print("URL = $url");
 
+    String? RescueGroupApi = "";
+    setState(() async {
+      var mapKeys = await globals.FelineFinderServer.instance.parseStringToMap(assetsFileName: '.env')
+      RescueGroupApi = mapKeys["RescueGroupsAPIKey"]; 
+    });
+
     var response = await http.get(Uri.parse(url), headers: {
       'Content-Type': 'application/json', //; charset=UTF-8',
-      'Authorization': '0doJkmYU'
+      'Authorization': RescueGroupApi!
     });
 
     if (response.statusCode == 200) {
@@ -124,9 +131,15 @@ class petDetailState extends State<petDetail> with RouteAware {
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
+    String? RescueGroupApi = "";
+    setState(() async {
+      var mapKeys = await globals.FelineFinderServer.instance.parseStringToMap(assetsFileName: '.env')
+      RescueGroupApi = mapKeys["RescueGroupsAPIKey"]; 
+    });
+
     var response = await http.get(Uri.parse(url), headers: {
       'Content-Type': 'application/json', //; charset=UTF-8',
-      'Authorization': '0doJkmYU'
+      'Authorization': RescueGroupApi!
     });
 
     if (response.statusCode == 200) {
@@ -150,6 +163,31 @@ class petDetailState extends State<petDetail> with RouteAware {
       print("response.statusCode = " + response.statusCode.toString());
       throw Exception('Failed to load pet ' + response.body);
     }
+  }
+
+  String getAddress(PetDetailData? petDetailInstance) {
+    if (petDetailInstance == null) {
+      return "";
+    }
+
+    List<String> lines = [];
+
+    if ((petDetailInstance.organizationName ?? "").trim() != "") {
+      lines.add((petDetailInstance.organizationName ?? ""));
+    }
+
+    if ((petDetailInstance.street ?? "").trim() != "") {
+      lines.add(petDetailInstance.street ?? "");
+    }
+
+    var thirdLine = (petDetailInstance.cityState ?? " ") +
+        " " +
+        (petDetailInstance.postalCode ?? "");
+    if (thirdLine.trim() != "") {
+      lines.add(thirdLine);
+    }
+
+    return lines.join("\n");
   }
 
   @override
@@ -353,15 +391,7 @@ class petDetailState extends State<petDetail> with RouteAware {
                           ),
                           const SizedBox(width: 10),
                           Flexible(
-                            child: Text(
-                              (petDetailInstance?.organizationName ?? "") +
-                                  "\n" +
-                                  (petDetailInstance?.street ?? "") +
-                                  "\n" +
-                                  (petDetailInstance?.cityState ?? " ") +
-                                  " " +
-                                  (petDetailInstance?.postalCode ?? ""),
-                            ),
+                            child: Text(getAddress(petDetailInstance)),
                           ),
                         ],
                       ),
@@ -439,8 +469,7 @@ class petDetailState extends State<petDetail> with RouteAware {
                   color: Colors.blue,
                   fontWeight: FontWeight.bold,
                 ),
-                onTap: (link) => _onOpen(link.value!)
-                ),
+                onTap: (link) => _onOpen(link.value!)),
           ],
         ),
       ),

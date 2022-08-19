@@ -29,7 +29,6 @@ class AdoptGrid extends StatefulWidget {
   // always marked "final".
 
   const AdoptGrid({Key? key}) : super(key: key);
-
   @override
   AdoptGridState createState() => AdoptGridState();
 }
@@ -37,6 +36,7 @@ class AdoptGrid extends StatefulWidget {
 class AdoptGridState extends State<AdoptGrid> {
   List<PetTileData> tiles = [];
   int maxPets = -1;
+  String count = "Processing";
   int loadedPets = 0;
   int tilesPerLoad = 25;
   late ScrollController controller;
@@ -55,6 +55,8 @@ class AdoptGridState extends State<AdoptGrid> {
     controller = ScrollController()..addListener(_scrollListener);
     controller2 = TextEditingController();
     filters.add(Filters(
+        fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
+    filters_backup.add(Filters(
         fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
     () async {
       String user = await server.getUser();
@@ -249,10 +251,15 @@ class AdoptGridState extends State<AdoptGrid> {
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
+    String? RescueGroupApi = "";
+    setState(() async {
+      var mapKeys = await globals.FelineFinderServer.instance.parseStringToMap(assetsFileName: '.env')
+      RescueGroupApi = mapKeys["RescueGroupsAPIKey"]; 
+    });
     var response = await http.post(Uri.parse(url),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': '0doJkmYU'
+          'Authorization': RescueGroupApi! 
         },
         body: json.encode(data2.toJson()));
 
@@ -260,9 +267,19 @@ class AdoptGridState extends State<AdoptGrid> {
       // If the server did return a 200 OK response,
       // then parse the JSON.
       print("status 200");
-      var petDecoded = pet.fromJson(jsonDecode(response.body));
-      if (maxPets == -1) {
-        maxPets = (petDecoded.meta?.count ?? 0);
+      var json = jsonDecode(response.body);
+      late pet petDecoded;
+      var meta = Meta.fromJson(json["meta"]);
+      if (meta.count == 0) {
+        petDecoded = pet(meta: meta, data: [], included: []);
+      } else {
+        petDecoded = pet.fromJson(jsonDecode(response.body));
+      }
+      if (maxPets < 1) {
+        setState(() {
+          maxPets = (petDecoded.meta?.count ?? 0);
+          count = (maxPets == 0 ? "No Matches" : maxPets.toString());
+        });
       }
       setState(() {
         petDecoded.data?.forEach((petData) {
@@ -352,9 +369,7 @@ class AdoptGridState extends State<AdoptGrid> {
                       minimumSize: const Size(130, 25),
                       maximumSize: const Size(130, 25)),
                   onPressed: () => {askForZip()}),
-              Text(
-                (favorited ? " Favorites: " : " Cats: ") + maxPets.toString(),
-              ),
+              Text((favorited ? " Favorites: " : " Cats: ") + count),
             ],
           ),
           Expanded(

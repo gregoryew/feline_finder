@@ -16,7 +16,7 @@ enum FilterType { simple, advanced }
 
 class filterOption {
   String name;
-  String choosenValue;
+  dynamic choosenValue;
   String fieldName;
   bool display;
   bool list;
@@ -43,7 +43,7 @@ class filterOption {
 
 class listOption {
   String displayName;
-  String search;
+  dynamic search;
   int value;
 
   listOption(this.displayName, this.search, this.value);
@@ -122,6 +122,7 @@ List<filterOption> filteringOptions = [
       [],
       false,
       FilterType.advanced),
+  /*
   filterOption(
       "While Your Away",
       "",
@@ -134,7 +135,7 @@ List<filterOption> filteringOptions = [
       [],
       false,
       FilterType.advanced),
-
+*/
   //Basic
   filterOption(
       "Size",
@@ -215,8 +216,8 @@ List<filterOption> filteringOptions = [
       CatClassification.admin,
       6,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -231,8 +232,8 @@ List<filterOption> filteringOptions = [
       CatClassification.admin,
       6,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -247,8 +248,8 @@ List<filterOption> filteringOptions = [
       CatClassification.admin,
       6,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -263,8 +264,8 @@ List<filterOption> filteringOptions = [
       CatClassification.admin,
       7,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -279,8 +280,8 @@ List<filterOption> filteringOptions = [
       CatClassification.admin,
       8,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -295,8 +296,8 @@ List<filterOption> filteringOptions = [
       CatClassification.admin,
       9,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -313,8 +314,8 @@ List<filterOption> filteringOptions = [
       CatClassification.compatibility,
       10,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -346,8 +347,8 @@ List<filterOption> filteringOptions = [
       CatClassification.compatibility,
       12,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -362,8 +363,8 @@ List<filterOption> filteringOptions = [
       CatClassification.compatibility,
       13,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -377,7 +378,7 @@ List<filterOption> filteringOptions = [
       false,
       CatClassification.compatibility,
       14,
-      [listOption("Yes", "Yes", 0), listOption("Any", "Any", 1)],
+      [listOption("Yes", true, 0), listOption("Any", "Any", 1)],
       [],
       false,
       FilterType.advanced),
@@ -406,7 +407,7 @@ List<filterOption> filteringOptions = [
       false,
       CatClassification.compatibility,
       16,
-      [listOption("Yes", "Yes", 0), listOption("Any", "Any", 1)],
+      [listOption("Yes", true, 0), listOption("Any", "Any", 1)],
       [],
       false,
       FilterType.advanced),
@@ -419,8 +420,8 @@ List<filterOption> filteringOptions = [
       CatClassification.compatibility,
       17,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -586,8 +587,8 @@ List<filterOption> filteringOptions = [
       CatClassification.personality,
       25,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -757,8 +758,8 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       35,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -773,8 +774,8 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       36,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -792,8 +793,8 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       37,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -808,9 +809,9 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       38,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
-        listOption("Any", "Any", 2)
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
+        listOption("Any", "any", 2)
       ],
       [],
       false,
@@ -826,8 +827,8 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       39,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("No", "No", 1),
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
         listOption("Any", "Any", 2)
       ],
       [],

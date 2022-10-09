@@ -32,7 +32,8 @@ class FelineFinderServer {
 
   String currentFilterName = "";
 
-  Future<Map<String, String>> parseStringToMap({String assetsFileName = '.env'}) async {
+  Future<Map<String, String>> parseStringToMap(
+      {String assetsFileName = '.env'}) async {
     final lines = await rootBundle.loadString(assetsFileName);
     Map<String, String> environment = {};
     for (String line in lines.split('\n')) {

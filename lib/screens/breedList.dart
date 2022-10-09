@@ -115,7 +115,7 @@ class _BreedList extends State<BreedList> {
                         padding: const EdgeInsets.all(8),
                         child: GestureDetector(
                           onTap: () => {
-                            Get.to(BreedDetail(
+                            Get.to(() => BreedDetail(
                                 breed:
                                     widget.letters[widget.keys[subSubMenuIndex]]
                                         [index]))

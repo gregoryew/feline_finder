@@ -189,25 +189,31 @@ class ToolBar extends StatelessWidget {
 
     toolsList.add(Tool(tool: toolType.share, detail: detail));
 
+/*
     if (detail.email != null && detail.email?.trim() != "") {
       toolsList.add(Tool(
         tool: toolType.meet,
         detail: detail,
       ));
     }
-
+*/
     return toolsList;
   }
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-        shrinkWrap: true,
-        scrollDirection: Axis.horizontal,
-        crossAxisCount: 1,
-        childAspectRatio: 3 / 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        children: getTools(detail));
+    List<Tool> tools = getTools(detail);
+    if (tools.isEmpty) {
+      return Column();
+    } else {
+      return GridView.count(
+          shrinkWrap: true,
+          scrollDirection: Axis.horizontal,
+          crossAxisCount: 1,
+          childAspectRatio: 3 / 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          children: tools);
+    }
   }
 }

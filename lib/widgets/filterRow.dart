@@ -55,7 +55,7 @@ class _FilterRow extends State<FilterRow> {
   }
 
   goToBreedSelectionScreen() async {
-    var selected = await Get.to(
+    var selected = await Get.to(() =>
         FilterBreedSelection(choosenValues: widget.filter.choosenListValues));
     List<int> selectedBreeds = [];
     List<listOption> options = [];

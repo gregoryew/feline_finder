@@ -68,6 +68,10 @@ class _HomeScreen extends State<HomeScreen> {
   bool favoritesSelected = false;
   late GlobalObjectKey<AdoptGridState> AdoptionGridKey;
 
+  void _setFavoriteButton(bool fav) {
+    setState(() => favoritesSelected = fav);
+  }
+
   static List<Widget> pages = <Widget>[
     Fit(),
     BreedList(title: "Breed List"),
@@ -85,12 +89,14 @@ class _HomeScreen extends State<HomeScreen> {
   List<Widget>? getTrailingButtons(selectedIndex) {
     if (selectedIndex == 2) {
       return <Widget>[
+        /*
         GestureDetector(
           onTap: () {
             AdoptionGridKey.currentState!.whileYourAwaySearch();
           },
           child: const ImageIcon(AssetImage("assets/Icons/away.png"), size: 30),
         ),
+        */
         const SizedBox(width: 10, height: 30),
         GestureDetector(
           onTap: () {
@@ -133,7 +139,7 @@ class _HomeScreen extends State<HomeScreen> {
           leading: getLeadingButtons(_selectedIndex),
           actions: getTrailingButtons(_selectedIndex)),
       body: (_selectedIndex == 2)
-          ? AdoptGrid(key: AdoptionGridKey)
+          ? AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton)
           : pages[_selectedIndex],
       // 4
       bottomNavigationBar: BottomNavigationBar(
@@ -174,7 +180,7 @@ class _HomeScreen extends State<HomeScreen> {
                     : "assets/Icons/adopt_unselected.png"),
                 color: Colors.blue),
             label: 'Adopt',
-          ),
+          ) /*,
           BottomNavigationBarItem(
             backgroundColor: Colors.white,
             icon: ImageIcon(
@@ -184,6 +190,7 @@ class _HomeScreen extends State<HomeScreen> {
                 color: Colors.blue),
             label: 'Meet',
           ),
+          */
         ],
       ),
     );

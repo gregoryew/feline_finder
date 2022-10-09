@@ -54,15 +54,25 @@ class _BreedDetailState extends State<BreedDetail>
 
   List<PetTileData> tiles = [];
 
+  String? rescueGroupApi = "";
+
   @override
   void initState() {
     super.initState();
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 3));
     _animation = Tween(begin: 0.0, end: 1.0).animate(_controller);
-    getPlaylists();
-    getBreedDescription(widget.breed.htmlUrl);
-    getPets(widget.breed.rid.toString());
+    Map<String, String>? mapKeys;
+    () async {
+      mapKeys = await globals.FelineFinderServer.instance
+          .parseStringToMap(assetsFileName: '.env');
+      setState(() {
+        rescueGroupApi = mapKeys!["RescueGroupsAPIKey"];
+        getPlaylists();
+        getBreedDescription(widget.breed.htmlUrl);
+        getPets(widget.breed.rid.toString());
+      });
+    }();
   }
 
   void getPets(String breedID) async {
@@ -95,16 +105,10 @@ class _BreedDetailState extends State<BreedDetail>
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
-    String? RescueGroupApi = "";
-    setState(() async {
-      var mapKeys = await globals.FelineFinderServer.instance.parseStringToMap(assetsFileName: '.env')
-      RescueGroupApi = mapKeys["RescueGroupsAPIKey"]; 
-    });
-
     var response = await http.post(Uri.parse(url),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': RescueGroupApi!
+          'Authorization': rescueGroupApi!
         },
         body: json.encode(data2.toJson()));
 
@@ -308,67 +312,71 @@ class _BreedDetailState extends State<BreedDetail>
                 ),
                 Visibility(
                   visible: selectedWidgetMarker == WidgetMarker.adopt,
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2, childAspectRatio: 3 / 4),
-                    itemCount: tiles.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return GestureDetector(
-                        onTap: () => {
-                          Get.to(
-                            petDetail(tiles[index].id.toString()),
-                          ),
-                        },
-                        child: Card(
-                          child: Stack(
-                            children: [
-                              FadeInImage.memoryNetwork(
-                                placeholder: kTransparentImage,
-                                image: tiles[index].picture ?? "",
-                                width: 200,
-                                height: 200,
-                                fit: BoxFit.cover,
-                                imageErrorBuilder:
-                                    (context, error, stackTrace) {
-                                  return Image.asset(
-                                      "assets/Icons/No_Cat_Image.png",
+                  child: (tiles.isEmpty)
+                      ? const Center(child: Text("No Cats Returned."))
+                      : GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2, childAspectRatio: 3 / 4),
+                          itemCount: tiles.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return GestureDetector(
+                              onTap: () => {
+                                Get.to(
+                                  () => petDetail(tiles[index].id.toString()),
+                                ),
+                              },
+                              child: Card(
+                                child: Stack(
+                                  children: [
+                                    FadeInImage.memoryNetwork(
+                                      placeholder: kTransparentImage,
+                                      image: tiles[index].picture ?? "",
                                       width: 200,
-                                      height: 400);
-                                },
-                              ),
-                              Positioned.fill(
-                                child: Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: Text(
-                                      tiles[index].name ?? "Name Unknown",
-                                      textAlign: TextAlign.center),
+                                      height: 200,
+                                      fit: BoxFit.cover,
+                                      imageErrorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Image.asset(
+                                            "assets/Icons/No_Cat_Image.png",
+                                            width: 200,
+                                            height: 400);
+                                      },
+                                    ),
+                                    Positioned.fill(
+                                      child: Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: Text(
+                                            tiles[index].name ?? "Name Unknown",
+                                            textAlign: TextAlign.center),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
                 Visibility(
                   visible: selectedWidgetMarker == WidgetMarker.videos,
-                  child: ListView.separated(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    separatorBuilder: (context, index) => Divider(
-                      thickness: 2.0,
-                    ),
-                    itemCount: playlists.length,
-                    itemBuilder: (context, index) {
-                      return PlaylistRow(
-                        playlist: playlists[index],
-                      );
-                    },
-                  ),
+                  child: (playlists.isEmpty)
+                      ? const Center(child: Text("No Cat Vidoes Available."))
+                      : ListView.separated(
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          separatorBuilder: (context, index) => Divider(
+                            thickness: 2.0,
+                          ),
+                          itemCount: playlists.length,
+                          itemBuilder: (context, index) {
+                            return PlaylistRow(
+                              playlist: playlists[index],
+                            );
+                          },
+                        ),
                 ),
                 Visibility(
                   visible: selectedWidgetMarker == WidgetMarker.stats,

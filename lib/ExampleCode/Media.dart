@@ -110,7 +110,7 @@ class _YouTubeVideo extends State<YouTubeVideo> {
         print("widget title = " + widget.title!);
         print("widget videoID = " + widget.videoID!);
         widget.selected = true;
-        Get.to(YouTubeVideoRow(
+        Get.to(() => YouTubeVideoRow(
           playlist: null,
           title: widget.title,
           videoid: widget.videoID,

@@ -27,8 +27,8 @@ class AdoptGrid extends StatefulWidget {
   // case the title) provided by the parent (in this case the App widget) and
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
-
-  const AdoptGrid({Key? key}) : super(key: key);
+  final ValueChanged<bool>? setFav;
+  const AdoptGrid({Key? key, this.setFav}) : super(key: key);
   @override
   AdoptGridState createState() => AdoptGridState();
 }
@@ -48,6 +48,7 @@ class AdoptGridState extends State<AdoptGrid> {
   bool favorited = false;
   List<Filters> filters = [];
   List<Filters> filters_backup = [];
+  String? RescueGroupApi = "";
 
   @override
   void initState() {
@@ -62,10 +63,14 @@ class AdoptGridState extends State<AdoptGrid> {
       String user = await server.getUser();
       favorites = await server.getFavorites(user);
       var _zip = await _getZip();
+      var mapKeys = await globals.FelineFinderServer.instance
+          .parseStringToMap(assetsFileName: '.env');
+
       setState(() {
         listOfFavorites = favorites;
         userID = user;
         server.zip = _zip;
+        RescueGroupApi = mapKeys["RescueGroupsAPIKey"];
         getPets();
       });
     }();
@@ -191,6 +196,8 @@ class AdoptGridState extends State<AdoptGrid> {
           tiles = [];
           loadedPets = 0;
           maxPets = -1;
+          favorited = false;
+          widget.setFav!(favorited);
           getPets();
         },
       );
@@ -251,15 +258,10 @@ class AdoptGridState extends State<AdoptGrid> {
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
-    String? RescueGroupApi = "";
-    setState(() async {
-      var mapKeys = await globals.FelineFinderServer.instance.parseStringToMap(assetsFileName: '.env')
-      RescueGroupApi = mapKeys["RescueGroupsAPIKey"]; 
-    });
     var response = await http.post(Uri.parse(url),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': RescueGroupApi! 
+          'Authorization': RescueGroupApi!
         },
         body: json.encode(data2.toJson()));
 

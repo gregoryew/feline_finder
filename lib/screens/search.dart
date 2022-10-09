@@ -85,9 +85,7 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
             filterOption.choosenListValues = [filterOption.options.last.value];
           }
         } else {
-          if (filterOption.choosenValue.isEmpty) {
-            filterOption.choosenValue = filterOption.options.last.search;
-          }
+          filterOption.choosenValue ??= filterOption.options.last.search;
         }
       }
       widget.categories[filterOption.classification].add(filterOption);
@@ -189,7 +187,8 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
                 onSubmitted: (_) => submit(),
               ),
               actions: [
-                TextButton(onPressed: submit, child: const Text("Submit"))
+                TextButton(onPressed: submit, child: const Text("Submit")),
+                TextButton(onPressed: Get.back, child: const Text("Cancel"))
               ]));
 
   void submit() {
@@ -386,11 +385,12 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
                     filter: widget.categories[category][position]);
               } else {
                 return FilterRow(
-                    position: position,
-                    classification: category,
-                    filter: widget.categories[category][position],
-                    loadSearch: loadSearch,
-                    getQueries: getQueries,);
+                  position: position,
+                  classification: category,
+                  filter: widget.categories[category][position],
+                  loadSearch: loadSearch,
+                  getQueries: getQueries,
+                );
               }
             },
           ),
@@ -500,7 +500,7 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
           }
         }
       } else {
-        if (item.choosenValue == "Any") {
+        if (item.choosenValue == "Any" || item.choosenValue == "") {
           continue;
         }
         filters.add(Filters(

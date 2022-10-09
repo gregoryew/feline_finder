@@ -49,19 +49,26 @@ class petDetailState extends State<petDetail> with RouteAware {
   bool isFavorited = false;
   int selectedImage = 0;
   late String userID;
+  String? rescueGroupApi = "";
 
   @override
   void initState() {
     super.initState();
+    String user = "";
+    bool favorited = false;
+    Map<String, String>? mapKeys;
     () async {
-      String user = await widget.server.getUser();
-      bool favorited = await widget.server.isFavorite(user, widget.petID);
+      user = await widget.server.getUser();
+      favorited = await widget.server.isFavorite(user, widget.petID);
+      mapKeys = await globals.FelineFinderServer.instance
+          .parseStringToMap(assetsFileName: '.env');
       setState(() {
+        rescueGroupApi = mapKeys!["RescueGroupsAPIKey"];
         isFavorited = favorited;
         userID = user;
+        getPetDetail(widget.petID);
       });
     }();
-    getPetDetail(widget.petID);
   }
 
   void getShelterDetail(String orgID) async {
@@ -69,15 +76,9 @@ class petDetailState extends State<petDetail> with RouteAware {
 
     print("URL = $url");
 
-    String? RescueGroupApi = "";
-    setState(() async {
-      var mapKeys = await globals.FelineFinderServer.instance.parseStringToMap(assetsFileName: '.env')
-      RescueGroupApi = mapKeys["RescueGroupsAPIKey"]; 
-    });
-
     var response = await http.get(Uri.parse(url), headers: {
       'Content-Type': 'application/json', //; charset=UTF-8',
-      'Authorization': RescueGroupApi!
+      'Authorization': rescueGroupApi!
     });
 
     if (response.statusCode == 200) {
@@ -131,15 +132,9 @@ class petDetailState extends State<petDetail> with RouteAware {
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
-    String? RescueGroupApi = "";
-    setState(() async {
-      var mapKeys = await globals.FelineFinderServer.instance.parseStringToMap(assetsFileName: '.env')
-      RescueGroupApi = mapKeys["RescueGroupsAPIKey"]; 
-    });
-
     var response = await http.get(Uri.parse(url), headers: {
       'Content-Type': 'application/json', //; charset=UTF-8',
-      'Authorization': RescueGroupApi!
+      'Authorization': rescueGroupApi!
     });
 
     if (response.statusCode == 200) {

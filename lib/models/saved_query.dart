@@ -24,6 +24,7 @@ class Query {
   List<Filters>? filters;
   int? sort;
   int? distance;
+  int? updatedSince;
 
   Query(
       {this.name,
@@ -32,7 +33,8 @@ class Query {
       this.updatedDate,
       this.filters,
       this.sort,
-      this.distance});
+      this.distance,
+      this.updatedSince});
 
   Query.fromJson(Map<String, dynamic> json) {
     name = json['name'];
@@ -47,6 +49,7 @@ class Query {
     }
     sort = json['sort'];
     distance = json['distance'];
+    updatedSince = json["updated_since"];
   }
 
   Map<String, dynamic> toJson() {
@@ -60,6 +63,7 @@ class Query {
     }
     data['sort'] = sort;
     data['distance'] = distance;
+    data['updated_since'] = updatedSince;
     return data;
   }
 }

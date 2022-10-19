@@ -330,20 +330,45 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
                 .value);
           }
         } else {
-          filterOption.choosenValue = filterOption.options
-              .where((element) => element.displayName == filter.criteria.first)
-              .first
-              .search;
-          if (filterOption.choosenValue == "true" ||
-              filterOption.choosenValue == "false") {
-            if (filterOption.choosenValue == "true") {
-              filterOption.choosenValue = true;
-            } else {
-              filterOption.choosenValue = false;
+          if (filterOption.fieldName == "animals.updatedDate") {
+            filterOption.choosenValue =
+                filterOption.options[globals.updatedSince].search;
+          } else {
+            filterOption.choosenValue = filterOption.options
+                .where(
+                    (element) => element.displayName == filter.criteria.first)
+                .first
+                .search;
+            if (filterOption.choosenValue == "true" ||
+                filterOption.choosenValue == "false") {
+              if (filterOption.choosenValue == "true") {
+                filterOption.choosenValue = true;
+              } else {
+                filterOption.choosenValue = false;
+              }
             }
           }
         }
       }
+
+      var sortByFilter = filteringOptions
+          .where((element) => element.fieldName == "sortBy")
+          .first;
+      if (globals.sortMethod == "-animals.updatedDate") {
+        sortByFilter.choosenValue = "date";
+      } else {
+        sortByFilter.choosenValue = "distance";
+      }
+
+      var distanceFilter = filteringOptions
+          .where((element) => element.fieldName == "distance")
+          .first;
+      if (globals.distance == 1000) {
+        distanceFilter.choosenValue = "Any";
+      } else {
+        distanceFilter.choosenValue = globals.distance.toString();
+      }
+
       widget.server.currentFilterName = name;
       print("%%%% LOAD SEARCH = " + name);
     });
@@ -498,26 +523,33 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
           } else {
             globals.distance = int.parse(item.choosenValue);
           }
-        } else if (item.fieldName == "date" &&
-            !(item.choosenValue == "" || item.choosenValue == "Any")) {
-          if (item.choosenValue == "Day") {
-            date = date.subtract(const Duration(days: 1));
-          } else if (item.choosenValue == "Week") {
-            date = date.subtract(const Duration(days: 7));
-          } else if (item.choosenValue == "Month") {
-            date = date.subtract(const Duration(days: 30));
-          } else if (item.choosenValue == "Year") {
-            date = date.subtract(const Duration(days: 365));
+        } else if (item.fieldName == "animals.updatedDate") {
+          if (!(item.choosenValue == "" || item.choosenValue == "Any")) {
+            if (item.choosenValue == "Day") {
+              globals.updatedSince = 0;
+              date = date.subtract(const Duration(days: 1));
+            } else if (item.choosenValue == "Week") {
+              globals.updatedSince = 1;
+              date = date.subtract(const Duration(days: 7));
+            } else if (item.choosenValue == "Month") {
+              globals.updatedSince = 2;
+              date = date.subtract(const Duration(days: 30));
+            } else if (item.choosenValue == "Year") {
+              globals.updatedSince = 3;
+              date = date.subtract(const Duration(days: 365));
+            }
+            filters.add(Filters(
+                fieldName: "animals.updatedDate",
+                operation: "greaterthan",
+                criteria: date.year.toString() +
+                    "-" +
+                    date.month.toString() +
+                    "-" +
+                    date.day.toString() +
+                    "T00:00:00Z"));
+          } else {
+            globals.updatedSince = 4;
           }
-          filters.add(Filters(
-              fieldName: "animals.updatedDate",
-              operation: "greaterthan",
-              criteria: date.year.toString() +
-                  "-" +
-                  date.month.toString() +
-                  "-" +
-                  date.day.toString() +
-                  "T00:00:00Z"));
         }
         continue;
       }

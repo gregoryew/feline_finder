@@ -14,6 +14,7 @@ import '../ExampleCode/RescueGroupsQuery.dart';
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
 String sortMethod = "animals.distance";
 int distance = 1000;
+int updatedSince = 4;
 
 class FelineFinderServer {
   static FelineFinderServer _instance = FelineFinderServer._();
@@ -245,8 +246,12 @@ class FelineFinderServer {
     if (statusCode != 200) {
       throw Exception("BAD statusCode: $statusCode");
     } else {
-      return RescueGroupsQuery.fromJson(
-          jsonDecode(jsonDecode(response.body)['Query']));
+      var query = jsonDecode(response.body);
+      sortMethod =
+          query['sort'] == 0 ? "-animals.updatedDate" : "animals.distance";
+      distance = query['distance'];
+      updatedSince = query['updated_since'];
+      return RescueGroupsQuery.fromJson(jsonDecode(query['Query']));
     }
   }
 
@@ -258,8 +263,9 @@ class FelineFinderServer {
       'userid': userID,
       'name': filterName,
       'query': filter,
-      'sort': (sortMethod == "distance" ? 0 : 1),
-      'distance': distance
+      'sort': (sortMethod == "animals.distance" ? 1 : 0),
+      'distance': distance,
+      'updated_since': updatedSince
     });
     var response = await http.post(
       Uri.parse('https://$serverName/insertQuery/'),

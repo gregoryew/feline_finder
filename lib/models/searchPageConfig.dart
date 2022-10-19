@@ -107,7 +107,7 @@ List<filterOption> filteringOptions = [
   filterOption(
       "Updated Since",
       "",
-      "date",
+      "animals.updatedDate",
       false,
       false,
       CatClassification.sort,

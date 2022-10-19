@@ -248,14 +248,17 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
       for (var element in filters) {
         filtersJson.add({
           "fieldName": element.fieldName,
-          "operation": "equal",
+          "operation": element.operation,
           "criteria": element.criteria
         });
       }
 
       Map<dynamic, dynamic> data = {
         "data": {
-          "filterRadius": {"miles": 2892, "postalcode": widget.server.zip},
+          "filterRadius": {
+            "miles": globals.distance,
+            "postalcode": widget.server.zip
+          },
           "filters": filtersJson,
         }
       };
@@ -331,6 +334,14 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
               .where((element) => element.displayName == filter.criteria.first)
               .first
               .search;
+          if (filterOption.choosenValue == "true" ||
+              filterOption.choosenValue == "false") {
+            if (filterOption.choosenValue == "true") {
+              filterOption.choosenValue = true;
+            } else {
+              filterOption.choosenValue = false;
+            }
+          }
         }
       }
       widget.server.currentFilterName = name;
@@ -465,38 +476,75 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
   }
 
   List<Filters> generateFilters() {
+    DateTime date = DateTime.now();
+
     List<Filters> filters = [];
     filters.add(Filters(
         fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
     for (var item in filteringOptions) {
-      if (item.classification == CatClassification.saves ||
-          item.classification == CatClassification.sort) {
+      if (item.classification == CatClassification.saves) {
+        continue;
+      }
+      if (item.classification == CatClassification.sort) {
+        if (item.fieldName == "sortBy") {
+          if (item.choosenValue == "date") {
+            globals.sortMethod = "-animals.updatedDate";
+          } else {
+            globals.sortMethod = "animals.distance";
+          }
+        } else if (item.fieldName == "distance") {
+          if (item.choosenValue == "" || item.choosenValue == "Any") {
+            globals.distance = 1000;
+          } else {
+            globals.distance = int.parse(item.choosenValue);
+          }
+        } else if (item.fieldName == "date" &&
+            !(item.choosenValue == "" || item.choosenValue == "Any")) {
+          if (item.choosenValue == "Day") {
+            date = date.subtract(const Duration(days: 1));
+          } else if (item.choosenValue == "Week") {
+            date = date.subtract(const Duration(days: 7));
+          } else if (item.choosenValue == "Month") {
+            date = date.subtract(const Duration(days: 30));
+          } else if (item.choosenValue == "Year") {
+            date = date.subtract(const Duration(days: 365));
+          }
+          filters.add(Filters(
+              fieldName: "animals.updatedDate",
+              operation: "greaterthan",
+              criteria: date.year.toString() +
+                  "-" +
+                  date.month.toString() +
+                  "-" +
+                  date.day.toString() +
+                  "T00:00:00Z"));
+        }
         continue;
       }
       if (item.list) {
         if (!item.choosenListValues.contains(item.options.last.value) ||
             (item.classification == CatClassification.breed)) {
-          List<String> criteria = [];
+          List<String> breedList = [];
           for (var choosenValue in item.choosenListValues) {
             if (item.classification == CatClassification.breed) {
-              criteria.add(item.options
+              breedList.add(item.options
                   .where((element) =>
                       element.value == breeds[choosenValue - 1].rid)
                   .first
                   .value
                   .toString());
             } else {
-              criteria.add(item.options
+              breedList.add(item.options
                   .where((element) => element.value == choosenValue)
                   .first
                   .search);
             }
           }
-          if (criteria.isNotEmpty) {
+          if (breedList.isNotEmpty) {
             filters.add(Filters(
                 fieldName: item.fieldName,
                 operation: "equals",
-                criteria: criteria));
+                criteria: breedList));
           }
         }
       } else {

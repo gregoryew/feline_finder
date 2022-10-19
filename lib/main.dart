@@ -144,7 +144,7 @@ class _HomeScreen extends State<HomeScreen> {
       // 4
       bottomNavigationBar: BottomNavigationBar(
         // 5
-        unselectedItemColor: Colors.black12,
+        unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         showSelectedLabels: true,
         selectedItemColor: Colors.blue,
@@ -160,7 +160,7 @@ class _HomeScreen extends State<HomeScreen> {
                 AssetImage(_selectedIndex == 0
                     ? "assets/Icons/fit_selected.png"
                     : "assets/Icons/fit_unselected.png"),
-                color: Colors.blue),
+                color: (_selectedIndex == 0 ? Colors.blue : Colors.grey)),
             label: 'Fit',
           ),
           BottomNavigationBarItem(
@@ -169,8 +169,8 @@ class _HomeScreen extends State<HomeScreen> {
                 AssetImage(_selectedIndex == 1
                     ? "assets/Icons/breeds_selected.png"
                     : "assets/Icons/breeds_unselected.png"),
-                color: Colors.blue),
-            label: 'Breeds',
+                color: (_selectedIndex == 1 ? Colors.blue : Colors.grey)),
+            label: "Breeds",
           ),
           BottomNavigationBarItem(
             backgroundColor: Colors.white,
@@ -178,7 +178,7 @@ class _HomeScreen extends State<HomeScreen> {
                 AssetImage(_selectedIndex == 2
                     ? "assets/Icons/adopt_selected.png"
                     : "assets/Icons/adopt_unselected.png"),
-                color: Colors.blue),
+                color: (_selectedIndex == 2 ? Colors.blue : Colors.grey)),
             label: 'Adopt',
           ) /*,
           BottomNavigationBarItem(

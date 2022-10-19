@@ -12,6 +12,8 @@ import 'package:get/get.dart';
 import '../ExampleCode/RescueGroupsQuery.dart';
 
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
+String sortMethod = "animals.distance";
+int distance = 1000;
 
 class FelineFinderServer {
   static FelineFinderServer _instance = FelineFinderServer._();
@@ -252,16 +254,17 @@ class FelineFinderServer {
       String userID, String filterName, Object filter) async {
     print("saveFilter called");
     print("https://$serverName/insertQuery/");
+    var json = jsonEncode(<String, dynamic>{
+      'userid': userID,
+      'name': filterName,
+      'query': filter
+    });
     var response = await http.post(
       Uri.parse('https://$serverName/insertQuery/'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
-      body: jsonEncode(<String, dynamic>{
-        'userid': userID,
-        'name': filterName,
-        'query': filter
-      }),
+      body: json,
     );
     if (response.statusCode == 200) {
       return true;

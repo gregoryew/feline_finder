@@ -66,7 +66,7 @@ class Filters {
   });
   late final String fieldName;
   late final String operation;
-  late final List criteria;
+  late final dynamic criteria;
 
   Filters.fromJson(Map<dynamic, dynamic> json) {
     fieldName = json['fieldName'];
@@ -74,7 +74,7 @@ class Filters {
     String test = "";
     try {
       test = json['criteria'];
-      criteria = [test];
+      criteria = test;
     } catch (e) {
       try {
         criteria = json["criteria"];

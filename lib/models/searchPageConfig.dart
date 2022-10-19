@@ -79,7 +79,7 @@ List<filterOption> filteringOptions = [
       CatClassification.sort,
       2,
       [
-        listOption("Most Recent", "No", 1),
+        listOption("Most Recent", "date", 1),
         listOption("Distance", "distance", 0)
       ],
       [],
@@ -811,7 +811,7 @@ List<filterOption> filteringOptions = [
       [
         listOption("Yes", true, 0),
         listOption("No", false, 1),
-        listOption("Any", "any", 2)
+        listOption("Any", "Any", 2)
       ],
       [],
       false,

@@ -224,8 +224,9 @@ class AdoptGridState extends State<AdoptGrid> {
 
     int currentPage = ((loadedPets + tilesPerLoad) / tilesPerLoad).floor();
     loadedPets += tilesPerLoad;
+    String sortMethod = globals.sortMethod;
     var url =
-        "https://api.rescuegroups.org/v5/public/animals/search/available?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status&sort=animals.distance&limit=25&page=$currentPage";
+        "https://api.rescuegroups.org/v5/public/animals/search/available?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status&sort=$sortMethod&limit=25&page=$currentPage";
 
     print("&&&&&& zip = " + server.zip);
 
@@ -244,14 +245,14 @@ class AdoptGridState extends State<AdoptGrid> {
     for (var element in filters) {
       filtersJson.add({
         "fieldName": element.fieldName,
-        "operation": "equal",
+        "operation": element.operation,
         "criteria": element.criteria
       });
     }
 
     Map<dynamic, dynamic> data = {
       "data": {
-        "filterRadius": {"miles": 1000, "postalcode": server.zip},
+        "filterRadius": {"miles": globals.distance, "postalcode": server.zip},
         "filters": filtersJson,
       }
     };
@@ -276,18 +277,19 @@ class AdoptGridState extends State<AdoptGrid> {
         petDecoded = pet(meta: meta, data: [], included: []);
       } else {
         petDecoded = pet.fromJson(jsonDecode(response.body));
-      }
-      if (maxPets < 1) {
+        if (maxPets < 1) {
+          setState(() {
+            maxPets = (petDecoded.meta?.count ?? 0);
+            count = (maxPets == 0 ? "No Matches" : maxPets.toString());
+          });
+        }
         setState(() {
-          maxPets = (petDecoded.meta?.count ?? 0);
-          count = (maxPets == 0 ? "No Matches" : maxPets.toString());
+          petDecoded.data?.forEach((petData) {
+            tiles.add(PetTileData(petData, petDecoded.included!));
+          });
         });
       }
-      setState(() {
-        petDecoded.data?.forEach((petData) {
-          tiles.add(PetTileData(petData, petDecoded.included!));
-        });
-      });
+      ;
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.

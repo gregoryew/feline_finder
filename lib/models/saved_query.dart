@@ -22,13 +22,17 @@ class Query {
   String? createdBy;
   String? updatedDate;
   List<Filters>? filters;
+  int? sort;
+  int? distance;
 
   Query(
       {this.name,
       this.createdDate,
       this.createdBy,
       this.updatedDate,
-      this.filters});
+      this.filters,
+      this.sort,
+      this.distance});
 
   Query.fromJson(Map<String, dynamic> json) {
     name = json['name'];
@@ -41,6 +45,8 @@ class Query {
         filters!.add(Filters.fromJson(v));
       });
     }
+    sort = json['sort'];
+    distance = json['distance'];
   }
 
   Map<String, dynamic> toJson() {
@@ -52,6 +58,8 @@ class Query {
     if (filters != null) {
       data['filters'] = filters!.map((v) => v.toJson()).toList();
     }
+    data['sort'] = sort;
+    data['distance'] = distance;
     return data;
   }
 }

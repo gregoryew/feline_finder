@@ -257,7 +257,9 @@ class FelineFinderServer {
     var json = jsonEncode(<String, dynamic>{
       'userid': userID,
       'name': filterName,
-      'query': filter
+      'query': filter,
+      'sort': (sortMethod == "distance" ? 0 : 1),
+      'distance': distance
     });
     var response = await http.post(
       Uri.parse('https://$serverName/insertQuery/'),

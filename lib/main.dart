@@ -7,9 +7,13 @@ import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
 
-StreamController<int> buttonChangedHighlight =
+StreamController<int> photoButtonChangedHighlight =
     StreamController<int>.broadcast();
-var buttonChangedHighlightStream = buttonChangedHighlight.stream;
+var photoButtonChangedHighlightStream = photoButtonChangedHighlight.stream;
+
+StreamController<int> videoButtonChangedHighlight =
+    StreamController<int>.broadcast();
+var videoButtonChangedHighlightStream = videoButtonChangedHighlight.stream;
 
 void main() async {
   runApp(const SplashPage());

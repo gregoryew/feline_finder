@@ -67,6 +67,8 @@ class AdoptGridState extends State<AdoptGrid> {
           .parseStringToMap(assetsFileName: '.env');
 
       setState(() {
+        favorited = false;
+        widget.setFav!(favorited);
         listOfFavorites = favorites;
         userID = user;
         server.zip = _zip;

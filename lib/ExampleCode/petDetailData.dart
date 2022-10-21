@@ -18,14 +18,17 @@ class PetDetailData {
   String? cityState;
   String? postalCode;
   List<Large> mainPictures = [];
-  List<Media> media = [];
+  List<Widget> media = [];
   String? organizationID = "";
   String? organizationName = "";
   String? description = "";
-  var mediaGlobalKeys = [];
 
-  PetDetailData(petDatum pet, List<Included> included,
-      List<Relationship> relationships, Function(int) selectedIndexChanged) {
+  PetDetailData(
+      petDatum pet,
+      List<Included> included,
+      List<Relationship> relationships,
+      Function(int) selectedPhotoChanged,
+      Function(int) selectedVideoChanged) {
     id = pet.id;
     name = pet.attributes!.name;
     primaryBreed = pet.attributes!.breedPrimary;
@@ -46,14 +49,13 @@ class PetDetailData {
         mainPictures.add(picturesIncluded[i].attributes!.small!);
       }
     }
-    print("******* URL = " + picturesIncluded[0].attributes!.small!.url!);
     for (int i = 0; i < picturesIncluded.length; i++) {
       var photo = SmallPhoto(
-        i == 0,
-        i,
-        picturesIncluded[i].attributes!.small!.url!,
-        selectedIndexChanged,
-      );
+          i == 0,
+          i,
+          picturesIncluded[i].attributes!.small!.url!,
+          selectedPhotoChanged,
+          "");
       media.add(photo);
     }
     List<Included> videoListIncluded = findAllOfACertainType(
@@ -67,7 +69,7 @@ class PetDetailData {
           false,
           i,
           videoListIncluded[i].attributes!.urlThumbnail ?? "",
-          selectedIndexChanged,
+          selectedVideoChanged,
           videoListIncluded[i].attributes?.name ?? "",
           videoListIncluded[i].attributes?.videoId ?? "");
       media.add(video);

@@ -1,6 +1,7 @@
 import 'package:crop/crop.dart';
 import 'package:flutter/material.dart';
 import 'package:recipes/Models/question.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 
@@ -26,6 +27,8 @@ class Fit extends StatefulWidget {
 }
 
 class FitState extends State<Fit> {
+  final itemController = ItemScrollController();
+  int _priorVisibleQuestion = -1;
   final _descriptionVisible = [
     false,
     false,
@@ -60,8 +63,9 @@ class FitState extends State<Fit> {
   }
 
   Widget buildQuestions() {
-    return ListView.builder(
+    return ScrollablePositionedList.builder(
         itemCount: Question.questions.length,
+        itemScrollController: itemController,
         itemBuilder: (BuildContext context, int index) {
           return buildQuestionCard(Question.questions[index]);
         });
@@ -72,7 +76,12 @@ class FitState extends State<Fit> {
       if (_descriptionVisible[i]) {
         _descriptionVisible[i] = false;
       } else {
+        if (_priorVisibleQuestion > -1) {
+          _descriptionVisible[_priorVisibleQuestion] = false;
+        }
+        _priorVisibleQuestion = i;
         _descriptionVisible[i] = true;
+        itemController.jumpTo(index: i);
       }
     });
   }
@@ -90,11 +99,21 @@ class FitState extends State<Fit> {
           children: [
             Row(
               children: [
-                Expanded(child: Text(question.name)),
+                Expanded(
+                    child: Text(
+                        question.name +
+                            ": " +
+                            question
+                                .choices[globals.FelineFinderServer.instance
+                                    .sliderValue[question.id]]
+                                .name,
+                        style: const TextStyle(fontSize: 13))),
                 IconButton(
-                  icon: Icon(_descriptionVisible[question.id]
-                      ? Icons.help
-                      : Icons.help_outline),
+                  icon: Icon(
+                      _descriptionVisible[question.id]
+                          ? Icons.arrow_drop_down
+                          : Icons.arrow_right,
+                      size: 50),
                   onPressed: () => showDescription(question.id),
                 ),
               ],
@@ -123,17 +142,18 @@ class FitState extends State<Fit> {
                 interval: 1,
                 showTicks: false,
                 showDividers: true,
-                enableTooltip: true,
+                enableTooltip: false,
                 value: globals
                     .FelineFinderServer.instance.sliderValue[question.id]
                     .toDouble(),
+                /*
                 tooltipTextFormatterCallback:
                     (dynamic actualValue, String formattedText) {
                   return question
                       .choices[globals
                           .FelineFinderServer.instance.sliderValue[question.id]]
                       .name;
-                },
+                },*/
                 thumbIcon: Container(
                   decoration: const BoxDecoration(
                       color: Colors.white, shape: BoxShape.circle),
@@ -145,8 +165,6 @@ class FitState extends State<Fit> {
                 ),
                 onChanged: (newValue) {
                   setState(() {
-                    _descriptionVisible[question.id] = true;
-
                     globals.FelineFinderServer.instance
                         .sliderValue[question.id] = newValue.round();
 

@@ -97,10 +97,18 @@ class petDetailState extends State<petDetail> with RouteAware {
     }
   }
 
-  selectedIndexChanged(int _selectedIndex) {
+  selectedPhotoChanged(int _selectedIndex) {
     setState(() {
-      print("#############selectedIndexChanged");
-      buttonChangedHighlight.sink.add(_selectedIndex);
+      print("#############selectedPhotoChanged");
+      photoButtonChangedHighlight.sink.add(_selectedIndex);
+      selectedImage = _selectedIndex;
+    });
+  }
+
+  selectedVideoChanged(int _selectedIndex) {
+    setState(() {
+      print("#############selectedVideoChanged");
+      videoButtonChangedHighlight.sink.add(_selectedIndex);
       selectedImage = _selectedIndex;
     });
   }
@@ -113,13 +121,13 @@ class petDetailState extends State<petDetail> with RouteAware {
     print("id = ${id2}");
 
     var url =
-        "https://api.rescuegroups.org/v5/public/animals/${id2}?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText";
+        "https://api.rescuegroups.org/v5/public/animals/${id2}?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText&limit=1";
 
     print("URL = $url");
 
     Map<String, dynamic> data = {
       "data": {
-        "filterRadius": {"miles": 1000, "postalcode": "94043"},
+        "filterRadius": {"miles": 3000, "postalcode": "94043"},
         "filters": [
           {
             "fieldName": "species.singular",
@@ -147,7 +155,8 @@ class petDetailState extends State<petDetail> with RouteAware {
             petDecoded.data![0],
             petDecoded.included!,
             petDecoded.data![0].relationships!.values.toList(),
-            selectedIndexChanged);
+            selectedPhotoChanged,
+            selectedVideoChanged);
         getShelterDetail(petDetailInstance!.organizationID!);
         loadAsset();
       });
@@ -268,6 +277,19 @@ class petDetailState extends State<petDetail> with RouteAware {
                       alignment: FractionalOffset.center,
                       child: getImage(petDetailInstance)),
                   Positioned(
+                    bottom: 5,
+                    left: 0,
+                    height: 80,
+                    width: MediaQuery.of(context).size.width,
+                    child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          height: 100,
+                          child: Row(children: getMedia(petDetailInstance)),
+                        )),
+                  ),
+                  /*
+                  Positioned(
                     bottom: 10,
                     left: 0,
                     height: 80,
@@ -293,7 +315,7 @@ class petDetailState extends State<petDetail> with RouteAware {
                             }),
                       ),
                     ),
-                  )
+                  )*/
                 ],
               ),
               const SizedBox(
@@ -614,11 +636,15 @@ class petDetailState extends State<petDetail> with RouteAware {
     }
   }
 
-  Widget getSmallImage(PetDetailData? pd, int index) {
-    if (pd == null || pd.media.length < index) {
-      return const CircularProgressIndicator();
-    } else {
-      return pd.media[index];
+  List<Widget> getMedia(PetDetailData? pd) {
+    if (pd != null) {
+      List<Widget> list = [];
+      for (var el in pd.media) {
+        list.add(const SizedBox(width: 5));
+        list.add(el);
+      }
+      return list;
     }
+    return [];
   }
 }

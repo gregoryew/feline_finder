@@ -185,12 +185,17 @@ class AdoptGridState extends State<AdoptGrid> {
   }
 
   void search() async {
+    var result;
+    result = await Get.to(() => searchScreen(),
+        transition: Transition.fadeIn, duration: Duration(seconds: 1));
+    /*
     final result = await Navigator.push(
       context,
       // Create the SelectionScreen in the next step.
       MaterialPageRoute(builder: (context) => searchScreen()),
     );
-    if (result.length > 0) {
+    */
+    if (result != null && result.length > 0) {
       setState(
         () {
           filters = result;
@@ -408,11 +413,16 @@ class AdoptGridState extends State<AdoptGrid> {
       BuildContext context, int index) async {
     // Navigator.push returns a Future that completes after calling
     // Navigator.pop on the Selection Screen.
-    final result = await Navigator.push(
+/*
+    Navigator.push(
       context,
       // Create the SelectionScreen in the next step.
       MaterialPageRoute(builder: (context) => petDetail(tiles[index].id!)),
     );
+*/
+
+    Get.to(() => petDetail(tiles[index].id!),
+        transition: Transition.circularReveal, duration: Duration(seconds: 1));
 
     favorites = await server.getFavorites(userID);
     setState(() {

@@ -12,6 +12,8 @@ import 'package:get/get.dart';
 import '../ExampleCode/RescueGroupsQuery.dart';
 
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
+const double? petDetailImageHeight = 300;
+const double? petDetailImageWidth = 330;
 String sortMethod = "animals.distance";
 int distance = 1000;
 int updatedSince = 4;

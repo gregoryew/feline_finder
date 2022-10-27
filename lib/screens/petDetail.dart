@@ -19,6 +19,7 @@ import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petDetailData.dart';
 import '/models/shelter.dart';
 import 'globals.dart' as globals;
+import 'package:dots_indicator/dots_indicator.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
@@ -50,10 +51,11 @@ class petDetailState extends State<petDetail> with RouteAware {
   int selectedImage = 0;
   late String userID;
   String? rescueGroupApi = "";
+  late ScrollController _controller = ScrollController();
+  int currentIndexPage = 0;
 
   @override
   void initState() {
-    super.initState();
     String user = "";
     bool favorited = false;
     Map<String, String>? mapKeys;
@@ -67,8 +69,19 @@ class petDetailState extends State<petDetail> with RouteAware {
         isFavorited = favorited;
         userID = user;
         getPetDetail(widget.petID);
+        _controller.addListener(() {
+          _scrollListener();
+        });
       });
     }();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_scrollListener);
+    _controller.dispose();
+    super.dispose();
   }
 
   void getShelterDetail(String orgID) async {
@@ -95,22 +108,6 @@ class petDetailState extends State<petDetail> with RouteAware {
       print("response.statusCode = " + response.statusCode.toString());
       throw Exception('Failed to load pet ' + response.body);
     }
-  }
-
-  selectedPhotoChanged(int _selectedIndex) {
-    setState(() {
-      print("#############selectedPhotoChanged");
-      photoButtonChangedHighlight.sink.add(_selectedIndex);
-      selectedImage = _selectedIndex;
-    });
-  }
-
-  selectedVideoChanged(int _selectedIndex) {
-    setState(() {
-      print("#############selectedVideoChanged");
-      videoButtonChangedHighlight.sink.add(_selectedIndex);
-      selectedImage = _selectedIndex;
-    });
   }
 
   void getPetDetail(String petID) async {
@@ -154,9 +151,7 @@ class petDetailState extends State<petDetail> with RouteAware {
         petDetailInstance = PetDetailData(
             petDecoded.data![0],
             petDecoded.included!,
-            petDecoded.data![0].relationships!.values.toList(),
-            selectedPhotoChanged,
-            selectedVideoChanged);
+            petDecoded.data![0].relationships!.values.toList());
         getShelterDetail(petDetailInstance!.organizationID!);
         loadAsset();
       });
@@ -192,6 +187,31 @@ class petDetailState extends State<petDetail> with RouteAware {
     }
 
     return lines.join("\n");
+  }
+
+  _scrollListener() {
+    if (petDetailInstance == null ||
+        petDetailInstance!.mediaWidths.length <= 1) {
+      return;
+    }
+    if (_controller.position.pixels == _controller.position.maxScrollExtent) {
+      setState(
+          () => {currentIndexPage = petDetailInstance!.mediaWidths.length - 2});
+      return;
+    }
+    if (_controller.position.pixels == _controller.position.minScrollExtent) {
+      setState(() => {currentIndexPage = 0});
+      return;
+    }
+    double mid = MediaQuery.of(context).size.width / 2;
+    var pos = _controller.position.pixels + mid;
+    for (var i = 0; i < petDetailInstance!.mediaWidths.length - 1; i++) {
+      if (pos > petDetailInstance!.mediaWidths[i] &&
+          pos < petDetailInstance!.mediaWidths[i + 1]) {
+        setState(() => {currentIndexPage = i});
+        return;
+      }
+    }
   }
 
   @override
@@ -271,55 +291,26 @@ class petDetailState extends State<petDetail> with RouteAware {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              Stack(
-                children: <Widget>[
-                  Align(
-                      alignment: FractionalOffset.center,
-                      child: getImage(petDetailInstance)),
-                  Positioned(
-                    bottom: 5,
-                    left: 0,
-                    height: 80,
-                    width: MediaQuery.of(context).size.width,
-                    child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          height: 100,
-                          child: Row(children: getMedia(petDetailInstance)),
-                        )),
-                  ),
-                  /*
-                  Positioned(
-                    bottom: 10,
-                    left: 0,
-                    height: 80,
-                    width: MediaQuery.of(context).size.width,
-                    child: SizedBox(
-                      height: 100,
-                      child: Center(
-                        child: MasonryGridView.count(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: petDetailInstance == null
-                                ? 0
-                                : petDetailInstance!.media.length,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 1, horizontal: 3),
-                            // the number of columns
-                            crossAxisCount: 1,
-                            // vertical gap between two items
-                            mainAxisSpacing: 7,
-                            // horizontal gap between two items
-                            crossAxisSpacing: 0,
-                            itemBuilder: (context, index) {
-                              return getSmallImage(petDetailInstance, index);
-                            }),
-                      ),
-                    ),
-                  )*/
-                ],
+              SingleChildScrollView(
+                controller: _controller,
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: getMedia(petDetailInstance),
+                ),
               ),
               const SizedBox(
-                height: 20,
+                height: 5,
+              ),
+              Center(
+                child: DotsIndicator(
+                  dotsCount: (petDetailInstance == null)
+                      ? 1
+                      : petDetailInstance!.media.length,
+                  position: currentIndexPage.toDouble(),
+                ),
+              ),
+              const SizedBox(
+                height: 5,
               ),
               Container(
                 decoration: BoxDecoration(

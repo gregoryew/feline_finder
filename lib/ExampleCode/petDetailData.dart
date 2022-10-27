@@ -1,8 +1,7 @@
 import 'package:flutter/widgets.dart';
-import 'package:recipes/models/video.dart';
-import '../main.dart';
 import 'Media.dart';
 import 'RescueGroups.dart';
+import '../screens/globals.dart' as globals;
 
 class PetDetailData {
   String? id;
@@ -19,16 +18,13 @@ class PetDetailData {
   String? postalCode;
   List<Large> mainPictures = [];
   List<Widget> media = [];
+  List<double> mediaWidths = [];
   String? organizationID = "";
   String? organizationName = "";
   String? description = "";
 
   PetDetailData(
-      petDatum pet,
-      List<Included> included,
-      List<Relationship> relationships,
-      Function(int) selectedPhotoChanged,
-      Function(int) selectedVideoChanged) {
+      petDatum pet, List<Included> included, List<Relationship> relationships) {
     id = pet.id;
     name = pet.attributes!.name;
     primaryBreed = pet.attributes!.breedPrimary;
@@ -49,40 +45,27 @@ class PetDetailData {
         mainPictures.add(picturesIncluded[i].attributes!.small!);
       }
     }
+    double total = 0;
+    mediaWidths.add(0);
     for (int i = 0; i < picturesIncluded.length; i++) {
-      var photo = SmallPhoto(
-          i == 0,
-          i,
-          picturesIncluded[i].attributes!.small!.url!,
-          selectedPhotoChanged,
-          "");
+      var photo = SmallPhoto(i, picturesIncluded[i].attributes!.large!.url!);
+      var large = picturesIncluded[i].attributes!.large!;
+      double width = large.resolutionX! * (300 / large.resolutionY!);
+      total += width;
+      mediaWidths.add(total);
       media.add(photo);
     }
     List<Included> videoListIncluded = findAllOfACertainType(
         pet, included, "videourls", IncludedType.VIDEOURLS);
     for (int i = 0; i < videoListIncluded.length; i++) {
-      print("---------------Set Video-----------------");
-      print(videoListIncluded[i].attributes?.name ?? "");
-      print(videoListIncluded[i].attributes?.videoId ?? "");
-      print("-----------------------------------------");
       var video = YouTubeVideo(
-          false,
-          i,
           videoListIncluded[i].attributes!.urlThumbnail ?? "",
-          selectedVideoChanged,
           videoListIncluded[i].attributes?.name ?? "",
           videoListIncluded[i].attributes?.videoId ?? "");
+      total += 330;
+      mediaWidths.add(total);
       media.add(video);
     }
-    /*
-    for (int i = 0; i < videoListIncluded.length; i++) {
-      YouTubeVideo video = YouTubeVideo();
-      video.order = videoListIncluded[i].attributes!.order;
-      video.urlThumbnail = videoListIncluded[i].attributes!.urlThumbnail;
-      video.videoId = videoListIncluded[i].attributes!.videoId;
-      videos?.add(video);
-    }
-    */
     List<Included> organizationIncluded =
         findAllOfACertainType(pet, included, "orgs", IncludedType.ORGS);
     organizationID = organizationIncluded[0].id;

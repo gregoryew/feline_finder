@@ -116,7 +116,14 @@ class _BreedDetailState extends State<BreedDetail>
       // If the server did return a 200 OK response,
       // then parse the JSON.
       print("status 200");
-      var petDecoded = pet.fromJson(jsonDecode(response.body));
+      var json = jsonDecode(response.body);
+      var meta = Meta.fromJson(json["meta"]);
+      if (meta.count == 0) {
+        maxPets = 0;
+        tiles = [];
+        return;
+      }
+      pet petDecoded = petFromJson(response.body);
       if (maxPets == -1) {
         maxPets = (petDecoded.meta?.count ?? 0);
       }
@@ -173,8 +180,6 @@ class _BreedDetailState extends State<BreedDetail>
         playlists = jsonResponse['items'].map<Playlist>((item) {
           return Playlist.fromJson(item);
         }).toList();
-        print("******** title: ${playlists[0].title}");
-        print("******** videoId: ${playlists[0].videoId}");
         playlists.removeWhere((x) => x.title == "Private video");
       });
     } else {

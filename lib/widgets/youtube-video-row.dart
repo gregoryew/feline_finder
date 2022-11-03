@@ -55,13 +55,13 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
               controller: _controller,
             ),
             builder: (context, player) {
-              return Column(children: [
+              return SingleChildScrollView(
+                  child: Column(children: [
                 player,
                 Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: SingleChildScrollView(
-                        child: Text(widget.playlist?.description ?? "")))
-              ]);
+                    child: Text(widget.playlist?.description ?? ""),
+                    padding: EdgeInsets.all(10)),
+              ]));
             })));
   }
 }

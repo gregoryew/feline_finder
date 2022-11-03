@@ -17,6 +17,7 @@ const double? petDetailImageWidth = 330;
 String sortMethod = "animals.distance";
 int distance = 1000;
 int updatedSince = 4;
+List<String> listOfFavorites = [];
 
 class FelineFinderServer {
   static FelineFinderServer _instance = FelineFinderServer._();

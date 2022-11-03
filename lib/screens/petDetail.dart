@@ -269,7 +269,9 @@ class petDetailState extends State<petDetail> with RouteAware {
                 if (isLiked == true) {
                   widget.server.unfavoritePet(userID, widget.petID);
                   isFavorited = false;
+                  globals.listOfFavorites.remove(widget.petID);
                 } else if (isLiked == false) {
+                  globals.listOfFavorites.add(widget.petID);
                   widget.server.favoritePet(userID, widget.petID);
                   isFavorited = true;
                 }
@@ -302,11 +304,19 @@ class petDetailState extends State<petDetail> with RouteAware {
                 height: 5,
               ),
               Center(
-                child: DotsIndicator(
-                  dotsCount: (petDetailInstance == null)
-                      ? 1
-                      : petDetailInstance!.media.length,
-                  position: currentIndexPage.toDouble(),
+                child: Visibility(
+                  visible: (petDetailInstance == null) ||
+                          petDetailInstance!.media.length < 2
+                      ? false
+                      : true,
+                  child: DotsIndicator(
+                    dotsCount: (petDetailInstance == null)
+                        ? 1
+                        : petDetailInstance!.media.length == 0
+                            ? 1
+                            : petDetailInstance!.media.length,
+                    position: currentIndexPage.toDouble(),
+                  ),
                 ),
               ),
               const SizedBox(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+//import 'dart:html';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
@@ -17,6 +18,7 @@ import '/ExampleCode/RescueGroups.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import 'package:get/get.dart';
+import 'package:outlined_text/outlined_text.dart';
 
 enum WidgetMarker { adopt, videos, stats, info }
 
@@ -246,259 +248,249 @@ class _BreedDetailState extends State<BreedDetail>
       // 2
       body: SingleChildScrollView(
         child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              children: <Widget>[
-                // 4
-                ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image(
-                      width: MediaQuery.of(context).size.width,
-                      fit: BoxFit.fitHeight,
-                      image: AssetImage(
-                          'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
-                    )),
-                const SizedBox(
-                  height: 4,
-                ),
-                // 6
-                const SizedBox(height: 30),
-                SizedBox(
-                  height: 70,
-                  width: MediaQuery.of(context).size.width,
-                  child: Container(
-                    decoration: BoxDecoration(
-                        border: Border.all(
-                            color: const Color.fromARGB(184, 111, 97, 97)),
-                        color: const Color.fromARGB(255, 225, 215, 215),
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(20))),
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      widget.breed.name,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            children: <Widget>[
+              // 4
+              ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image(
+                    width: MediaQuery.of(context).size.width,
+                    fit: BoxFit.fitHeight,
+                    image: AssetImage(
+                        'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
+                  )),
+              const SizedBox(
+                height: 4,
+              ),
+              // 6
+              const SizedBox(height: 30),
+              SizedBox(
+                height: 70,
+                width: MediaQuery.of(context).size.width,
+                child: Container(
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                          color: const Color.fromARGB(184, 111, 97, 97)),
+                      color: const Color.fromARGB(255, 225, 215, 215),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(20))),
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    widget.breed.name,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                // 5
-                const SizedBox(height: 30),
-                GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4, childAspectRatio: 4 / 3),
-                  itemCount: 4,
-                  itemBuilder: (BuildContext context, int index) {
-                    return GestureDetector(
-                      onTap: () => {
-                        setState(
-                          () {
-                            hilightedCell = index;
-                            selectedWidgetMarker = selectedIcon[index];
-                          },
-                        ),
-                      },
-                      child: Card(
-                        color: index == hilightedCell
-                            ? Color.fromARGB(255, 220, 219, 219)
-                            : Colors.white,
-                        child: Center(
-                          child: Image(
-                              width: 30,
-                              fit: BoxFit.fitWidth,
-                              image:
-                                  AssetImage("assets/Icons/${icons[index]}")),
-                        ),
+              ),
+              // 5
+              const SizedBox(height: 30),
+              GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4, childAspectRatio: 4 / 3),
+                itemCount: 4,
+                itemBuilder: (BuildContext context, int index) {
+                  return GestureDetector(
+                    onTap: () => {
+                      setState(
+                        () {
+                          hilightedCell = index;
+                          selectedWidgetMarker = selectedIcon[index];
+                        },
                       ),
-                    );
-                  },
-                ),
-                Visibility(
-                  visible: selectedWidgetMarker == WidgetMarker.adopt,
-                  child: (tiles.isEmpty)
-                      ? const Center(child: Text("No Cats Returned."))
-                      : GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2, childAspectRatio: 3 / 4),
-                          itemCount: tiles.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            return GestureDetector(
-                              onTap: () => {
-                                Get.to(
-                                  () => petDetail(tiles[index].id.toString()),
+                    },
+                    child: Card(
+                      color: index == hilightedCell
+                          ? Color.fromARGB(255, 220, 219, 219)
+                          : Colors.white,
+                      child: Center(
+                        child: Image(
+                            width: 30,
+                            fit: BoxFit.fitWidth,
+                            image: AssetImage("assets/Icons/${icons[index]}")),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Visibility(
+                visible: selectedWidgetMarker == WidgetMarker.adopt,
+                child: (tiles.isEmpty)
+                    ? const Center(child: Text("No Cats Returned."))
+                    : GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2, childAspectRatio: 3 / 4),
+                        itemCount: tiles.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return GestureDetector(
+                            onTap: () => {
+                              Get.to(
+                                  () => petDetail(tiles[index].id.toString())),
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                      image: NetworkImage(
+                                          tiles[index].picture ?? ""),
+                                      fit: BoxFit.fill)),
+                              child: Align(
+                                child: OutlinedText(
+                                  text: Text(
+                                    tiles[index].name ?? "Unknown Name",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  strokes: [
+                                    OutlinedTextStroke(
+                                        color: Colors.black, width: 4),
+                                  ],
                                 ),
-                              },
-                              child: Card(
-                                child: Stack(
-                                  children: [
-                                    FadeInImage.memoryNetwork(
-                                      placeholder: kTransparentImage,
-                                      image: tiles[index].picture ?? "",
-                                      width: 200,
-                                      height: 200,
-                                      fit: BoxFit.cover,
-                                      imageErrorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Image.asset(
-                                            "assets/Icons/No_Cat_Image.png",
-                                            width: 200,
-                                            height: 400);
-                                      },
-                                    ),
-                                    Positioned.fill(
-                                      child: Align(
-                                        alignment: Alignment.bottomCenter,
-                                        child: Text(
-                                            tiles[index].name ?? "Name Unknown",
-                                            textAlign: TextAlign.center),
+                                alignment: Alignment.bottomCenter,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              Visibility(
+                visible: selectedWidgetMarker == WidgetMarker.videos,
+                child: (playlists.isEmpty)
+                    ? const Center(child: Text("No Cat Vidoes Available."))
+                    : ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        separatorBuilder: (context, index) => Divider(
+                          thickness: 2.0,
+                        ),
+                        itemCount: playlists.length,
+                        itemBuilder: (context, index) {
+                          return PlaylistRow(
+                            playlist: playlists[index],
+                          );
+                        },
+                      ),
+              ),
+              Visibility(
+                visible: selectedWidgetMarker == WidgetMarker.stats,
+                child: (Column(
+                  children: [
+                    const Center(
+                        child: Text("🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
+                            textAlign: TextAlign.center)),
+                    const SizedBox(height: 20),
+                    ListView.separated(
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      separatorBuilder: (context, index) => const Divider(
+                        thickness: 2.0,
+                        color: Colors.white,
+                      ),
+                      itemCount: widget.breed.stats.length,
+                      itemBuilder: (context, index) {
+                        var statPrecentage =
+                            (widget.breed.stats[index].isPercent)
+                                ? widget.breed.stats[index].value.toDouble() /
+                                    maxValues[index].toDouble()
+                                : 1.0;
+                        var userPreference =
+                            (widget.breed.stats[index].isPercent)
+                                ? globals.FelineFinderServer.instance
+                                        .sliderValue[index] /
+                                    maxValues[index].toDouble()
+                                : 1.0;
+                        if (statPrecentage < userPreference) {
+                          return Stack(
+                            //alignment:new Alignment(x, y)
+                            children: <Widget>[
+                              bar(1, BarType.backgroundBar),
+                              bar(userPreference, BarType.percentageBar),
+                              Positioned(
+                                child: bar(statPrecentage, BarType.traitBar),
+                              ),
+                              Positioned.fill(
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    "         " +
+                                        widget.breed.stats[index].name +
+                                        ': ' +
+                                        Question
+                                            .questions[index]
+                                            .choices[widget
+                                                .breed.stats[index].value
+                                                .toInt()]
+                                            .name,
+                                    style: const TextStyle(
+                                        fontSize: 16.0,
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Stack(
+                            children: <Widget>[
+                              bar(100, BarType.backgroundBar),
+                              bar(statPrecentage, BarType.percentageBar),
+                              Positioned(
+                                child: bar(userPreference, BarType.traitBar),
+                              ),
+                              Positioned(
+                                left: 13,
+                                top: 4,
+                                child: Text(statPrecentage == userPreference &&
+                                        (widget.breed.stats[index].isPercent)
+                                    ? "🎯"
+                                    : ""),
+                              ),
+                              Positioned.fill(
+                                child: Row(
+                                  children: <Widget>[
+                                    Align(
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        "         " +
+                                            widget.breed.stats[index].name +
+                                            ': ' +
+                                            Question
+                                                .questions[index]
+                                                .choices[widget
+                                                    .breed.stats[index].value
+                                                    .toInt()]
+                                                .name,
+                                        style: const TextStyle(
+                                            fontSize: 16.0,
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.bold),
+                                        textAlign: TextAlign.center,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                ),
-                Visibility(
-                  visible: selectedWidgetMarker == WidgetMarker.videos,
-                  child: (playlists.isEmpty)
-                      ? const Center(child: Text("No Cat Vidoes Available."))
-                      : ListView.separated(
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          separatorBuilder: (context, index) => Divider(
-                            thickness: 2.0,
-                          ),
-                          itemCount: playlists.length,
-                          itemBuilder: (context, index) {
-                            return PlaylistRow(
-                              playlist: playlists[index],
-                            );
-                          },
-                        ),
-                ),
-                Visibility(
-                  visible: selectedWidgetMarker == WidgetMarker.stats,
-                  child: (Column(
-                    children: [
-                      const Center(
-                          child: Text("🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
-                              textAlign: TextAlign.center)),
-                      const SizedBox(height: 20),
-                      ListView.separated(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        separatorBuilder: (context, index) => const Divider(
-                          thickness: 2.0,
-                          color: Colors.white,
-                        ),
-                        itemCount: widget.breed.stats.length,
-                        itemBuilder: (context, index) {
-                          var statPrecentage =
-                              (widget.breed.stats[index].isPercent)
-                                  ? widget.breed.stats[index].value.toDouble() /
-                                      maxValues[index].toDouble()
-                                  : 1.0;
-                          var userPreference =
-                              (widget.breed.stats[index].isPercent)
-                                  ? globals.FelineFinderServer.instance
-                                          .sliderValue[index] /
-                                      maxValues[index].toDouble()
-                                  : 1.0;
-                          if (statPrecentage < userPreference) {
-                            return Stack(
-                              //alignment:new Alignment(x, y)
-                              children: <Widget>[
-                                bar(1, BarType.backgroundBar),
-                                bar(userPreference, BarType.percentageBar),
-                                Positioned(
-                                  child: bar(statPrecentage, BarType.traitBar),
-                                ),
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      "         " +
-                                          widget.breed.stats[index].name +
-                                          ': ' +
-                                          Question
-                                              .questions[index]
-                                              .choices[widget
-                                                  .breed.stats[index].value
-                                                  .toInt()]
-                                              .name,
-                                      style: const TextStyle(
-                                          fontSize: 16.0,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          } else {
-                            return Stack(
-                              children: <Widget>[
-                                bar(100, BarType.backgroundBar),
-                                bar(statPrecentage, BarType.percentageBar),
-                                Positioned(
-                                  child: bar(userPreference, BarType.traitBar),
-                                ),
-                                Positioned(
-                                  left: 13,
-                                  top: 4,
-                                  child: Text(statPrecentage ==
-                                              userPreference &&
-                                          (widget.breed.stats[index].isPercent)
-                                      ? "🎯"
-                                      : ""),
-                                ),
-                                Positioned.fill(
-                                  child: Row(
-                                    children: <Widget>[
-                                      Align(
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          "         " +
-                                              widget.breed.stats[index].name +
-                                              ': ' +
-                                              Question
-                                                  .questions[index]
-                                                  .choices[widget
-                                                      .breed.stats[index].value
-                                                      .toInt()]
-                                                  .name,
-                                          style: const TextStyle(
-                                              fontSize: 16.0,
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                        },
-                      ),
-                    ],
-                  )),
-                ),
-                Visibility(
-                    visible: selectedWidgetMarker == WidgetMarker.info,
-                    child: Container(
-                        child: textBox(widget.breed.name, BreedDescription))),
-              ],
-            )),
+                            ],
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                )),
+              ),
+              Visibility(
+                  visible: selectedWidgetMarker == WidgetMarker.info,
+                  child: Container(
+                      child: textBox(widget.breed.name, BreedDescription))),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -42,7 +42,6 @@ class AdoptGridState extends State<AdoptGrid> {
   late ScrollController controller;
   List<String> favorites = [];
   late String userID;
-  List<String> listOfFavorites = [];
   final server = globals.FelineFinderServer.instance;
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   bool favorited = false;
@@ -69,7 +68,7 @@ class AdoptGridState extends State<AdoptGrid> {
       setState(() {
         favorited = false;
         widget.setFav!(favorited);
-        listOfFavorites = favorites;
+        globals.listOfFavorites = favorites;
         userID = user;
         server.zip = _zip;
         RescueGroupApi = mapKeys["RescueGroupsAPIKey"];
@@ -242,7 +241,7 @@ class AdoptGridState extends State<AdoptGrid> {
         Filters(
             fieldName: "animals.id",
             operation: "equal",
-            criteria: listOfFavorites)
+            criteria: globals.listOfFavorites)
       ];
     } else {
       filters = filters_backup;
@@ -368,6 +367,20 @@ class AdoptGridState extends State<AdoptGrid> {
   @override
   Widget build(BuildContext context) {
     String? zipCode;
+    String status = "";
+
+    if (favorited) {
+      status = " Favorites: ";
+    } else {
+      status = " Cats: ";
+    }
+    if (count == "Processing") {
+      status += "Processing";
+    } else if (tiles.isEmpty) {
+      status += "0";
+    } else {
+      status += count;
+    }
     return Scaffold(
       body: Column(
         children: [
@@ -380,7 +393,18 @@ class AdoptGridState extends State<AdoptGrid> {
                       minimumSize: const Size(130, 25),
                       maximumSize: const Size(130, 25)),
                   onPressed: () => {askForZip()}),
-              Text((favorited ? " Favorites: " : " Cats: ") + count),
+              Text(status),
+            ],
+          ),
+          Row(
+            children: [
+              Center(
+                child: Text((count != "Processing" && tiles.isEmpty)
+                    ? (favorited
+                        ? "     You have not chosen any favorites yet."
+                        : "     No cats to see.  Please change your search.")
+                    : ""),
+              ),
             ],
           ),
           Expanded(
@@ -411,26 +435,17 @@ class AdoptGridState extends State<AdoptGrid> {
 
   Future<void> _navigateAndDisplaySelection(
       BuildContext context, int index) async {
-    // Navigator.push returns a Future that completes after calling
-    // Navigator.pop on the Selection Screen.
-/*
-    Navigator.push(
-      context,
-      // Create the SelectionScreen in the next step.
-      MaterialPageRoute(builder: (context) => petDetail(tiles[index].id!)),
-    );
-*/
-
-    Get.to(() => petDetail(tiles[index].id!),
+    await Get.to(() => petDetail(tiles[index].id!),
         transition: Transition.circularReveal, duration: Duration(seconds: 1));
 
     favorites = await server.getFavorites(userID);
     setState(() {
-      listOfFavorites = favorites;
+      globals.listOfFavorites = favorites;
       if (favorited) {
         tiles = [];
         loadedPets = 0;
         maxPets = -1;
+        favorited = false;
         getPets();
       }
     });
@@ -494,7 +509,9 @@ class AdoptGridState extends State<AdoptGrid> {
                     Text(
                       ((tile.name ?? "No Name") +
                           (tile.hasVideos! ? " ▶️" : "") +
-                          ((listOfFavorites.contains(tile.id)) ? " ❤️" : "")),
+                          ((globals.listOfFavorites.contains(tile.id))
+                              ? " ❤️"
+                              : "")),
                       style: TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,

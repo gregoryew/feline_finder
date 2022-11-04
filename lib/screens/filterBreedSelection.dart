@@ -26,7 +26,7 @@ class FilterBreedSelection extends StatefulWidget {
 }
 
 class FilterBreedSelectionState extends State<FilterBreedSelection> {
-  final _selected = List<bool>.filled(breeds.length, false);
+  var _selected = List<bool>.filled(breeds.length, false);
 
   @override
   void initState() {
@@ -42,9 +42,18 @@ class FilterBreedSelectionState extends State<FilterBreedSelection> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Select Breeds"),
-        automaticallyImplyLeading: false,
-      ),
+          title: Text("Select Breeds"),
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.delete),
+              onPressed: () {
+                setState(() {
+                  _selected = List<bool>.filled(breeds.length, false);
+                });
+              },
+            )
+          ]),
       // 2
       body: Container(child: buildRows()),
       bottomNavigationBar: BottomAppBar(

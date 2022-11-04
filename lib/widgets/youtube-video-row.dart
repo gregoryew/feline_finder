@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '/models/playlist.dart';
+import '../main.dart';
+import 'package:get/get.dart';
 
 class YouTubeVideoRow extends StatefulWidget {
   final Playlist? playlist;
@@ -52,8 +54,10 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
         // 2
         body: (YoutubePlayerBuilder(
             player: YoutubePlayer(
-              controller: _controller,
-            ),
+                controller: _controller,
+                onEnded: (_) {
+                  Get.off(const HomeScreen(title: 'Feline Finder'));
+                }),
             builder: (context, player) {
               return SingleChildScrollView(
                   child: Column(children: [

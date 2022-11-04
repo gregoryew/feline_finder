@@ -11,6 +11,8 @@ class PetTileData {
   String? size;
   String? picture;
   double? resolutionY;
+  String? smallPicture;
+  double? smallPictureResolutionY;
   bool? hasVideos;
 
   PetTileData(petDatum pet, List<Included> included) {
@@ -61,9 +63,15 @@ class PetTileData {
     var picturesList =
         findAllOfACertainType(pet, included, "pictures", IncludedType.PICTURES);
     picture = picturesList.isEmpty
-        ? "assets/Icons/No_Cat_Image.png"
-        : picturesList[0].attributes!.small!.url;
+        ? "https://via.placeholder.com/200x90.png?text=Cat+Image+Not+Available"
+        : picturesList[0].attributes!.large!.url;
     resolutionY = picturesList.isEmpty
+        ? 0
+        : picturesList[0].attributes!.large!.resolutionY?.toDouble();
+    smallPicture = picturesList.isEmpty
+        ? "https://via.placeholder.com/200x90.png?text=Cat+Image+Not+Available"
+        : picturesList[0].attributes!.original!.url;
+    smallPictureResolutionY = picturesList.isEmpty
         ? 0
         : picturesList[0].attributes!.small!.resolutionY?.toDouble();
     var videoList =

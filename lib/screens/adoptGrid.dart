@@ -7,6 +7,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:recipes/models/favorite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transparent_image/transparent_image.dart';
 
@@ -461,84 +462,119 @@ class AdoptGridState extends State<AdoptGrid> {
           ),
         ),
         margin: EdgeInsets.all(5),
-        child: Container(
-          height: (tile.resolutionY == 0 ? 100 : tile.resolutionY!) + 300,
-          width: 200,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(
-                      10,
-                    ),
-                    topRight: Radius.circular(
-                      10,
-                    ),
-                  ),
-                  child: FadeInImage.memoryNetwork(
-                    placeholder: kTransparentImage,
-                    image: tile.picture ?? "",
-                    fit: BoxFit.fitWidth,
-                    imageErrorBuilder: (context, error, stackTrace) {
-                      return Image.asset("assets/Icons/No_Cat_Image.png",
-                          width: 200, height: 500);
-                    },
-                  ),
-                  //(tile == null || tile.picture == null || tile.picture == "") ? Image(image: AssetImage("assets/Icons/No_Cat_Image.png"), width: 200, fit: BoxFit.fitWidth) : Image(image: NetworkImage(tile.picture ?? ""), width: 200, fit: BoxFit.fitWidth),
-                ),
-              ),
-              Container(
-                height: 2,
-                color: Colors.black,
-              ),
-              Container(
-                //height: 130,
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20.0),
-                    bottomRight: Radius.circular(20.0),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ((tile.name ?? "No Name") +
-                          (tile.hasVideos! ? " ▶️" : "") +
-                          ((globals.listOfFavorites.contains(tile.id))
-                              ? " ❤️"
-                              : "")),
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+        child: MediaQuery.removePadding(
+            context: context,
+            removeTop: true,
+            child: Container(
+              height: (tile.smallPictureResolutionY == 0
+                      ? 100
+                      : tile.smallPictureResolutionY!) +
+                  300,
+              width: 200,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                //crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(
+                          10,
+                        ),
+                        topRight: Radius.circular(
+                          10,
+                        ),
+                      ),
+                      child:
+                          /*
+                      FadeInImage.memoryNetwork(
+                          placeholder: kTransparentImage,
+                          image: tile.picture ?? "",
+                          fit: BoxFit.fitWidth,
+                          imageErrorBuilder: (context, error, stackTrace) {
+                            return Image.asset("assets/Icons/No_Cat_Image.png",
+                                width: 200, height: 500);
+                          }),
+                      */
+                          Container(
+                        decoration: BoxDecoration(
+                            image: DecorationImage(
+                                image: NetworkImage(tile.smallPicture ??
+                                    "https://upload.wikimedia.org/wikipedia/commons/6/65/No-Image-Placeholder.svg"),
+                                fit: BoxFit.cover,
+                                alignment: Alignment.topCenter)),
+                        child: Stack(
+                          children: [
+                            Align(
+                                alignment: Alignment(-0.9, -0.9),
+                                child: Visibility(
+                                    visible: favorites.contains(tile.id),
+                                    child: Image.asset(
+                                        "assets/Icons/favorited_icon_resized.png"))),
+                            Align(
+                                alignment: Alignment(0.9, -0.9),
+                                child: Visibility(
+                                    visible: tile.hasVideos!,
+                                    child: Image.asset(
+                                        "assets/Icons/video_icon_resized.png"))),
+                          ],
+                        ),
+                        //(tile == null || tile.picture == null || tile.picture == "") ? Image(image: AssetImage("assets/Icons/No_Cat_Image.png"), width: 200, fit: BoxFit.fitWidth) : Image(image: NetworkImage(tile.picture ?? ""), width: 200, fit: BoxFit.fitWidth),
                       ),
                     ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Text(
-                      tile.primaryBreed ?? "",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
+                  ),
+                  Container(
+                    height: 2,
+                    color: Colors.black,
+                  ),
+                  Container(
+                    //height: 130,
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(20.0),
+                        bottomRight: Radius.circular(20.0),
                       ),
                     ),
-                    SizedBox(
-                      height: 5,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Text(
+                            tile.name ?? "No Name",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 5,
+                        ),
+                        Center(
+                          child: Text(
+                            tile.primaryBreed ?? "",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 10,
+                        ),
+                        getStats(tile)
+                      ],
                     ),
-                    getStats(tile)
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ));
+            )));
   }
 
   Widget getStats(PetTileData tile) {

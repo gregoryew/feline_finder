@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/youtube-video-row.dart';
 
 void main() async {
   runApp(const SplashPage());
@@ -28,8 +31,23 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    Timer(const Duration(seconds: 3),
-        () => Get.off(const HomeScreen(title: 'Feline Finder')));
+    () async {
+      Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+      final SharedPreferences prefs = await _prefs;
+      if (!prefs.containsKey("firstTime")) {
+        await prefs.setString("firstTime", "False");
+        await Get.to(
+            () => YouTubeVideoRow(
+                  playlist: null,
+                  title: "Welcome To Feline Finder",
+                  videoid: "Hqmt7N2bJLk",
+                ),
+            transition: Transition.circularReveal);
+      } else {
+        Timer(const Duration(seconds: 3),
+            () => Get.off(const HomeScreen(title: 'Feline Finder')));
+      }
+    }();
     return GetMaterialApp(
       title: 'Feline Finder',
       theme: ThemeData(fontFamily: 'Poppins'),

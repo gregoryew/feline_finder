@@ -34,13 +34,14 @@ class _SplashPageState extends State<SplashPage> {
     () async {
       Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
       final SharedPreferences prefs = await _prefs;
-      if (!prefs.containsKey("firstTime")) {
-        await prefs.setString("firstTime", "False");
+      if (!prefs.containsKey("FirstTime3")) {
+        await prefs.setString("FirstTime3", "False");
         await Get.to(
             () => YouTubeVideoRow(
                   playlist: null,
                   title: "Welcome To Feline Finder",
                   videoid: "Hqmt7N2bJLk",
+                  fullScreen: true,
                 ),
             transition: Transition.circularReveal);
       } else {

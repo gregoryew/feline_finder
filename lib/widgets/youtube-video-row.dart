@@ -8,15 +8,20 @@ class YouTubeVideoRow extends StatefulWidget {
   final Playlist? playlist;
   final String? videoid;
   final String? title;
+  final bool? fullScreen;
 
   const YouTubeVideoRow._(
-      {required this.playlist, required this.videoid, required this.title});
+      {required this.playlist,
+      required this.videoid,
+      required this.title,
+      this.fullScreen});
 
   const YouTubeVideoRow(
       {Key? key,
       required this.playlist,
       required this.videoid,
-      required this.title})
+      required this.title,
+      this.fullScreen})
       : super(key: key);
 
   @override
@@ -33,8 +38,6 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
     String? id =
         (widget.videoid == "") ? widget.playlist!.videoId : widget.videoid;
 
-    print("===============PLAY VIDEO VideoID = " + id!);
-
     _controller = YoutubePlayerController(
       initialVideoId: id!,
       flags: const YoutubePlayerFlags(
@@ -48,24 +51,69 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
   Widget build(BuildContext context) {
     // 1
     return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title ?? widget.playlist!.title),
-        ),
-        // 2
-        body: (YoutubePlayerBuilder(
-            player: YoutubePlayer(
-                controller: _controller,
-                onEnded: (_) {
-                  Get.off(const HomeScreen(title: 'Feline Finder'));
-                }),
-            builder: (context, player) {
-              return SingleChildScrollView(
-                  child: Column(children: [
-                player,
-                Padding(
-                    child: Text(widget.playlist?.description ?? ""),
-                    padding: EdgeInsets.all(10)),
-              ]));
-            })));
+      appBar: AppBar(
+        title: Text(widget.title ?? widget.playlist!.title),
+        automaticallyImplyLeading: !(widget.fullScreen ?? false),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(
+              Icons.close,
+              color: Colors.white,
+            ),
+            onPressed: () {
+              Get.off(const HomeScreen(title: 'Feline Finder'));
+            },
+          )
+        ],
+      ),
+      // 2
+      body: (widget.fullScreen ?? false)
+          ? (Container(
+              color: Colors.black,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  YoutubePlayerBuilder(
+                    player: YoutubePlayer(
+                      controller: _controller,
+                      onEnded: (_) {
+                        Get.off(const HomeScreen(title: 'Feline Finder'));
+                      },
+                    ),
+                    builder: (context, player) {
+                      return SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            player,
+                            Padding(
+                              child: Text(widget.playlist?.description ?? ""),
+                              padding: EdgeInsets.all(10),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ))
+          : (YoutubePlayerBuilder(
+              player: YoutubePlayer(controller: _controller),
+              builder: (context, player) {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      player,
+                      Padding(
+                        child: Text(widget.playlist?.description ?? ""),
+                        padding: EdgeInsets.all(10),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            )),
+    );
   }
 }

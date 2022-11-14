@@ -370,6 +370,7 @@ class _BreedDetailState extends State<BreedDetail>
                         itemCount: playlists.length,
                         itemBuilder: (context, index) {
                           return PlaylistRow(
+                            displayDescription: false,
                             playlist: playlists[index],
                           );
                         },

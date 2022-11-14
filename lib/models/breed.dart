@@ -196,7 +196,7 @@ List<Breed> breeds = [
       'Balinese Full',
       'nX2CV2V2zDs',
       'https://www.youtube.com/watch?v=syqPBZp2l0Q',
-      'PLrrwGtN2q9fBQXTJNCqAAGrGVvo0SbUie',
+      'PLrrwGtN2q9fDf5EWmIXl7uVhqSG1EOvhV',
       7,
       1.0,
       Colors.white, [
@@ -226,7 +226,7 @@ List<Breed> breeds = [
       'Bengal Full',
       'Q6KSn1kY3kE',
       'https://www.youtube.com/watch?v=yc8yHE8d3zY',
-      'PLrrwGtN2q9fBqPIdQ6MOyXEyh7xFcmGbF',
+      'PLrrwGtN2q9fCkWz2CmzW_XYQePsl_s610',
       8,
       1.0,
       Colors.white, [
@@ -256,7 +256,7 @@ List<Breed> breeds = [
       'Birman Full',
       'BZfSVWwqLjI',
       'https://www.youtube.com/watch?v=ReH_WO3UgUA',
-      'PLrrwGtN2q9fBmnGQk5oCWWy5zpMfLe-9b',
+      'PLrrwGtN2q9fA6ok4OCJf_oX7nbgQIOdQB',
       9,
       1.0,
       Colors.white, [
@@ -346,7 +346,7 @@ List<Breed> breeds = [
       'British Shorthair Full',
       'JxFYS3LzDPA',
       'http://www.animalplanet.com/tv-shows/cats-101/videos/cats-101videosbritish-shorthair/',
-      'PLrrwGtN2q9fDVNqEKa7wGpBa6UJQNI1fw',
+      'PLrrwGtN2q9fDI5syVimd7nSKaYY_NHdXI',
       12,
       1.0,
       Colors.white, [
@@ -376,7 +376,7 @@ List<Breed> breeds = [
       'Burmese Full',
       '-ddyL3-wi6Y',
       'https://www.youtube.com/watch?v=5-a332qim0Q',
-      'PLrrwGtN2q9fB93sCTFsTE-7WuNA922V-q',
+      'PLrrwGtN2q9fBgmLR1MTAncZGc2eYuYQe5',
       13,
       1.0,
       Colors.white, [
@@ -436,7 +436,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       'ZOCkAwFerqY',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fCKlvy1kiF_gOacs1PdTLo-',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       15,
       1.0,
       Colors.white, [
@@ -467,7 +467,7 @@ List<Breed> breeds = [
       'Sphynx Full',
       'y-pUGcrz2XI',
       'https://www.youtube.com/watch?v=iuOvHDhMJ-A',
-      'PLrrwGtN2q9fASUWA5W7cO1coNen9qydyo',
+      'PLrrwGtN2q9fBM8lH7qljyrc0fHTcu5zzc',
       16,
       1.0,
       Colors.white, [
@@ -527,7 +527,7 @@ List<Breed> breeds = [
       'Chausie Full',
       'GUL117WoEno',
       'https://www.youtube.com/watch?v=wk24F8orbGc',
-      'PLrrwGtN2q9fChLeCVhvAKIrAUl2IIZ2MZ',
+      'PLrrwGtN2q9fChUv8AS4RoT7rzc6eABnst',
       17,
       1.0,
       Colors.white, [
@@ -558,7 +558,7 @@ List<Breed> breeds = [
       'Persian Full',
       'lbUBpTC1wOQ',
       'http://www.animalplanet.com/tv-shows/cats-101/videos/persian/',
-      'PLrrwGtN2q9fDVL5HQpgWa1MYjSTIhhI16',
+      'PLrrwGtN2q9fD6DO8G5Qd3Tdh7cQyv_GVa',
       19,
       1.0,
       Colors.white, [
@@ -709,7 +709,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       'UN4tM2T8EGo',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fC7HzVI70t4BbL60cUYZut_',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       23,
       1.0,
       Colors.white, [
@@ -739,7 +739,7 @@ List<Breed> breeds = [
       'Domestic Long-hair Full',
       'CkdFg_cdLm4',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fAExJ1dcsppfvscO8GBeFi7',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       24,
       1.0,
       Colors.white, [
@@ -769,7 +769,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       '87RUb18XDws',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fC11XAl1eNNdTNP20PsT76h',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       29,
       1.0,
       Colors.white, [
@@ -799,7 +799,7 @@ List<Breed> breeds = [
       'Domestic Short-hair Full',
       'BsBeP2tMl_c',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       35,
       1.0,
       Colors.white, [
@@ -889,7 +889,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       'mUhe8PEbZck',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       437,
       1.0,
       Colors.white, [
@@ -919,7 +919,7 @@ List<Breed> breeds = [
       'Havana Brown Full',
       'HKwMsbxC0RQ',
       'https://www.youtube.com/watch?v=LMb9DQuCeAw',
-      'PLrrwGtN2q9fA8aRLGFWh9sVOp5l6tu0nH',
+      'PLrrwGtN2q9fCzeEdFBSsgNSJYB1S0rCE-',
       44,
       1.0,
       Colors.white, [
@@ -979,7 +979,7 @@ List<Breed> breeds = [
       'Japanese Bobtail Full',
       '7ILupJIPZI4',
       'https://www.youtube.com/watch?v=Id5LsGabYGo',
-      'PLrrwGtN2q9fA-TXcSIa7RYUJ7YY1wIdX1',
+      'PLrrwGtN2q9fBV22EZooFxnUOBORMNmkj2',
       46,
       1.0,
       Colors.white, [
@@ -1039,7 +1039,7 @@ List<Breed> breeds = [
       'Korat Full',
       'KfU5I7DA3q4',
       'https://www.youtube.com/watch?v=GN6za4hyELg',
-      'PLrrwGtN2q9fAK_EAirdi4j-htBkssQ9Og',
+      'PLrrwGtN2q9fBBB69bAyihsPBqpI0YCr4u',
       47,
       1.0,
       Colors.white, [
@@ -1069,7 +1069,7 @@ List<Breed> breeds = [
       'LaPerm Full',
       'aDTpLE_KULw',
       'https://www.youtube.com/watch?v=qR1760oJGOk',
-      'PLrrwGtN2q9fDUZpBUND6pCS5Ly_UjeboQ',
+      'PLrrwGtN2q9fAVUzD_Ni38mXKmcjTNsUlJ',
       439,
       1.0,
       Colors.white, [
@@ -1159,7 +1159,7 @@ List<Breed> breeds = [
       'Munchkin Full',
       'tBw-mJUKCng',
       'https://www.youtube.com/watch?v=0tHRYsnItlM',
-      'PLrrwGtN2q9fBJVvyj-qKIDzzA1qqoetKw',
+      'PLrrwGtN2q9fDHeycOmUc3gqTrzFp6DEo2',
       440,
       1.0,
       Colors.white, [
@@ -1189,7 +1189,7 @@ List<Breed> breeds = [
       'Nebelung Full',
       'YW2K-0MjRmk',
       'https://www.youtube.com/watch?v=OTcXt_bkB0I',
-      'PLrrwGtN2q9fAJGSaCHrD-muelmainGTo7',
+      'PLrrwGtN2q9fCRIhEHDPklzSr4ITpRNsxF',
       441,
       1.0,
       Colors.white, [
@@ -1249,7 +1249,7 @@ List<Breed> breeds = [
       'Ocicat Full',
       'csJY9KnwZi0',
       'https://www.youtube.com/watch?v=lUHo4LOPivY',
-      'PLrrwGtN2q9fDgKF7ChaeECZr8gZRcfxxf',
+      'PLrrwGtN2q9fB4FFne22_bY5ualm1gwGwG',
       51,
       1.0,
       Colors.white, [
@@ -1309,7 +1309,7 @@ List<Breed> breeds = [
       'Persian Full',
       'lbUBpTC1wOQ',
       'https://www.animalplanet.com/tv-shows/cats-101/videos/persian/',
-      'PLrrwGtN2q9fDwObxKJw1G9LhcHKLEMBFd',
+      'PLrrwGtN2q9fD6DO8G5Qd3Tdh7cQyv_GVa',
       53,
       1.0,
       Colors.white, [
@@ -1339,7 +1339,7 @@ List<Breed> breeds = [
       'Pixie-Bob Full',
       '5rJzNCr2_Pk',
       'https://www.youtube.com/watch?v=n9ChF8WGOj0',
-      'PLrrwGtN2q9fBNedFG7wdrvEJv6LaxXbwi',
+      'PLrrwGtN2q9fDhJXxRQSzeTt57P43TmSMX',
       54,
       1.0,
       Colors.white, [
@@ -1369,7 +1369,7 @@ List<Breed> breeds = [
       'Ragamuffin Full',
       'XyRE3o6Gjh8',
       'https://www.youtube.com/watch?v=m-YhajU8u9Y',
-      'PLrrwGtN2q9fDuUc45KII_kXDGc0CtPYq4',
+      'PLrrwGtN2q9fAmifDyDwNtg2bcVoP_MFdj',
       444,
       1.0,
       Colors.white, [
@@ -1429,7 +1429,7 @@ List<Breed> breeds = [
       'Russian Blue Full',
       'ZqnOhWIk34A',
       'https://www.youtube.com/watch?v=RtI7UgN3bxQ',
-      'PLrrwGtN2q9fCo1TSGkjenaDTBz-r2GjEC',
+      'PLrrwGtN2q9fBSsr3o7CB1Bvo129Z3Svfj',
       56,
       1.0,
       Colors.white, [
@@ -1490,7 +1490,7 @@ List<Breed> breeds = [
       'Scottish Fold Full',
       'jCEKIrJkAPo',
       'https://www.youtube.com/watch?v=TmyDjs1guKs',
-      'PLrrwGtN2q9fAdAcwlFyIl4qRnXMk7UUFW',
+      'PLrrwGtN2q9fDI6jhhN1J0bd81a0nHr_zf',
       57,
       1.0,
       Colors.white, [
@@ -1580,7 +1580,7 @@ List<Breed> breeds = [
       'Siberian Full',
       'lUxuVr5a1PQ',
       'https://www.youtube.com/watch?v=6cczgBaDccs',
-      'PLrrwGtN2q9fDm0TepoT-TZ82emN3tTXLg',
+      'PLrrwGtN2q9fDADFhlCzmrxZEXLBrbIBVs',
       446,
       1.0,
       Colors.white, [
@@ -1611,7 +1611,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       'UN4tM2T8EGo',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fDNdTnU-qFUxNF1yWa35Pft',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       0,
       1.0,
       Colors.white, [
@@ -1641,7 +1641,7 @@ List<Breed> breeds = [
       'Singapura Full',
       'ZHgO9GDhz8c',
       'https://www.youtube.com/watch?v=2arjynd1tIA',
-      'PLrrwGtN2q9fDWRVZJzolONkToeg2a3mg7',
+      'PLrrwGtN2q9fDPrGMd_E0ffJ3AEA1PZVSj',
       447,
       1.0,
       Colors.white, [
@@ -1671,7 +1671,7 @@ List<Breed> breeds = [
       'Snowshoe Full',
       'yBiLXTNJHyg',
       'https://www.youtube.com/watch?v=j76cW_ZkYfQ',
-      'PLrrwGtN2q9fByxHnoT1ehZ0xnmGogE5km',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       60,
       1.0,
       Colors.white, [
@@ -1731,7 +1731,7 @@ List<Breed> breeds = [
       'Sphynx Full',
       'y-pUGcrz2XI',
       'https://www.youtube.com/watch?v=iuOvHDhMJ-A',
-      'PLrrwGtN2q9fB3c-_q17QMmvxOI6AnWkws',
+      'PLrrwGtN2q9fBM8lH7qljyrc0fHTcu5zzc',
       62,
       1.0,
       Colors.white, [
@@ -1761,7 +1761,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       'UN4tM2T8EGo',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       63,
       1.0,
       Colors.white, [
@@ -1791,7 +1791,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       'UN4tM2T8EGo',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       68,
       1.0,
       Colors.white, [
@@ -1821,7 +1821,7 @@ List<Breed> breeds = [
       'Tonkinese Full',
       'dCIgiG7Tlfc',
       'https://www.youtube.com/watch?v=nHqjUK6oVFw',
-      'PLrrwGtN2q9fBJB7DjIgiUxesGtDPI5z8o',
+      'PLrrwGtN2q9fCEiud6FCDZxch8Fzl6kEQK',
       69,
       1.0,
       Colors.white, [
@@ -1852,7 +1852,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       'UN4tM2T8EGo',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      'PLrrwGtN2q9fC934m1piYbpBy9PuFEl5OG',
       70,
       1.0,
       Colors.white, [
@@ -1882,7 +1882,7 @@ List<Breed> breeds = [
       'American Shorthair Full',
       'UN4tM2T8EGo',
       'https://www.youtube.com/watch?v=MCL8ljteX9Y',
-      'PLrrwGtN2q9fAxSSff_YpVWK7arMGcCXZZ',
+      'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       71,
       1.0,
       Colors.white, [
@@ -1944,7 +1944,7 @@ List<Breed> breeds = [
       'Turkish Van Full',
       'FwRItsZR0R0',
       'https://www.youtube.com/watch?v=GDJ8SvkoN0Y',
-      'PLrrwGtN2q9fDy3pvT31vcr3UX4gA27uEi',
+      'PLrrwGtN2q9fBQhqV5jbaGppEft4WRDNMw',
       72,
       1.0,
       Colors.white, [

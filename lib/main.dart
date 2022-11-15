@@ -104,6 +104,20 @@ class _HomeScreen extends State<HomeScreen> {
   List<Widget>? getTrailingButtons(selectedIndex) {
     if (selectedIndex == 2) {
       return <Widget>[
+        GestureDetector(
+            onTap: () {
+              var _favoritesSelected = (favoritesSelected) ? false : true;
+              AdoptionGridKey.currentState!.setFavorites(_favoritesSelected);
+              setState(() {
+                favoritesSelected = _favoritesSelected;
+              });
+            },
+            child: Icon(
+              Icons.favorite,
+              color: (favoritesSelected) ? Colors.red : Colors.grey,
+              size: 40,
+            )),
+        const SizedBox(width: 10, height: 30),
         /*
         GestureDetector(
           onTap: () {
@@ -111,8 +125,8 @@ class _HomeScreen extends State<HomeScreen> {
           },
           child: const ImageIcon(AssetImage("assets/Icons/away.png"), size: 30),
         ),
-        */
         const SizedBox(width: 10, height: 30),
+        */
         GestureDetector(
           onTap: () {
             AdoptionGridKey.currentState!.search();
@@ -151,7 +165,7 @@ class _HomeScreen extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
           title: const Center(child: Text("Feline Finder")),
-          leading: getLeadingButtons(_selectedIndex),
+          //leading: getLeadingButtons(_selectedIndex),
           actions: getTrailingButtons(_selectedIndex)),
       body: (_selectedIndex == 2)
           ? AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton)

@@ -1,14 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../widgets/youtube-video-row.dart';
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../widgets/youtube-video-row.dart';
 
 void main() async {
   runApp(const SplashPage());
@@ -32,10 +33,20 @@ class _SplashPageState extends State<SplashPage> {
   @override
   Widget build(BuildContext context) {
     () async {
+      FlutterNetworkConnectivity flutterNetworkConnectivity =
+          FlutterNetworkConnectivity(
+        isContinousLookUp:
+            true, // optional, false if you cont want continous lookup
+        lookUpDuration: const Duration(
+            seconds: 5), // optional, to override default lookup duration
+        lookUpUrl: 'example.com', // optional, to override default lookup url
+      );
+
       Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
       final SharedPreferences prefs = await _prefs;
-      if (!prefs.containsKey("FirstTime3")) {
-        await prefs.setString("FirstTime3", "False");
+      if (!prefs.containsKey("FirstTime4") &&
+          await flutterNetworkConnectivity.isInternetConnectionAvailable()) {
+        await prefs.setString("FirstTime", "False");
         await Get.to(
             () => YouTubeVideoRow(
                   playlist: null,
@@ -141,6 +152,7 @@ class _HomeScreen extends State<HomeScreen> {
   }
 
   Widget? getLeadingButtons(selectedIndex) {
+    /*
     if (selectedIndex == 2) {
       return GestureDetector(
           onTap: () {
@@ -156,6 +168,7 @@ class _HomeScreen extends State<HomeScreen> {
             size: 40,
           ));
     }
+    */
     return null;
   }
 
@@ -165,6 +178,7 @@ class _HomeScreen extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
           title: const Center(child: Text("Feline Finder")),
+          automaticallyImplyLeading: false,
           //leading: getLeadingButtons(_selectedIndex),
           actions: getTrailingButtons(_selectedIndex)),
       body: (_selectedIndex == 2)

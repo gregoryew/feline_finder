@@ -10,10 +10,15 @@ import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:like_button/like_button.dart';
 import 'package:linkfy_text/linkfy_text.dart';
+import 'package:recipes/ExampleCode/Media.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_class_parser/flutter_class_parser.dart' as shapesParser;
+import 'package:rating_dialog/rating_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 import '../widgets/toolbar.dart';
+import '../widgets/playIndicator.dart';
 import '/ExampleCode/RescueGroups.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petDetailData.dart';
@@ -53,6 +58,38 @@ class petDetailState extends State<petDetail> with RouteAware {
   String? rescueGroupApi = "";
   late ScrollController _controller = ScrollController();
   int currentIndexPage = 0;
+
+  final _dialog = RatingDialog(
+    initialRating: 1.0,
+    // your app's name?
+    title: Text(
+      'Feline Finder',
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 25,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    // encourage your user to leave a high rating?
+    message: Text(
+      'Like the app? Then please rate it.  A review would also be appreciated.',
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: 15),
+    ),
+    // your app's logo?
+    image: Image.asset("assets/icon/icon_rating.png"),
+    submitButtonText: 'Submit',
+    commentHint: 'Please provide a comment here.',
+    onCancelled: () => print('cancelled'),
+    onSubmitted: (response) async {
+      print('rating: ${response.rating}, comment: ${response.comment}');
+      Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+      final SharedPreferences prefs = await _prefs;
+      if (!prefs.containsKey("RatedApp2")) {
+        await prefs.setString("RatedApp2", "True");
+      }
+    },
+  );
 
   @override
   void initState() {
@@ -271,6 +308,17 @@ class petDetailState extends State<petDetail> with RouteAware {
                   isFavorited = false;
                   globals.listOfFavorites.remove(widget.petID);
                 } else if (isLiked == false) {
+                  Future<SharedPreferences> _prefs =
+                      SharedPreferences.getInstance();
+                  final SharedPreferences prefs = await _prefs;
+                  if (!prefs.containsKey("RatedApp3")) {
+                    showDialog(
+                      context: context,
+                      barrierDismissible:
+                          true, // set to false if you want to force a rating
+                      builder: (context) => _dialog,
+                    );
+                  }
                   globals.listOfFavorites.add(widget.petID);
                   widget.server.favoritePet(userID, widget.petID);
                   isFavorited = true;
@@ -310,6 +358,9 @@ class petDetailState extends State<petDetail> with RouteAware {
                       ? false
                       : true,
                   child: DotsIndicator(
+                    decorator: DotsDecorator(
+                        shapes: getShapes(petDetailInstance),
+                        activeShapes: getShapes(petDetailInstance)),
                     dotsCount: (petDetailInstance == null)
                         ? 1
                         : petDetailInstance!.media.length == 0
@@ -643,6 +694,25 @@ class petDetailState extends State<petDetail> with RouteAware {
       for (var el in pd.media) {
         list.add(const SizedBox(width: 5));
         list.add(el);
+      }
+      return list;
+    }
+    return [];
+  }
+
+  List<ShapeBorder> getShapes(PetDetailData? pd) {
+    if (pd != null) {
+      List<ShapeBorder> list = [];
+      for (var el in pd.media) {
+        if (el is YouTubeVideo) {
+          list.add(CustomPlayIndicatorBorder());
+        } else {
+          list.add(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5.0),
+            ),
+          );
+        }
       }
       return list;
     }

@@ -11,6 +11,7 @@ import 'package:recipes/models/favorite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:transparent_image/transparent_image.dart';
 
+import '../main.dart' as main;
 import '/ExampleCode/RescueGroups.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
@@ -45,7 +46,7 @@ class AdoptGridState extends State<AdoptGrid> {
   late String userID;
   final server = globals.FelineFinderServer.instance;
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-  bool favorited = false;
+  //bool favorited = false;
   List<Filters> filters = [];
   List<Filters> filters_backup = [];
   String? RescueGroupApi = "";
@@ -67,8 +68,8 @@ class AdoptGridState extends State<AdoptGrid> {
           .parseStringToMap(assetsFileName: '.env');
 
       setState(() {
-        favorited = false;
-        widget.setFav!(favorited);
+        main.favoritesSelected = false;
+        widget.setFav!(main.favoritesSelected);
         globals.listOfFavorites = favorites;
         userID = user;
         server.zip = _zip;
@@ -203,8 +204,8 @@ class AdoptGridState extends State<AdoptGrid> {
           tiles = [];
           loadedPets = 0;
           maxPets = -1;
-          favorited = false;
-          widget.setFav!(favorited);
+          main.favoritesSelected = false;
+          widget.setFav!(main.favoritesSelected);
           getPets();
         },
       );
@@ -216,9 +217,10 @@ class AdoptGridState extends State<AdoptGrid> {
   }
 
   void setFavorites(bool favorited) {
-    this.favorited = favorited;
-    print("Favorites pressed. ${(favorited) ? "Favorited" : "Unfavorited"}");
+    print(
+        "Favorites pressed. ${(main.favoritesSelected) ? "Favorited" : "Unfavorited"}");
     setState(() {
+      main.favoritesSelected = favorited;
       tiles = [];
       loadedPets = 0;
       maxPets = -1;
@@ -237,7 +239,7 @@ class AdoptGridState extends State<AdoptGrid> {
 
     print("&&&&&& zip = " + server.zip);
 
-    if (favorited) {
+    if (main.favoritesSelected) {
       filters = [
         Filters(
             fieldName: "animals.id",
@@ -370,7 +372,7 @@ class AdoptGridState extends State<AdoptGrid> {
     String? zipCode;
     String status = "";
 
-    if (favorited) {
+    if (main.favoritesSelected) {
       status = " Favorites: ";
     } else {
       status = " Cats: ";
@@ -401,7 +403,7 @@ class AdoptGridState extends State<AdoptGrid> {
             children: [
               Center(
                 child: Text((count != "Processing" && tiles.isEmpty)
-                    ? (favorited
+                    ? (main.favoritesSelected
                         ? "     You have not chosen any favorites yet."
                         : "     No cats to see.  Please change your search.")
                     : ""),
@@ -436,18 +438,16 @@ class AdoptGridState extends State<AdoptGrid> {
 
   Future<void> _navigateAndDisplaySelection(
       BuildContext context, int index) async {
+    final countOfFavorites = globals.listOfFavorites.length;
     await Get.to(() => petDetail(tiles[index].id!),
         transition: Transition.circularReveal, duration: Duration(seconds: 1));
 
     favorites = await server.getFavorites(userID);
     setState(() {
       globals.listOfFavorites = favorites;
-      if (favorited) {
-        tiles = [];
-        loadedPets = 0;
-        maxPets = -1;
-        favorited = false;
-        getPets();
+      if (main.favoritesSelected &&
+          globals.listOfFavorites.length < countOfFavorites) {
+        tiles.removeAt(index);
       }
     });
   }

@@ -16,7 +16,7 @@ import 'package:flutter_class_parser/flutter_class_parser.dart' as shapesParser;
 import 'package:rating_dialog/rating_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../main.dart';
+import '../main.dart' as main;
 import '../widgets/toolbar.dart';
 import '../widgets/playIndicator.dart';
 import '/ExampleCode/RescueGroups.dart';
@@ -85,8 +85,8 @@ class petDetailState extends State<petDetail> with RouteAware {
       print('rating: ${response.rating}, comment: ${response.comment}');
       Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
       final SharedPreferences prefs = await _prefs;
-      if (!prefs.containsKey("RatedApp2")) {
-        await prefs.setString("RatedApp2", "True");
+      if (!prefs.containsKey("RatedApp")) {
+        await prefs.setString("RatedApp", "True");
       }
     },
   );
@@ -311,7 +311,7 @@ class petDetailState extends State<petDetail> with RouteAware {
                   Future<SharedPreferences> _prefs =
                       SharedPreferences.getInstance();
                   final SharedPreferences prefs = await _prefs;
-                  if (!prefs.containsKey("RatedApp3")) {
+                  if (!prefs.containsKey("RatedApp")) {
                     showDialog(
                       context: context,
                       barrierDismissible:

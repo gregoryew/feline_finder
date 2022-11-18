@@ -236,7 +236,10 @@ class FelineFinderServer {
     }
   }
 
-  Future<RescueGroupsQuery> getQuery(String userID, String filterName) async {
+  Future<RescueGroupsQuery?> getQuery(String userID, String filterName) async {
+    if (filterName == "New") {
+      return RescueGroupsQuery.fromJson(jsonDecode(""));
+    }
     print("loadFilter called");
     print("https://$serverName/getQuery?userid=$userID&name=$filterName");
     var response = await http.get(

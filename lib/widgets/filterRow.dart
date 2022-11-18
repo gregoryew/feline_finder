@@ -175,19 +175,23 @@ class _FilterRow extends State<FilterRow> {
                                             CatClassification.saves &&
                                         item.displayName != "New..."),
                                     child: SizedBox(
-                                      width: 20,
-                                      height: 20,
+                                      width: 40,
+                                      height: 40,
                                       child: TextButton(
                                         style: ButtonStyle(
                                             padding: MaterialStateProperty.all<
                                                     EdgeInsets>(
                                                 const EdgeInsets.all(0))),
-                                        child: const Text(
-                                          "X",
-                                          style: TextStyle(
-                                              backgroundColor:
-                                                  Colors.transparent,
-                                              color: Colors.black),
+                                        child: Align(
+                                          alignment: Alignment(0.5, 0.0),
+                                          child: Text(
+                                            "🗑️",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                color: Colors.black),
+                                          ),
                                         ),
                                         onPressed: () {
                                           deleteQuery(item.displayName);

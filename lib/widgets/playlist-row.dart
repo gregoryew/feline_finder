@@ -52,9 +52,8 @@ class PlaylistRow extends StatelessWidget {
                   Visibility(
                     visible: displayDescription,
                     child: Padding(
-                      padding: EdgeInsets.all(10.0),
-                      child: Text(playlist.description),
-                    ),
+                        padding: EdgeInsets.all(10.0),
+                        child: Text(playlist.description)),
                   ),
                   Visibility(
                     visible: displayDescription == false,

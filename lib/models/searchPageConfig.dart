@@ -583,7 +583,7 @@ List<filterOption> filteringOptions = [
       "",
       "animals.isHousetrained",
       false,
-      true,
+      false,
       CatClassification.personality,
       25,
       [
@@ -611,7 +611,7 @@ List<filterOption> filteringOptions = [
   filterOption(
       "Ear type",
       "",
-      "animals.ear",
+      "animals.earType",
       false,
       true,
       CatClassification.physical,

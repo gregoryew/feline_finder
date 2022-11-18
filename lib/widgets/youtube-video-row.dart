@@ -49,7 +49,6 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
 
   @override
   Widget build(BuildContext context) {
-    // 1
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title ?? widget.playlist!.title),
@@ -87,7 +86,9 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                           children: [
                             player,
                             Padding(
-                              child: Text(widget.playlist?.description ?? ""),
+                              child: Text((widget.playlist != null)
+                                  ? widget.playlist!.description
+                                  : ""),
                               padding: EdgeInsets.all(10),
                             ),
                           ],

@@ -44,14 +44,14 @@ class _SplashPageState extends State<SplashPage> {
 
       Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
       final SharedPreferences prefs = await _prefs;
-      if (!prefs.containsKey("FirstTime4") &&
+      if (!prefs.containsKey("FirstTime") &&
           await flutterNetworkConnectivity.isInternetConnectionAvailable()) {
         await prefs.setString("FirstTime", "False");
         await Get.to(
             () => YouTubeVideoRow(
                   playlist: null,
                   title: "Welcome To Feline Finder",
-                  videoid: "Hqmt7N2bJLk",
+                  videoid: "GPE4bd1w6Lg",
                   fullScreen: true,
                 ),
             transition: Transition.circularReveal);
@@ -89,9 +89,10 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreen();
 }
 
+bool favoritesSelected = false;
+
 class _HomeScreen extends State<HomeScreen> {
   int _selectedIndex = 0;
-  bool favoritesSelected = false;
   late GlobalObjectKey<AdoptGridState> AdoptionGridKey;
 
   void _setFavoriteButton(bool fav) {

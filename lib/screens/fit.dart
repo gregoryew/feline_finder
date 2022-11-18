@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:crop/crop.dart';
@@ -31,10 +32,23 @@ class Fit extends StatefulWidget {
 }
 
 class FitState extends State<Fit> {
+  Timer? timer;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    timer = Timer.periodic(const Duration(milliseconds: 500), (Timer t) {
+      showDescription(0);
+      timer!.cancel();
+    });
+  }
+
   final itemController = ItemScrollController();
   int _priorVisibleQuestion = -1;
   final _descriptionVisible = [
-    true,
+    false,
     false,
     false,
     false,
@@ -118,15 +132,13 @@ class FitState extends State<Fit> {
                                   .name,
                           style: const TextStyle(fontSize: 13))),
                   IconButton(
-                    icon: AnimatedContainer(
-                        duration: Duration(seconds: 1),
-                        child: Transform.rotate(
-                            angle: (_descriptionVisible[question.id]
-                                ? 0
-                                : 180 * math.pi / 180),
-                            child: Icon(Icons.expand_less))),
-                    onPressed: () => showDescription(question.id),
-                  ),
+                    icon: AnimatedRotation(
+                        turns:
+                            _descriptionVisible[question.id] ? -1 * (1 / 2) : 0,
+                        duration: const Duration(milliseconds: 250),
+                        child: Icon(Icons.expand_less)),
+                    onPressed: () => {showDescription(question.id)},
+                  )
                 ],
               ),
               const Divider(

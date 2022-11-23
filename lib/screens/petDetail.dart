@@ -487,7 +487,10 @@ class petDetailState extends State<petDetail> with RouteAware {
               const SizedBox(height: 20),
               textBox("Donation Url", donationUrl),
               const SizedBox(height: 20),
-              textBox("Sponsorship Url", sponsorshipUrl)
+              textBox("Sponsorship Url", sponsorshipUrl),
+              const SizedBox(height: 20),
+              textBox("DISCLAIMER",
+                  "PLEASE READ: Information regarding adoptable pets is provided by the adopting organization and is neither checked for accuracy or completeness nor guaranteed to be accurate or complete.  The health status and behavior of any pet found, adopted through, or listed on the Feline Finder app are sole responsibility of the adoption organization listing the same and/or the adopting party and by using this service, the adopting party releases Feline Finder and Gregory Edward Williams from any and all liability arising out of or in any way connected with the adoption of a pet listed on the Feline Finder app.")
             ],
           ),
         ),
@@ -498,9 +501,12 @@ class petDetailState extends State<petDetail> with RouteAware {
   Widget textBox(String title, String textBlock) {
     var document = parseFragment(textBlock);
     var textString = document.text ?? "";
-    final textStyle =
-        GoogleFonts.karla(fontSize: 16, fontWeight: FontWeight.w500);
-
+    final textStyle;
+    if (title == "DISCLAIMER") {
+      textStyle = GoogleFonts.karla(fontSize: 10, fontWeight: FontWeight.w500);
+    } else {
+      textStyle = GoogleFonts.karla(fontSize: 16, fontWeight: FontWeight.w500);
+    }
     return Center(
       child: Container(
         decoration: BoxDecoration(

@@ -36,11 +36,16 @@
 		<true/>
 	</dict>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs access to location when open and in the background.</string>
+	<string>Feline Finder uses your location to show pets at nearby shelters.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app needs access to location when in the background.</string>
+	<string>Feline Finder uses your location to show pets at nearby shelters.
+&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;&gt;
+&lt;plist version=&quot;1.0&quot;&gt;
+&lt;string&gt;Feline Finder uses your location to show pets are nearby shelters.&lt;/string&gt;
+&lt;/plist&gt;
+</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to location when open.</string>
+	<string>Feline Finder uses your location to show pets at nearby shelters.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

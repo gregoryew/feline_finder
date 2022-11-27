@@ -1,0 +1,321 @@
+x Affenpinscher
+x Afghan Hound
+x Airedale Terrier
+x Akbash
+
+x Akita Revisit
+
+x Alaskan Klee Kai
+x Alaskan_Malamute
+x American Bulldog
+x American Eskimo Dog
+x American Foxhound
+x American Hairless Terrier
+x American Pit Bull Terrier
+x American Staffordshire Terrier
+x American Water Spaniel
+x Anatolian Karabash Dog
+x Anatolian Shepherd
+x Appenzell Mountain Dog
+x Argentinian Mastiff
+x Australian Cattle Dog/Blue Heeler
+x Australian Kelpie
+x Australian Shepherd
+x Australian Terrier
+x Basenji
+x Basset Griffon Vendeen
+x Basset Hound
+x Beagle
+x Bearded Collie
+x Beauceron
+x Bedlington Terrier
+x Belgian Griffon
+
+Belgian Shepherd Dog Sheepdog
+Belgian Shepherd Laekenois
+Belgian Shepherd Malinois
+Belgian Shepherd Tervuren
+
+x Bernese Mountain Dog
+x Bichon Frise
+x Biewer
+x Black and Tan Coonhound
+x Black Labrador Retriever
+x Black Mouth Cur
+x Black Russian Terrier
+x Bloodhound
+x Blue Lacy
+x Bluetick Coonhound
+
+Bobtail -- Revisit cant find good picture
+
+x Boerboel Mastiff
+x Bolognese
+x Bordeaux
+x Border Collie
+x Border Terrier
+x Borzoi
+x Boston Terrier
+x Bouvier des Flandres
+x Boxer
+x Boykin Spaniel
+x Brazilian Mastiff
+x Briard
+x Brittany
+x Brussels Griffon
+x Bull Terrier
+x Bulldog
+x Bullmastiff
+x Cairn Terrier
+x Canaan Dog
+x Cane Corso Mastiff
+x Cardigan Welsh Corgi
+x Carolina Dog
+x Catahoula Leopard Dog
+x Cattle Dog
+x Caucasian Sheepdog (Caucasian Ovtcharka)
+x Cavalier King Charles Spaniel
+x Chesapeake Bay Retriever
+x Chihuahua
+x Chinese Crested-Hairless
+
+Chinese Crested-Powder Puff - Revisit not on wikipedia - Maybe cross ref with Chinese Crested-Hairless
+
+Chinese Foo Dog - Revisit not on wikipedia
+
+x Chinese Shar-Pei
+x Chinook
+x Chocolate Labrador Retriever
+x Chow Chow
+x Cirneco dellEtna
+x Clumber Spaniel
+x Cockapoo
+x Cocker Spaniel
+x Collie
+x Coonhound
+x Corgi
+x Coton de Tulear
+x Curly-Coated Retriever
+x Dachshund
+x Dalmatian
+x Dandie Dinmont Terrier
+x Danish Broholmer
+x Deerhound
+x Doberman Pinscher
+x Dogo Argentino
+x Dogue de Bordeaux
+x Dutch Shepherd
+x Elkhound
+x English Bulldog
+x English Cocker Spaniel
+x English Coonhound
+x English Foxhound
+x English Mastiff
+x English Pointer
+x English Setter
+x English Sheepdog
+x English Shepherd
+x English Springer Spaniel
+x English Toy Spaniel
+x Entlebucher
+x Eskimo Dog
+x Eurasier
+x Feist
+x Field Spaniel
+x Fila Brasileiro
+x Finnish Lapphund
+x Finnish Spitz
+x Flat-coated Retriever
+x Fox Terrier
+x Foxhound
+x French Brittany
+x French Bulldog
+x French Mastiff
+x Galgo Spanish Greyhound
+x German Pinscher
+x German Shepherd Dog
+x German Shorthaired Pointer
+x German Spitz
+x German Wirehaired Pointer
+x Giant Schnauzer
+x Glen of Imaal Terrier
+x Golden Retriever
+x Gordon Setter
+x Great Dane - 440px
+x Great Pyrenees
+x Greater Swiss Mountain Dog
+x Greyhound
+x Halden Hound (Haldenstrover)
+x Harrier
+x Havanese
+
+Hollandse Tulphond - Revisit no wikipedia page
+
+x Hound
+x Hovawart
+x Husky
+x Ibizan Hound
+
+Illyrian Sheepdog - no wikipedia page
+
+x Irish Setter
+x Irish Terrier
+x Irish Water Spaniel
+x Irish Wolfhound
+x Italian Greyhound
+x Italian Mastiff
+x Italian Spinone
+x Jack Russell Terrier
+x Jack Russell Terrier (Parson Russell Terrier)
+x Japanese Chin
+x Jindo (Korean)
+x Kai Dog
+x Karelian Bear Dog
+x Keeshond
+x Kerry Blue Terrier
+x Kishu
+x Klee Kai
+x Komondor
+x Kuvasz
+
+Kyi Leo - Revisit no wikipedia page
+
+x Labrador Retriever
+x Lakeland Terrier
+x Lancashire Heeler
+x Leonberger
+x Lhasa Apso
+x Löwchen
+x Maltese
+x Manchester Terrier
+x Maremma Sheepdog
+x Markiesje
+x McNab
+x Mexican Hairless
+x Miniature Bull Terrier
+x Miniature Pinscher
+x Miniature Schnauzer
+X Mountain Cur
+
+Mountain Dog -- generic should be removed
+
+x Munsterlander
+x Neapolitan Mastiff
+x New Guinea Singing Dog
+x Newfoundland Dog
+x Norfolk Terrier
+x Norwegian Buhund
+x Norwegian Elkhound
+x Norwegian Lundehund
+x Norwich Terrier
+x Nova Scotia Duck-Tolling Retriever
+x Old English Sheepdog
+x Otterhound
+x Papillon
+x Parson Russell Terrier
+x Patterdale Terrier (Fell Terrier)
+x Pekingese
+x Pembroke Welsh Corgi
+x Peruvian Inca Orchid
+x Petit Basset Griffon Vendeen
+x Pharaoh Hound
+x Picardy Shepherd
+x Pit Bull Terrier
+x Plott Hound
+x Podengo Portugueso
+x Pointer
+x Polish Lowland Sheepdog
+x Pomeranian
+x Poodle (Miniature)
+x Poodle (Standard)
+
+cross reference poodle
+	Poodle (T-Cup)
+	Poodle (Toy)
+	Poodle (unknown type)
+
+x Portuguese Water Dog
+x Presa Canario
+x Pug
+x Puli
+x Pumi
+x Queensland Heeler
+x Rat Terrier
+x Red Heeler
+x Redbone Coonhound
+x Retriever
+x Rhodesian Ridgeback
+x Rottweiler
+x Russian Wolfhound
+x Saarlooswolfhond
+x Saint Bernard
+x Saluki
+x Saluki Greyhound
+x Samoyed
+x Schiller Hound
+x Schipperke
+x Schnauzer
+x Scottish Deerhound
+x Scottish Terrier Scottie
+x Sealyham Terrier
+
+Setter - Generic should be removed or cross referenced
+
+x Shar Pei
+x Sheep Dog
+
+Shepherd - Generic should be removed or cross referenced
+
+x Shetland Sheepdog Sheltie
+x Shiba Inu
+x Shih Tzu
+x Siberian Husky
+x Silky Terrier
+x Skye Terrier
+x Sloughi
+x Smooth Collie
+x Smooth Fox Terrier
+x Soft-Coated Wheaten Terrier
+x South Russian Ovcharka
+
+Spaniel - cross reference
+
+x Spanish Mastiff
+x Spinone Italiano
+
+Spitz - cross reference
+
+x Springer Spaniel
+x Staffordshire Bull Terrier
+x Sussex Spaniel
+x Swedish Vallhund
+x Tamaskan
+x Terrier
+x Thai Ridgeback
+x Tibetan Mastiff
+x Tibetan Spaniel
+x Tibetan Terrier
+x Tosa Inu
+x Toy Fox Terrier
+
+Toy Terrier - Cross Reference
+
+x Treeing Walker Coonhound
+x Vizsla
+x Weimaraner
+x Welsh Corgi
+x Welsh Springer Spaniel
+x Welsh Terrier
+x West Highland White Terrier Westie
+x Wheaten Terrier
+x Whippet
+x White German Shepherd
+x White Swiss Shepherd Dog (Swiss Berger)
+x Wire-haired Pointing Griffon
+x Wirehaired Fox Terrier
+
+Wolf Dog - No photo on wikipedia
+
+x Xoloitzcuintle/Mexican Hairless
+x Yellow Labrador Retriever
+x Yorkshire Terrier Yorkie

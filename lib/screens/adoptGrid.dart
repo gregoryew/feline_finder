@@ -57,9 +57,9 @@ class AdoptGridState extends State<AdoptGrid> {
     controller = ScrollController()..addListener(_scrollListener);
     controller2 = TextEditingController();
     filters.add(Filters(
-        fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
+        fieldName: "species.singular", operation: "equals", criteria: ["dog"]));
     filters_backup.add(Filters(
-        fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
+        fieldName: "species.singular", operation: "equals", criteria: ["dog"]));
     () async {
       String user = await server.getUser();
       favorites = await server.getFavorites(user);
@@ -375,7 +375,7 @@ class AdoptGridState extends State<AdoptGrid> {
     if (main.favoritesSelected) {
       status = " Favorites: ";
     } else {
-      status = " Cats: ";
+      status = " Dogs: ";
     }
     if (count == "Processing") {
       status += "Processing";
@@ -405,7 +405,7 @@ class AdoptGridState extends State<AdoptGrid> {
                 child: Text((count != "Processing" && tiles.isEmpty)
                     ? (main.favoritesSelected
                         ? "     You have not chosen any favorites yet."
-                        : "     No cats to see.  Please change your search.")
+                        : "     No dogs to see.  Please change your search.")
                     : ""),
               ),
             ],

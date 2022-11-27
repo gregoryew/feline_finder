@@ -166,7 +166,7 @@ class petDetailState extends State<petDetail> with RouteAware {
           {
             "fieldName": "species.singular",
             "operation": "equal",
-            "criteria": "cat"
+            "criteria": "dog"
           }
         ]
       }

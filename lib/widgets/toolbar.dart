@@ -128,7 +128,7 @@ class Tool extends StatelessWidget {
         bcc: [],
         subject: detail?.name ?? "",
         body:
-            "I would like to talk to you about the cat named ${detail?.name ?? ""} I saw on the app Feline Finder as being available from your organization.");
+            "I would like to talk to you about the dog named ${detail?.name ?? ""} I saw on the app Feline Finder as being available from your organization.");
     await EmailLauncher.launch(email);
   }
 

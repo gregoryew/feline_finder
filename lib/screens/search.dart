@@ -519,7 +519,7 @@ class SearchScreenState extends State<searchScreen> with RouteAware {
 
     List<Filters> filters = [];
     filters.add(Filters(
-        fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
+        fieldName: "species.singular", operation: "equals", criteria: ["dog"]));
     for (var item in filteringOptions) {
       if (item.classification == CatClassification.saves) {
         continue;

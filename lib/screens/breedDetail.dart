@@ -94,7 +94,7 @@ class _BreedDetailState extends State<BreedDetail>
           {
             "fieldName": "species.singular",
             "operation": "equal",
-            "criteria": "cat"
+            "criteria": "dog"
           },
           {
             "fieldName": "animals.breedPrimaryId",
@@ -319,7 +319,7 @@ class _BreedDetailState extends State<BreedDetail>
               Visibility(
                 visible: selectedWidgetMarker == WidgetMarker.adopt,
                 child: (tiles.isEmpty)
-                    ? const Center(child: Text("No Cats Returned."))
+                    ? const Center(child: Text("No Dogs Returned."))
                     : GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -360,7 +360,7 @@ class _BreedDetailState extends State<BreedDetail>
               Visibility(
                 visible: selectedWidgetMarker == WidgetMarker.videos,
                 child: (playlists.isEmpty)
-                    ? const Center(child: Text("No Cat Vidoes Available."))
+                    ? const Center(child: Text("No Dog Vidoes Available."))
                     : ListView.separated(
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
@@ -381,7 +381,7 @@ class _BreedDetailState extends State<BreedDetail>
                 child: (Column(
                   children: [
                     const Center(
-                        child: Text("🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
+                        child: Text("🟢 User Pref 🔵 Dog Trait  🎯 Bullseye",
                             textAlign: TextAlign.center)),
                     const SizedBox(height: 20),
                     ListView.separated(

@@ -106,18 +106,19 @@ class FilterBreedSelectionState extends State<FilterBreedSelection> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: <Widget>[
-            Image.asset(
-                'assets/Cartoon/${breeds[index].pictureHeadShotName.replaceAll(' ', '_')}.png',
-                color: _selected[index]
-                    ? Colors.white
-                    : Colors.white.withOpacity(0.4),
-                colorBlendMode: BlendMode.modulate,
-                height: 70,
-                width: 70),
-            // 5
-            const SizedBox(
-              height: 5.0,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.asset(
+                  'assets/Cartoon/${breeds[index].pictureHeadShotName.replaceAll(' ', '_')}.png',
+                  color: _selected[index]
+                      ? Colors.white
+                      : Colors.white.withOpacity(0.4),
+                  colorBlendMode: BlendMode.modulate,
+                  height: 70,
+                  width: 70),
             ),
+            // 5
+            const SizedBox(height: 5.0, width: 5.0),
             // 6
             Text(breeds[index].name,
                 style: TextStyle(

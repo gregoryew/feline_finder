@@ -1,6 +1,8 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
 import 'package:readmore/readmore.dart';
+import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
+import 'package:get/get.dart';
 
 import '../models/playlist.dart';
 import '../widgets/youtube-video-row.dart';
@@ -19,9 +21,35 @@ class PlaylistRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () async {
-        Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return YouTubeVideoRow(playlist: playlist, title: '', videoid: '');
-        }));
+        FlutterNetworkConnectivity flutterNetworkConnectivity =
+            FlutterNetworkConnectivity(
+          isContinousLookUp:
+              false, // optional, false if you cont want continous lookup
+          lookUpDuration: const Duration(
+              seconds: 5), // optional, to override default lookup duration
+          lookUpUrl: 'example.com', // optional, to override default lookup url
+        );
+        if (await flutterNetworkConnectivity.isInternetConnectionAvailable()) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) {
+            return YouTubeVideoRow(playlist: playlist, title: '', videoid: '');
+          }));
+        } else {
+          await Get.defaultDialog(
+              title: "Internet Not Available",
+              middleText:
+                  "Viewing videos requires you to be connected to the internet.  Please connect to the internet and try again.",
+              backgroundColor: Colors.red,
+              titleStyle: TextStyle(color: Colors.white),
+              middleTextStyle: TextStyle(color: Colors.white),
+              textConfirm: "OK",
+              confirmTextColor: Colors.white,
+              onConfirm: () {
+                Get.back();
+              },
+              buttonColor: Colors.black,
+              barrierDismissible: false,
+              radius: 30);
+        }
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,

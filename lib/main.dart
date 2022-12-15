@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/youtube-video-row.dart';
 import '/screens/adoptGrid.dart';
@@ -36,7 +35,7 @@ class _SplashPageState extends State<SplashPage> {
       FlutterNetworkConnectivity flutterNetworkConnectivity =
           FlutterNetworkConnectivity(
         isContinousLookUp:
-            true, // optional, false if you cont want continous lookup
+            false, // optional, false if you cont want continous lookup
         lookUpDuration: const Duration(
             seconds: 5), // optional, to override default lookup duration
         lookUpUrl: 'example.com', // optional, to override default lookup url

@@ -114,7 +114,9 @@ class AdoptGridState extends State<AdoptGrid> {
       builder: (context) => AlertDialog(
               title: const Text("Enter Zip Code"),
               content: TextField(
-                keyboardType: TextInputType.number,
+                keyboardType: server.getCountryISOCode() == "US"
+                    ? TextInputType.number
+                    : TextInputType.text,
                 autofocus: true,
                 decoration: const InputDecoration(hintText: "Zip Code"),
                 controller: controller2,

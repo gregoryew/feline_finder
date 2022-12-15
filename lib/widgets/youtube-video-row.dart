@@ -54,15 +54,18 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
         title: Text(widget.title ?? widget.playlist!.title),
         automaticallyImplyLeading: !(widget.fullScreen ?? false),
         actions: <Widget>[
-          IconButton(
-            icon: Icon(
-              Icons.close,
-              color: Colors.white,
+          Visibility(
+            visible: widget.fullScreen ?? false,
+            child: IconButton(
+              icon: Icon(
+                Icons.close,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                Get.off(const HomeScreen(title: 'Feline Finder'));
+              },
             ),
-            onPressed: () {
-              Get.off(const HomeScreen(title: 'Feline Finder'));
-            },
-          )
+          ),
         ],
       ),
       // 2

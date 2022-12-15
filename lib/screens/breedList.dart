@@ -49,6 +49,7 @@ class _BreedList extends State<BreedList> {
 
   @override
   Widget build(BuildContext context) {
+    int numberOfCellsPerRow = (MediaQuery.of(context).size.width / 295).ceil();
     return Column(
       children: [
         Padding(
@@ -105,9 +106,9 @@ class _BreedList extends State<BreedList> {
                   GridView.builder(
                     physics: const ScrollPhysics(),
                     shrinkWrap: true,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2, childAspectRatio: 3 / 4),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: numberOfCellsPerRow,
+                        childAspectRatio: 3 / 4),
                     itemCount:
                         widget.letters[widget.keys[subSubMenuIndex]].length,
                     itemBuilder: (BuildContext context, int index) {
@@ -132,7 +133,7 @@ class _BreedList extends State<BreedList> {
                                   children: [
                                     Image(
                                         image: AssetImage(
-                                            "assets/Cartoon/Cartoon_${widget.letters[widget.keys[subSubMenuIndex]][index].pictureHeadShotName.replaceAll(' ', '_')}.png")),
+                                            "assets/Cartoon/${widget.letters[widget.keys[subSubMenuIndex]][index].pictureHeadShotName.replaceAll(' ', '_')}.png")),
                                     const Divider(
                                       thickness: 1,
                                       indent: 5,

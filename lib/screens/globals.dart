@@ -210,6 +210,21 @@ class FelineFinderServer {
     }
   }
 
+  String getCountryISOCode() {
+    final WidgetsBinding? instance = WidgetsBinding.instance;
+    if (instance != null) {
+      final List<Locale> systemLocales = instance.window.locales;
+      String? isoCountryCode = systemLocales.first.countryCode;
+      if (isoCountryCode != null) {
+        return isoCountryCode;
+      } else {
+        throw Exception("Unable to get Country ISO code");
+      }
+    } else {
+      throw Exception("Unable to get Country ISO code");
+    }
+  }
+
   Future<List<String>> getQueries(String userID) async {
     print("getFavorites called");
     print("https://$serverName/getQueries?userid=$userID");

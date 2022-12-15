@@ -107,7 +107,7 @@ class FilterBreedSelectionState extends State<FilterBreedSelection> {
         child: Row(
           children: <Widget>[
             Image.asset(
-                'assets/Cartoon/Cartoon_${breeds[index].pictureHeadShotName.replaceAll(' ', '_')}.png',
+                'assets/Cartoon/${breeds[index].pictureHeadShotName.replaceAll(' ', '_')}.png',
                 color: _selected[index]
                     ? Colors.white
                     : Colors.white.withOpacity(0.4),

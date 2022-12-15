@@ -74,8 +74,8 @@ class FitState extends State<Fit> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Expanded(flex: 7, child: buildQuestions()),
-        Expanded(flex: 3, child: buildMatches()),
+        Expanded(child: buildQuestions()),
+        SizedBox(width: 120, child: buildMatches()),
       ],
     );
   }
@@ -339,14 +339,15 @@ class FitState extends State<Fit> {
       // 1
       elevation: 5.0,
       // 2
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
       shadowColor: Colors.grey,
       margin: const EdgeInsets.all(5),
+      clipBehavior: Clip.hardEdge,
       child: Column(
         children: <Widget>[
           Image(
               image: AssetImage(
-                  'assets/Cartoon/Cartoon_${breed.pictureHeadShotName.replaceAll(' ', '_')}.png')),
+                  'assets/Cartoon/${breed.pictureHeadShotName.replaceAll(' ', '_')}.png')),
           // 5
           const SizedBox(
             height: 5.0,
@@ -370,10 +371,10 @@ class FitState extends State<Fit> {
             child: ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(
-                  10,
+                  5,
                 ),
                 bottomRight: Radius.circular(
-                  10,
+                  5,
                 ),
               ),
               child: Container(

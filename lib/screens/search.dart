@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart';
-import 'package:recipes/ExampleCode/Media.dart';
-import 'package:recipes/models/breed.dart';
+import 'package:catapp/ExampleCode/Media.dart';
+import 'package:catapp/models/breed.dart';
 
 import '../ExampleCode/RescueGroupsQuery.dart';
 import '../models/searchPageConfig.dart';

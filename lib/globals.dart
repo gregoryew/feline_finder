@@ -2,9 +2,11 @@ library felinefinderapp.globals;
 
 import 'dart:convert';
 
-import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+
+import "package:firebase_auth/firebase_auth.dart";
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FelineFinderServer {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -13,13 +15,13 @@ class FelineFinderServer {
   Future<String> getUser() async {
     print("getUser called");
     final SharedPreferences prefs = await _prefs;
+    await prefs.remove('uuid');
     if (prefs.containsKey('uuid')) {
       print("got userid");
       _userID = (prefs.getString('uuid') ?? "");
     } else {
       print("created userid");
-      var userID = const Uuid();
-      _userID = userID.v1();
+      var _userID = FirebaseAuth.instance.currentUser?.uid ?? "";
       prefs.setString("uuid", _userID);
       createUser(_userID, "greg5", "password5");
     }
@@ -27,24 +29,13 @@ class FelineFinderServer {
   }
 
   void createUser(String userID, String userName, String password) async {
-    print("createUser called");
-    var response = await http.post(
-      Uri.parse('https://octopus-app-s7q5v.ondigitalocean.app/addUser/'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'userid': userID,
-        'username': userName,
-        'password': password
-      }),
-    );
-    if (response.statusCode == 200) {
-      print("addUser success");
-    } else {
-      print(response.toString());
-      print("addUser failed");
-    }
+    final CollectionReference _users =
+        FirebaseFirestore.instance.collection("Users");
+    await _users.add({
+      "UID": userID,
+      "Created": DateTime.now(),
+      "LastLoggedIn": DateTime.now()
+    });
   }
 
   void favoritePet(String userID, String petID) async {

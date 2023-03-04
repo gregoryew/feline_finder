@@ -1,5 +1,12 @@
+import "dart:io";
 import 'dart:async';
 
+import "package:google_sign_in/google_sign_in.dart";
+import "package:firebase_auth/firebase_auth.dart";
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import 'package:get/get.dart';
@@ -10,7 +17,15 @@ import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
 
+final FirebaseAuth auth = FirebaseAuth.instance;
+final GoogleSignIn googleSignIn = new GoogleSignIn();
+
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    name: 'catapp',
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const SplashPage());
 }
 
@@ -29,6 +44,21 @@ class _SplashPageState extends State<SplashPage> {
     super.initState();
   }
 
+  void signinAnon() async {
+    try {
+      final userCredential = await FirebaseAuth.instance.signInAnonymously();
+      print("Signed in with temporary account.");
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case "operation-not-allowed":
+          print("Anonymous auth hasn't been enabled for this project.");
+          break;
+        default:
+          print("Unknown error.");
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     () async {
@@ -38,7 +68,7 @@ class _SplashPageState extends State<SplashPage> {
             false, // optional, false if you cont want continous lookup
         lookUpDuration: const Duration(
             seconds: 5), // optional, to override default lookup duration
-        lookUpUrl: 'example.com', // optional, to override default lookup url
+        lookUpUrl: 'www.google.com', // optional, to override default lookup url
       );
 
       Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -58,6 +88,7 @@ class _SplashPageState extends State<SplashPage> {
         Timer(const Duration(seconds: 3),
             () => Get.off(const HomeScreen(title: 'Feline Finder')));
       }
+      signinAnon();
     }();
     return GetMaterialApp(
       title: 'Feline Finder',

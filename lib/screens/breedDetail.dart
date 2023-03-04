@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
-import 'package:recipes/screens/petDetail.dart';
+import 'package:catapp/screens/petDetail.dart';
 import 'package:transparent_image/transparent_image.dart';
 import '/models/breed.dart';
 import '/models/question.dart';

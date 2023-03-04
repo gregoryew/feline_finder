@@ -1,4 +1,4 @@
-import 'package:recipes/screens/breedList.dart';
+import 'package:catapp/screens/breedList.dart';
 
 enum CatClassification {
   saves,

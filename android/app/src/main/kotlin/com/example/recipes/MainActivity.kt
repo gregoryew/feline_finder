@@ -1,4 +1,4 @@
-package com.example.recipes
+package com.gregorysiosgames.catapp
 
 import io.flutter.embedding.android.FlutterActivity
 

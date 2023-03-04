@@ -6,10 +6,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import '../models/searchPageConfig.dart';
 import '../models/zippopotam.dart';
 import 'package:get/get.dart';
 import '../ExampleCode/RescueGroupsQuery.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
 const double? petDetailImageHeight = 300;
@@ -55,122 +59,88 @@ class FelineFinderServer {
     return environment;
   }
 
+  var loggedIn = false;
+
   Future<String> getUser() async {
-    print("getUser called");
     final SharedPreferences prefs = await _prefs;
     if (prefs.containsKey('uuid')) {
-      print("got userid");
       _userID = (prefs.getString('uuid') ?? "");
     } else {
-      print("created userid");
       var userID = const Uuid();
       _userID = userID.v1();
       prefs.setString("uuid", _userID);
-      createUser(_userID, "greg5", "password5");
     }
+
+    final docRef = FirebaseFirestore.instance.collection('Users').doc(_userID);
+
+    if (loggedIn) return _userID;
+
+    loggedIn = true;
+
+    try {
+      docRef.get().then((docSnapshot) {
+        if (docSnapshot.exists) {
+          int logins = docSnapshot.data()!['logins'] ?? 0;
+          docRef.set({'lastLogin': DateTime.now(), 'logins': logins + 1},
+              SetOptions(merge: true));
+        } else {
+          TargetPlatform platform = defaultTargetPlatform;
+          docRef.set({
+            'createdDate': DateTime.now(),
+            'lastLogin': DateTime.now(),
+            'logins': 1,
+            'platform': platform.name
+          });
+        }
+      });
+    } catch (e) {
+      print(e.toString());
+    }
+
     return _userID;
   }
 
-  void createUser(String userID, String userName, String password) async {
-    print("createUser called");
-    print("https://$serverName/addUser/");
-    var response = await http.post(
-      Uri.parse('https://$serverName/addUser/'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'userid': userID,
-        'username': userName,
-        'password': password
-      }),
-    );
-    if (response.statusCode == 200) {
-      print("addUser success");
-    } else {
-      print(response.toString());
-      print("addUser failed");
-    }
-  }
-
   void favoritePet(String userID, String petID) async {
-    print("favoritePet called");
-    print("-------------https://${serverName}/favorite/");
-    var response2 = await http.post(
-      Uri.parse('https://${serverName}/favorite/'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{'userid': userID, 'petid': petID}),
-    );
-    print(response2.statusCode);
-    if (response2.statusCode == 200) {
-      print("favorite SUCCESS");
-    } else {
-      print(response2.toString());
-      print("favoritePet FAILED");
+    List<String> currentArray = await getFavorites(userID);
+    if (!currentArray.contains(petID)) {
+      currentArray.add(petID);
+      await FirebaseFirestore.instance
+          .collection('Favorites')
+          .doc(userID)
+          .set({'PetIDs': currentArray});
     }
   }
 
   Future<bool> isFavorite(String userID, String petID) async {
-    print("isFavorite called");
-    print("https://$serverName/isFavorite/");
-    var response = await http.post(Uri.parse('https://$serverName/isFavorite/'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{'userid': userID, 'petid': petID}));
-    int statusCode = response.statusCode;
-    if (statusCode != 200) {
-      throw Exception("BAD statusCode: $statusCode");
-    }
-    String responseBody = response.body;
-    var dataList = jsonDecode(responseBody);
-    if (dataList.isEmpty) {
-      throw Exception("isFavorite returned unknown data");
-    } else {
-      print("***************isFavorite=" + dataList["IsFavorite"].toString());
-      return dataList["IsFavorite"];
-    }
+    List<String> currentArray = await getFavorites(userID);
+    return currentArray.contains(petID);
   }
 
   Future<List<String>> getFavorites(String userID) async {
-    print("getFavorites called");
-    print("https://$serverName/getFavorites?userid=$userID");
-    var response = await http.get(
-        Uri.parse('https://$serverName/getFavorites?userid=$userID'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        });
-    int statusCode = response.statusCode;
-    if (statusCode != 200) {
-      throw Exception("BAD statusCode: $statusCode");
-    }
-    String responseBody = response.body;
-    var dataList = jsonDecode(responseBody);
-    if (dataList.isEmpty) {
-      throw Exception("isFavorite returned unknown data");
+    _userID = await getUser();
+    DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
+        .collection('Favorites')
+        .doc(_userID)
+        .get();
+    final data = documentSnapshot.data();
+    Map<String, dynamic> myMap;
+    if (data == null) {
+      myMap = {"PetIDs": []};
     } else {
-      print("***************isFavorite=" + dataList["Favorites"].toString());
-      return dataList["Favorites"].toString().split(",");
+      myMap = data as Map<String, dynamic>;
     }
+    List<String> currentArray = List<String>.from(myMap['PetIDs']);
+    return currentArray;
   }
 
   void unfavoritePet(String userID, String petID) async {
-    print("unfavorite pet called");
-    print("https://$serverName/unfavorite/");
-    var response = await http.post(
-      Uri.parse("https://$serverName/unfavorite/"),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{'userid': userID, 'petid': petID}),
-    );
-    if (response.statusCode == 200) {
-      print("favoritePet success");
-    } else {
-      print(response.toString());
-      print("favoritePet failed");
+    List<String> currentArray = await getFavorites(userID);
+    if (currentArray.contains(petID)) {
+      currentArray.remove(petID);
+      await FirebaseFirestore.instance
+          .collection('Favorites')
+          .doc(userID)
+          .set({'PetIDs': currentArray});
     }
   }
 
@@ -226,91 +196,88 @@ class FelineFinderServer {
   }
 
   Future<List<String>> getQueries(String userID) async {
-    print("getFavorites called");
-    print("https://$serverName/getQueries?userid=$userID");
-    var response = await http.get(
-        Uri.parse('https://$serverName/getQueries?userid=$userID'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        });
-    int statusCode = response.statusCode;
-    if (statusCode != 200) {
-      throw Exception("BAD statusCode: $statusCode");
-    }
-    String responseBody = response.body;
-    var dataList = jsonDecode(responseBody);
-    if (dataList.isEmpty) {
-      throw Exception("getQueries returned unknown data");
-    } else {
-      print("***************getQueries=" + dataList["Queries"].toString());
-      if (dataList["Queries"].toString() == "null") {
-        return [];
-      } else {
-        return dataList["Queries"].toString().split(",");
-      }
-    }
+    _userID = await getUser();
+
+    final QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
+        .instance
+        .collection("Filters")
+        .where("created_by", isEqualTo: _userID)
+        .get();
+
+    final List<String> filteredNames =
+        snapshot.docs.map((doc) => doc.data()['name'] as String).toList();
+
+    return filteredNames;
   }
 
   Future<RescueGroupsQuery?> getQuery(String userID, String filterName) async {
     if (filterName == "New") {
       return RescueGroupsQuery.fromJson(jsonDecode(""));
     }
-    print("loadFilter called");
-    print("https://$serverName/getQuery?userid=$userID&name=$filterName");
-    var response = await http.get(
-        (Uri.parse(Uri.encodeFull(
-            'https://$serverName/getQuery?userid=$userID&name=$filterName'))),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        });
-    int statusCode = response.statusCode;
-    if (statusCode != 200) {
-      throw Exception("BAD statusCode: $statusCode");
-    } else {
-      var query = jsonDecode(response.body);
-      sortMethod =
-          query['sort'] == 0 ? "-animals.updatedDate" : "animals.distance";
-      distance = query['distance'];
-      updatedSince = query['updated_since'];
-      return RescueGroupsQuery.fromJson(jsonDecode(query['Query']));
+
+    var _userID = await getUser();
+
+    final QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
+        .instance
+        .collection("Filters")
+        .where("name", isEqualTo: filterName)
+        .where("created_by", isEqualTo: _userID)
+        .get();
+
+    if (snapshot.docs.length == 0) {
+      return null;
     }
+
+    var query = snapshot.docs[0].data();
+    sortMethod =
+        query['sort'] == 0 ? "-animals.updatedDate" : "animals.distance";
+    distance = query['distance'];
+    updatedSince = query['updated_since'];
+    Map<dynamic, dynamic> q = query['query'] as Map<dynamic, dynamic>;
+    return RescueGroupsQuery.fromJson(q);
   }
 
   Future<bool> saveFilter(
       String userID, String filterName, Object filter) async {
-    print("saveFilter called");
-    print("https://$serverName/insertQuery/");
-    var json = jsonEncode(<String, dynamic>{
-      'userid': userID,
+    var _userID = await getUser();
+
+    var json = {
+      'created_by': _userID,
       'name': filterName,
       'query': filter,
       'sort': (sortMethod == "animals.distance" ? 1 : 0),
       'distance': distance,
       'updated_since': updatedSince
-    });
-    var response = await http.post(
-      Uri.parse('https://$serverName/insertQuery/'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: json,
-    );
-    if (response.statusCode == 200) {
+    };
+
+    try {
+      await deleteQuery(_userID, filterName);
+      await FirebaseFirestore.instance.collection('Filters').add(json);
       return true;
-    } else {
+    } catch (e) {
       return false;
     }
   }
 
-  Future<bool> deleteQuery(String userID, String query) async {
-    print("deleteQuery called");
-    print("https://$serverName/deleteQuery?userid=$userID&name=$query");
-    var response = await http.delete(Uri.parse(Uri.encodeFull(
-        'https://$serverName/deleteQuery?userid=$userID&name=$query')));
-    int statusCode = response.statusCode;
-    if (statusCode != 200) {
-      throw Exception("BAD statusCode: $statusCode");
+  Future<bool> deleteQuery(String userID, String filterName) async {
+    var _userID = await getUser();
+
+    final QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
+        .instance
+        .collection("Filters")
+        .where("name", isEqualTo: filterName)
+        .where("created_by", isEqualTo: _userID)
+        .get();
+
+    if (snapshot.docs.length == 0) {
+      return true;
     }
+
+    final String documentId = snapshot.docs[0].id;
+    await FirebaseFirestore.instance
+        .collection("Filters")
+        .doc(documentId)
+        .delete();
     return true;
   }
 }

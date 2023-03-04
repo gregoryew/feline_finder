@@ -1,5 +1,5 @@
-name: recipes
-description: A new Flutter project.
+name: catapp
+description: Feline Finder app
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 6.1.0+4
+version: 6.2.0+7
 
 environment:
   sdk: '>=2.12.0 <3.0.0'
@@ -58,12 +58,17 @@ dependencies:
   cupertino_icons: ^1.0.2
   linkfy_text: ^1.1.5
   crop: ^0.5.2
-  google_fonts: ^3.0.1
   flutter_launcher_icons: ^0.10.0
   readmore: ^2.2.0
   flutter_class_parser: ^0.2.4
   rating_dialog: ^2.0.4
   flutter_network_connectivity: ^0.0.6
+  google_fonts: ^4.0.3
+  font_awesome_flutter: ^10.3.0
+  google_sign_in: ^5.4.4
+  firebase_core: ^2.7.0
+  firebase_auth: ^4.2.6
+  cloud_firestore: ^4.4.2
 
 dev_dependencies:
   flutter_test:

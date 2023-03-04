@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:recipes/screens/petDetail.dart';
+import 'package:catapp/screens/petDetail.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'dart:io';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:recipes/models/searchPageConfig.dart';
-import 'package:recipes/screens/breedList.dart';
+import 'package:catapp/models/searchPageConfig.dart';
+import 'package:catapp/screens/breedList.dart';
 import '../screens/filterBreedSelection.dart';
 import '../models/breed.dart';
 import '../screens/globals.dart' as globals;

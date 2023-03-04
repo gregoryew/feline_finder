@@ -57,7 +57,8 @@ class _YouTubeVideo extends State<YouTubeVideo> {
               false, // optional, false if you cont want continous lookup
           lookUpDuration: const Duration(
               seconds: 5), // optional, to override default lookup duration
-          lookUpUrl: 'example.com', // optional, to override default lookup url
+          lookUpUrl:
+              'www.google.com', // optional, to override default lookup url
         );
         if (await flutterNetworkConnectivity.isInternetConnectionAvailable()) {
           Get.to(

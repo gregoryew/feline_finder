@@ -10,7 +10,7 @@ import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:like_button/like_button.dart';
 import 'package:linkfy_text/linkfy_text.dart';
-import 'package:recipes/ExampleCode/Media.dart';
+import 'package:catapp/ExampleCode/Media.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_class_parser/flutter_class_parser.dart' as shapesParser;
 import 'package:rating_dialog/rating_dialog.dart';

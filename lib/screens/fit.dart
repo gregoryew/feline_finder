@@ -8,7 +8,7 @@ import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import 'package:get/get.dart';
 
-import 'package:recipes/Models/question.dart';
+import 'package:catapp/Models/question.dart';
 
 import '/models/breed.dart';
 import '/screens/breedDetail.dart';

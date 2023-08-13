@@ -16,6 +16,7 @@ import '../widgets/youtube-video-row.dart';
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
+import '/screens/chatList.dart';
 
 final FirebaseAuth auth = FirebaseAuth.instance;
 final GoogleSignIn googleSignIn = new GoogleSignIn();
@@ -133,7 +134,7 @@ class _HomeScreen extends State<HomeScreen> {
     Fit(),
     BreedList(title: "Breed List"),
     AdoptGrid(),
-    Container(color: Colors.orange)
+    ConversationListScreen()
   ];
 
 // 9
@@ -146,6 +147,15 @@ class _HomeScreen extends State<HomeScreen> {
   List<Widget>? getTrailingButtons(selectedIndex) {
     if (selectedIndex == 2) {
       return <Widget>[
+        GestureDetector(
+            onTap: () {
+              AdoptionGridKey.currentState!.recommendations();
+            },
+            child: Icon(
+              Icons.thumb_up_alt_rounded,
+              size: 40,
+            )),
+        const SizedBox(width: 10, height: 30),
         GestureDetector(
             onTap: () {
               var _favoritesSelected = (favoritesSelected) ? false : true;
@@ -254,6 +264,15 @@ class _HomeScreen extends State<HomeScreen> {
                     : "assets/Icons/adopt_unselected.png"),
                 color: (_selectedIndex == 2 ? Colors.blue : Colors.grey)),
             label: 'Adopt',
+          ),
+          BottomNavigationBarItem(
+            backgroundColor: Colors.white,
+            icon: ImageIcon(
+                AssetImage(_selectedIndex == 3
+                    ? "assets/Icons/talk_selected.png"
+                    : "assets/Icons/talk_unselected.png"),
+                color: (_selectedIndex == 3 ? Colors.blue : Colors.grey)),
+            label: 'Chat',
           ) /*,
           BottomNavigationBarItem(
             backgroundColor: Colors.white,

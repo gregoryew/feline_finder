@@ -1,3 +1,4 @@
+import 'package:catapp/models/shelter.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:catapp/screens/petDetail.dart';
@@ -18,8 +19,14 @@ enum LaunchMode { marker, directions }
 class Tool extends StatelessWidget {
   final toolType tool;
   final PetDetailData? detail;
+  final Shelter? shelterData;
 
-  Tool({Key? key, required this.tool, required this.detail}) : super(key: key);
+  Tool(
+      {Key? key,
+      required this.tool,
+      required this.detail,
+      required this.shelterData})
+      : super(key: key);
 
   get apiKey => "AIzaSyBNEcaJtpfNh1ako5P_XexuILvjnPlscdE";
 
@@ -150,16 +157,41 @@ class Tool extends StatelessWidget {
     Share.shareFiles([filepath], text: detail?.description ?? "");
   }
 
+  launchMessenger() async {
+    String facebookIdHere = "greg61545";
+    String url() {
+      if (Platform.isAndroid) {
+        String uri = 'fb-messenger://user/$facebookIdHere';
+        return uri;
+      } else if (Platform.isIOS) {
+        // iOS
+        String uri =
+            'https://www.facebook.com/messages/t/$facebookIdHere?text=test';
+        return uri;
+      } else {
+        return 'error';
+      }
+    }
+
+    if (await canLaunchUrl(Uri.parse(url()))) {
+      await launchUrl(Uri.parse(url()));
+    } else {
+      throw 'Could not launch ${url()}';
+    }
+  }
+
   meet(BuildContext context) {
-    print("Meet");
+    launchMessenger();
   }
 }
 
 class ToolBar extends StatelessWidget {
   final PetDetailData? detail;
+  final Shelter? shelterDetail;
   final List<Tool> tools = [];
 
-  ToolBar({Key? key, required this.detail}) : super(key: key);
+  ToolBar({Key? key, required this.detail, required this.shelterDetail})
+      : super(key: key);
 
   List<Tool> getTools(PetDetailData? detail) {
     List<Tool> toolsList = [];
@@ -167,7 +199,8 @@ class ToolBar extends StatelessWidget {
       return [];
     }
     if (detail.phoneNumber?.trim() != "" && detail.phoneNumber != null) {
-      toolsList.add(Tool(tool: toolType.phone, detail: detail));
+      toolsList.add(Tool(
+          tool: toolType.phone, detail: detail, shelterData: shelterDetail));
     }
 
     String address = "";
@@ -177,26 +210,30 @@ class ToolBar extends StatelessWidget {
     if (address != "" &&
         address.substring(0, "POBOX".length) != "POBOX" &&
         address.substring(0, "P.O.".length) != "P.O.") {
-      toolsList.add(Tool(tool: toolType.map, detail: detail));
+      toolsList.add(
+          Tool(tool: toolType.map, detail: detail, shelterData: shelterDetail));
     }
 
     if (detail.email != null && detail.email?.trim() != "") {
       toolsList.add(Tool(
-        tool: toolType.email,
-        detail: detail,
-      ));
+          tool: toolType.email, detail: detail, shelterData: shelterDetail));
     }
 
-    toolsList.add(Tool(tool: toolType.share, detail: detail));
-
-/*
-    if (detail.email != null && detail.email?.trim() != "") {
+    if (shelterDetail != null &&
+        shelterDetail!.data != null &&
+        shelterDetail!.data!.length > 0 &&
+        shelterDetail!.data![0].attributes != null) {
       toolsList.add(Tool(
-        tool: toolType.meet,
-        detail: detail,
-      ));
+          tool: toolType.share, detail: detail, shelterData: shelterDetail));
+      Attributes detailAttrib = shelterDetail!.data![0].attributes!;
+      if (detailAttrib.facebookUrl != null && detailAttrib.facebookUrl != "") {
+        toolsList.add(Tool(
+          tool: toolType.meet,
+          detail: detail,
+          shelterData: shelterDetail,
+        ));
+      }
     }
-*/
     return toolsList;
   }
 

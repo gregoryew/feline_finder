@@ -17,6 +17,7 @@ import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import '/screens/petDetail.dart';
 import '/screens/search.dart';
+import '/screens/recommendations.dart';
 import 'globals.dart' as globals;
 import 'package:get/get.dart';
 
@@ -185,6 +186,11 @@ class AdoptGridState extends State<AdoptGrid> {
         }
       });
     }
+  }
+
+  void recommendations() async {
+    await Get.to(() => CatRecommendationScreen(),
+      transition: Transition.fadeIn, duration: Duration(seconds: 1));
   }
 
   void search() async {

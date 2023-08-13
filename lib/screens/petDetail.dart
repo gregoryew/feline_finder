@@ -366,7 +366,7 @@ class petDetailState extends State<petDetail> with RouteAware {
                         : petDetailInstance!.media.length == 0
                             ? 1
                             : petDetailInstance!.media.length,
-                    position: currentIndexPage.toDouble(),
+                    position: currentIndexPage,
                   ),
                 ),
               ),
@@ -415,7 +415,9 @@ class petDetailState extends State<petDetail> with RouteAware {
                 child: SizedBox(
                   height: 100,
                   child: Center(
-                    child: ToolBar(detail: petDetailInstance),
+                    child: ToolBar(
+                        detail: petDetailInstance,
+                        shelterDetail: shelterDetailInstance),
                   ),
                 ),
               ),

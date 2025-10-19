@@ -1,13 +1,11 @@
-import "dart:io";
 import 'dart:async';
 
-import "package:google_sign_in/google_sign_in.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,15 +16,21 @@ import '/screens/breedList.dart';
 import '/screens/fit.dart';
 import '/screens/chatList.dart';
 
-final FirebaseAuth auth = FirebaseAuth.instance;
-final GoogleSignIn googleSignIn = new GoogleSignIn();
+FirebaseAuth? auth;
+// final gsi.GoogleSignIn googleSignIn = gsi.GoogleSignIn();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    name: 'catapp',
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    auth = FirebaseAuth.instance;
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+    // Continue without Firebase for now
+    auth = null;
+  }
   runApp(const SplashPage());
 }
 
@@ -46,8 +50,12 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void signinAnon() async {
+    if (auth == null) {
+      print("Firebase Auth not available, skipping anonymous sign-in");
+      return;
+    }
     try {
-      final userCredential = await FirebaseAuth.instance.signInAnonymously();
+      final userCredential = await auth!.signInAnonymously();
       print("Signed in with temporary account.");
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
@@ -75,7 +83,9 @@ class _SplashPageState extends State<SplashPage> {
       Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
       final SharedPreferences prefs = await _prefs;
       if (!prefs.containsKey("FirstTime") &&
-          await flutterNetworkConnectivity.isInternetConnectionAvailable()) {
+          (kIsWeb ||
+              await flutterNetworkConnectivity
+                  .isInternetConnectionAvailable())) {
         await prefs.setString("FirstTime", "False");
         await Get.to(
             () => YouTubeVideoRow(
@@ -122,12 +132,37 @@ class HomeScreen extends StatefulWidget {
 
 bool favoritesSelected = false;
 
-class _HomeScreen extends State<HomeScreen> {
+class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late GlobalObjectKey<AdoptGridState> AdoptionGridKey;
+  late AnimationController _sparkleController;
+  late Animation<double> _sparkleAnimation;
 
   void _setFavoriteButton(bool fav) {
     setState(() => favoritesSelected = fav);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize sparkle animation
+    _sparkleController = AnimationController(
+      duration: Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _sparkleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _sparkleController,
+      curve: Curves.easeOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _sparkleController.dispose();
+    super.dispose();
   }
 
   static List<Widget> pages = <Widget>[
@@ -163,11 +198,39 @@ class _HomeScreen extends State<HomeScreen> {
               setState(() {
                 favoritesSelected = _favoritesSelected;
               });
+
+              // Trigger sparkle animation when favorited
+              if (_favoritesSelected) {
+                _sparkleController.reset();
+                _sparkleController.forward();
+              }
             },
-            child: Icon(
-              Icons.favorite,
-              color: (favoritesSelected) ? Colors.red : Colors.grey,
-              size: 40,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  Icons.favorite,
+                  color: (favoritesSelected) ? Colors.red : Colors.grey,
+                  size: 40,
+                ),
+                if (favoritesSelected)
+                  AnimatedBuilder(
+                    animation: _sparkleAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _sparkleAnimation.value,
+                        child: Opacity(
+                          opacity: 1.0 - _sparkleAnimation.value,
+                          child: Icon(
+                            Icons.auto_awesome,
+                            color: Colors.yellow,
+                            size: 20,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
             )),
         const SizedBox(width: 10, height: 30),
         /*

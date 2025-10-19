@@ -1,13 +1,12 @@
 import 'package:catapp/models/shelter.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:catapp/screens/petDetail.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'dart:io';
 import '../ExampleCode/petDetailData.dart';
-import 'package:email_launcher/email_launcher.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
@@ -30,36 +29,73 @@ class Tool extends StatelessWidget {
 
   get apiKey => "AIzaSyBNEcaJtpfNh1ako5P_XexuILvjnPlscdE";
 
+  Widget _buildCircularIcon(
+      BuildContext context, IconData iconData, Color iconColor) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: iconColor,
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withOpacity(0.2),
+            blurRadius: 6,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Icon(
+        iconData,
+        size: 24,
+        color: iconColor,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (tool) {
       case toolType.phone:
         return InkWell(
-            child: Center(child: Image.asset("assets/Icons/tools_phone.png")),
+            child: Center(
+                child: _buildCircularIcon(
+                    context, Icons.phone, Colors.green[700]!)),
             onTap: () {
               call(context);
             });
       case toolType.map:
         return InkWell(
-            child: Center(child: Image.asset("assets/Icons/tools_map.png")),
+            child: Center(
+                child: _buildCircularIcon(
+                    context, Icons.map, Colors.indigo[600]!)),
             onTap: () {
               map(context);
             });
       case toolType.email:
         return InkWell(
-            child: Center(child: Image.asset("assets/Icons/tools_email.png")),
+            child: Center(
+                child: _buildCircularIcon(
+                    context, Icons.email, Colors.deepOrange[600]!)),
             onTap: () {
               email(context);
             });
       case toolType.share:
         return InkWell(
-            child: Center(child: Image.asset("assets/Icons/tools_share.png")),
+            child: Center(
+                child: _buildCircularIcon(
+                    context, Icons.share, Colors.deepPurple[600]!)),
             onTap: () {
               share(context);
             });
       case toolType.meet:
         return InkWell(
-            child: Center(child: Image.asset("assets/Icons/tools_video.png")),
+            child: Center(
+                child: _buildCircularIcon(
+                    context, Icons.video_call, Colors.teal[600]!)),
             onTap: () {
               meet(context);
             });
@@ -129,14 +165,31 @@ class Tool extends StatelessWidget {
   }
 
   email(BuildContext context) async {
-    Email email = Email(
-        to: [detail?.email ?? ""],
-        cc: [],
-        bcc: [],
-        subject: detail?.name ?? "",
-        body:
-            "I would like to talk to you about the cat named ${detail?.name ?? ""} I saw on the app Feline Finder as being available from your organization.");
-    await EmailLauncher.launch(email);
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: detail?.email ?? "",
+      query:
+          'subject=${detail?.name ?? "Pet Inquiry"}&body=I would like to talk to you about the cat named ${detail?.name ?? ""} I saw on the app Feline Finder as being available from your organization.',
+    );
+
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
+    } else {
+      // Show error dialog if email can't be launched
+      showDialog<String>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Email not available'),
+          content: Text('Sorry, email cannot be opened on this device.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Ok'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Future<String> getFilePath() async {
@@ -150,11 +203,23 @@ class Tool extends StatelessWidget {
   }
 
   share(BuildContext context) async {
-    var response = await http.get(Uri.parse(detail!.mainPictures[0].url!));
-    String filepath = await getFilePath();
-    File file = File(filepath); // 1
-    file.writeAsBytesSync(response.bodyBytes);
-    Share.shareFiles([filepath], text: detail?.description ?? "");
+    try {
+      var response = await http.get(Uri.parse(detail!.mainPictures[0].url!));
+      String filepath = await getFilePath();
+      File file = File(filepath);
+      file.writeAsBytesSync(response.bodyBytes);
+
+      await Share.shareXFiles(
+        [XFile(filepath)],
+        text: detail?.description ?? "",
+      );
+    } catch (e) {
+      // Fallback to text-only sharing if file sharing fails
+      await Share.share(
+        '${detail?.name ?? "Pet"} - ${detail?.description ?? ""}',
+        subject: 'Pet from Feline Finder',
+      );
+    }
   }
 
   launchMessenger() async {

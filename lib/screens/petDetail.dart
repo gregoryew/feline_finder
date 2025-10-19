@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
@@ -12,17 +9,16 @@ import 'package:like_button/like_button.dart';
 import 'package:linkfy_text/linkfy_text.dart';
 import 'package:catapp/ExampleCode/Media.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_class_parser/flutter_class_parser.dart' as shapesParser;
 import 'package:rating_dialog/rating_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../main.dart' as main;
 import '../widgets/toolbar.dart';
 import '../widgets/playIndicator.dart';
-import '/ExampleCode/RescueGroups.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petDetailData.dart';
 import '/models/shelter.dart';
+import '/models/rescuegroups_v5.dart';
+import '../config.dart';
 import 'globals.dart' as globals;
 import 'package:dots_indicator/dots_indicator.dart';
 
@@ -49,8 +45,11 @@ class petDetail extends StatefulWidget {
   }
 }
 
-class petDetailState extends State<petDetail> with RouteAware {
+class petDetailState extends State<petDetail>
+    with RouteAware, TickerProviderStateMixin {
   PetDetailData? petDetailInstance;
+  late AnimationController _sparkleController;
+  late Animation<double> _sparkleAnimation;
   Shelter? shelterDetailInstance;
   bool isFavorited = false;
   int selectedImage = 0;
@@ -93,23 +92,48 @@ class petDetailState extends State<petDetail> with RouteAware {
 
   @override
   void initState() {
+    // Initialize sparkle animation
+    _sparkleController = AnimationController(
+      duration: Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _sparkleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _sparkleController,
+      curve: Curves.easeOut,
+    ));
+
     String user = "";
     bool favorited = false;
     Map<String, String>? mapKeys;
     () async {
-      user = await widget.server.getUser();
-      favorited = await widget.server.isFavorite(user, widget.petID);
-      mapKeys = await globals.FelineFinderServer.instance
-          .parseStringToMap(assetsFileName: '.env');
-      setState(() {
-        rescueGroupApi = mapKeys!["RescueGroupsAPIKey"];
-        isFavorited = favorited;
-        userID = user;
-        getPetDetail(widget.petID);
-        _controller.addListener(() {
-          _scrollListener();
+      try {
+        user = await widget.server.getUser();
+        favorited = await widget.server.isFavorite(user, widget.petID);
+        setState(() {
+          rescueGroupApi = AppConfig.rescueGroupsApiKey;
+          isFavorited = favorited;
+          userID = user;
+          getPetDetail(widget.petID);
+          _controller.addListener(() {
+            _scrollListener();
+          });
         });
-      });
+      } catch (e) {
+        print("Error initializing pet detail: $e");
+        // Set fallback values when Firestore fails
+        setState(() {
+          rescueGroupApi = AppConfig.rescueGroupsApiKey;
+          isFavorited = false;
+          userID = "demo-user"; // Fallback user ID
+          getPetDetail(widget.petID);
+          _controller.addListener(() {
+            _scrollListener();
+          });
+        });
+      }
     }();
     super.initState();
   }
@@ -118,6 +142,7 @@ class petDetailState extends State<petDetail> with RouteAware {
   void dispose() {
     _controller.removeListener(_scrollListener);
     _controller.dispose();
+    _sparkleController.dispose();
     super.dispose();
   }
 
@@ -232,12 +257,15 @@ class petDetailState extends State<petDetail> with RouteAware {
       return;
     }
     if (_controller.position.pixels == _controller.position.maxScrollExtent) {
-      setState(
-          () => {currentIndexPage = petDetailInstance!.mediaWidths.length - 2});
+      setState(() {
+        currentIndexPage = petDetailInstance!.mediaWidths.length - 2;
+      });
       return;
     }
     if (_controller.position.pixels == _controller.position.minScrollExtent) {
-      setState(() => {currentIndexPage = 0});
+      setState(() {
+        currentIndexPage = 0;
+      });
       return;
     }
     double mid = MediaQuery.of(context).size.width / 2;
@@ -245,7 +273,9 @@ class petDetailState extends State<petDetail> with RouteAware {
     for (var i = 0; i < petDetailInstance!.mediaWidths.length - 1; i++) {
       if (pos > petDetailInstance!.mediaWidths[i] &&
           pos < petDetailInstance!.mediaWidths[i + 1]) {
-        setState(() => {currentIndexPage = i});
+        setState(() {
+          currentIndexPage = i;
+        });
         return;
       }
     }
@@ -322,6 +352,10 @@ class petDetailState extends State<petDetail> with RouteAware {
                   globals.listOfFavorites.add(widget.petID);
                   widget.server.favoritePet(userID, widget.petID);
                   isFavorited = true;
+
+                  // Trigger sparkle animation when favorited
+                  _sparkleController.reset();
+                  _sparkleController.forward();
                 }
                 print("Set changed to " + isFavorited.toString());
                 return isFavorited;
@@ -330,7 +364,32 @@ class petDetailState extends State<petDetail> with RouteAware {
               isLiked: isFavorited,
               likeBuilder: (isLiked) {
                 final color = isLiked ? Colors.red : Colors.blueGrey;
-                return Icon(Icons.favorite, color: color, size: 40);
+                return AnimatedContainer(
+                  duration: Duration(milliseconds: 300),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Icon(Icons.favorite, color: color, size: 40),
+                      if (isLiked)
+                        AnimatedBuilder(
+                          animation: _sparkleAnimation,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: _sparkleAnimation.value,
+                              child: Opacity(
+                                opacity: 1.0 - _sparkleAnimation.value,
+                                child: Icon(
+                                  Icons.auto_awesome,
+                                  color: Colors.yellow,
+                                  size: 20,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                );
               },
             ),
           ),
@@ -366,7 +425,7 @@ class petDetailState extends State<petDetail> with RouteAware {
                         : petDetailInstance!.media.length == 0
                             ? 1
                             : petDetailInstance!.media.length,
-                    position: currentIndexPage,
+                    position: currentIndexPage.toDouble(),
                   ),
                 ),
               ),

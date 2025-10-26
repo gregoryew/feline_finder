@@ -9,8 +9,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+import 'schedule_appointment.dart';
 
-enum toolType { phone, map, email, share, meet }
+enum toolType { schedule, phone, map, email, share, meet }
 
 enum LaunchMode { marker, directions }
 
@@ -58,6 +59,14 @@ class Tool extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (tool) {
+      case toolType.schedule:
+        return InkWell(
+            child: Center(
+                child: _buildCircularIcon(
+                    context, Icons.calendar_today, Theme.of(context).primaryColor)),
+            onTap: () {
+              schedule(context);
+            });
       case toolType.phone:
         return InkWell(
             child: Center(
@@ -247,6 +256,22 @@ class Tool extends StatelessWidget {
   meet(BuildContext context) {
     launchMessenger();
   }
+
+  schedule(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => ScheduleAppointmentDialog(
+        catName: detail?.name ?? 'Pet',
+        organizationName: detail?.organizationName ?? 'Organization',
+        organizationEmail: detail?.email ?? '',
+        catId: detail?.id,
+        organizationId: detail?.organizationID,
+        catImageUrl: detail?.mainPictures.isNotEmpty == true 
+            ? detail!.mainPictures[0].url 
+            : null,
+      ),
+    );
+  }
 }
 
 class ToolBar extends StatelessWidget {
@@ -262,6 +287,13 @@ class ToolBar extends StatelessWidget {
     if (detail == null) {
       return [];
     }
+    
+    // Schedule button appears first if email is available
+    if (detail.email != null && detail.email?.trim() != "") {
+      toolsList.add(Tool(
+          tool: toolType.schedule, detail: detail, shelterData: shelterDetail));
+    }
+    
     if (detail.phoneNumber?.trim() != "" && detail.phoneNumber != null) {
       toolsList.add(Tool(
           tool: toolType.phone, detail: detail, shelterData: shelterDetail));

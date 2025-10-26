@@ -3,17 +3,24 @@ import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/appointment_service.dart';
 
 class ScheduleAppointmentDialog extends StatefulWidget {
   final String catName;
   final String organizationName;
+  final String organizationEmail;
   final String? catImageUrl;
+  final String? catId;
+  final String? organizationId;
 
   const ScheduleAppointmentDialog({
     Key? key,
     required this.catName,
     required this.organizationName,
+    required this.organizationEmail,
     this.catImageUrl,
+    this.catId,
+    this.organizationId,
   }) : super(key: key);
 
   @override
@@ -28,8 +35,10 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
   // User info fields
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoadingUserData = true;
+  bool _isSubmitting = false;
   String? _userId;
 
   // Sample available time slots that change based on date
@@ -46,6 +55,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -391,6 +401,33 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                         },
                         style: GoogleFonts.poppins(fontSize: 15),
                       ),
+                      const SizedBox(height: 12),
+
+                      // Phone Field (Optional)
+                      TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Phone (Optional)',
+                          hintText: 'Enter your phone number',
+                          prefixIcon: Icon(Icons.phone),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).primaryColor,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        style: GoogleFonts.poppins(fontSize: 15),
+                      ),
 
                       const SizedBox(height: 24),
                       const Divider(),
@@ -562,7 +599,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: selectedTimeSlot == null
+                              onPressed: (selectedTimeSlot == null || _isSubmitting)
                                   ? null
                                   : () async {
                                       // Validate form
@@ -570,40 +607,118 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                                         return;
                                       }
 
-                                      // Save user data to Firestore
-                                      await _saveUserData();
+                                      setState(() {
+                                        _isSubmitting = true;
+                                      });
 
-                                      // Show confirmation
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: Text(
-                                            'Appointment Requested',
-                                            style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          content: Text(
-                                            'Your appointment to meet ${widget.catName} on ${DateFormat('MMMM d').format(selectedDate)} at $selectedTimeSlot has been requested.\n\nConfirmation will be sent to ${_emailController.text.trim()}.',
-                                            style: GoogleFonts.poppins(),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                                Navigator.of(context).pop();
-                                              },
-                                              child: Text(
-                                                'OK',
+                                      try {
+                                        // Save user data to Firestore
+                                        await _saveUserData();
+
+                                        // Create appointment
+                                        final appointment = await AppointmentService.createAppointment(
+                                          catId: widget.catId ?? '',
+                                          catName: widget.catName,
+                                          organizationId: widget.organizationId ?? '',
+                                          organizationName: widget.organizationName,
+                                          organizationEmail: widget.organizationEmail,
+                                          userId: _userId ?? '',
+                                          userName: _nameController.text.trim(),
+                                          userEmail: _emailController.text.trim(),
+                                          userPhone: _phoneController.text.trim(),
+                                          appointmentDate: selectedDate,
+                                          timeSlot: selectedTimeSlot!,
+                                          catImageUrl: widget.catImageUrl,
+                                        );
+
+                                        if (appointment != null) {
+                                          // Show success confirmation
+                                          Navigator.of(context).pop();
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: Text(
+                                                'Appointment Requested',
                                                 style: GoogleFonts.poppins(
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
                                               ),
+                                              content: Text(
+                                                'Your appointment to meet ${widget.catName} on ${DateFormat('MMMM d').format(selectedDate)} at $selectedTimeSlot has been requested.\n\nConfirmation emails have been sent to you and ${widget.organizationName}.',
+                                                style: GoogleFonts.poppins(),
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
+                                                  },
+                                                  child: Text(
+                                                    'OK',
+                                                    style: GoogleFonts.poppins(
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                      );
+                                          );
+                                        } else {
+                                          throw Exception('Failed to create appointment');
+                                        }
+                                      } catch (e) {
+                                        // Show error
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: Text(
+                                              'Error',
+                                              style: GoogleFonts.poppins(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            content: Text(
+                                              'Failed to create appointment. Please try again.\n\nError: $e',
+                                              style: GoogleFonts.poppins(),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text(
+                                                  'OK',
+                                                  style: GoogleFonts.poppins(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      } finally {
+                                        setState(() {
+                                          _isSubmitting = false;
+                                        });
+                                      }
                                     },
+                              child: _isSubmitting
+                                  ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white),
+                                      ),
+                                    )
+                                  : Text(
+                                      'Schedule',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                               style: ElevatedButton.styleFrom(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 14),
@@ -612,14 +727,6 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                                 ),
                                 backgroundColor: Theme.of(context).primaryColor,
                                 disabledBackgroundColor: Colors.grey[300],
-                              ),
-                              child: Text(
-                                'Schedule',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
                               ),
                             ),
                           ),

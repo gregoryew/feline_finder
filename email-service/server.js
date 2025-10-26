@@ -109,6 +109,69 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
+// Appointment confirmation endpoint
+app.post('/api/send-appointment-confirmation', async (req, res) => {
+  try {
+    const { 
+      organizationEmail, 
+      organizationName,
+      userName, 
+      userEmail, 
+      userPhone,
+      catName,
+      appointmentDate,
+      timeSlot,
+      catImageUrl 
+    } = req.body;
+
+    // Validation
+    if (!organizationEmail || !userName || !userEmail || !catName || !appointmentDate || !timeSlot) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields' 
+      });
+    }
+
+    const subject = `New Appointment Request - ${catName}`;
+    const emailBody = createAppointmentEmailTemplate({
+      organizationName,
+      userName,
+      userEmail,
+      userPhone,
+      catName,
+      appointmentDate,
+      timeSlot,
+      catImageUrl
+    });
+
+    // Send email via Postmark
+    const response = await client.sendEmail({
+      From: `Feline Finder <${process.env.POSTMARK_FROM_EMAIL}>`,
+      To: organizationEmail,
+      Subject: subject,
+      HtmlBody: emailBody,
+      TextBody: stripHtml(emailBody),
+      MessageStream: 'outbound'
+    });
+
+    console.log('Appointment email sent successfully:', response.MessageID);
+
+    res.json({
+      success: true,
+      messageId: response.MessageID,
+      message: 'Appointment confirmation sent successfully'
+    });
+
+  } catch (error) {
+    console.error('Error sending appointment email:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send appointment email',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Cat inquiry endpoint (simplified)
 app.post('/api/send-cat-inquiry', async (req, res) => {
   try {
@@ -249,6 +312,111 @@ function createCatInquiryTemplate({ catName, userName, userEmail, userPhone, mes
             
             <p>Best regards,<br>
             <strong>${userName}</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>This email was sent through the Feline Finder app</p>
+            <p>© ${new Date().getFullYear()} Feline Finder - Connecting cats with loving homes</p>
+        </div>
+    </body>
+    </html>
+  `;
+}
+
+// Helper function to create appointment email template
+function createAppointmentEmailTemplate({ 
+  organizationName, 
+  userName, 
+  userEmail, 
+  userPhone, 
+  catName, 
+  appointmentDate, 
+  timeSlot,
+  catImageUrl 
+}) {
+  const phoneText = userPhone ? `<p><strong>Phone:</strong> ${userPhone}</p>` : '';
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>New Appointment - Feline Finder</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                line-height: 1.6; 
+                color: #333; 
+                max-width: 600px; 
+                margin: 0 auto; 
+                padding: 20px;
+            }
+            .header { 
+                background: linear-gradient(135deg, #2196F3, #21CBF3); 
+                color: white; 
+                padding: 30px; 
+                text-align: center; 
+                border-radius: 10px 10px 0 0;
+            }
+            .content { 
+                padding: 30px; 
+                background-color: #f9f9f9; 
+                border-radius: 0 0 10px 10px;
+            }
+            .appointment-info {
+                background-color: #e3f2fd;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 20px 0;
+                border-left: 4px solid #2196F3;
+            }
+            .visitor-info {
+                background-color: #e8f5e9;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 20px 0;
+                border-left: 4px solid #4CAF50;
+            }
+            .footer { 
+                padding: 20px; 
+                text-align: center; 
+                font-size: 12px; 
+                color: #666; 
+                margin-top: 20px;
+            }
+            h1 { margin: 0; }
+            h2 { color: #2196F3; }
+            .emoji { font-size: 1.2em; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1><span class="emoji">🐱</span> New Appointment Request</h1>
+            <p>Feline Finder</p>
+        </div>
+        
+        <div class="content">
+            <h2>Hello ${organizationName}!</h2>
+            
+            <p>You have received a new appointment request for <strong>${catName}</strong>.</p>
+            
+            <div class="appointment-info">
+                <h3><span class="emoji">📅</span> Appointment Details</h3>
+                <p><strong>Date:</strong> ${appointmentDate}</p>
+                <p><strong>Time:</strong> ${timeSlot}</p>
+                <p><strong>Cat:</strong> ${catName}</p>
+            </div>
+            
+            <div class="visitor-info">
+                <h3><span class="emoji">👤</span> Visitor Information</h3>
+                <p><strong>Name:</strong> ${userName}</p>
+                <p><strong>Email:</strong> ${userEmail}</p>
+                ${phoneText}
+            </div>
+            
+            <p>Please review this request and contact the visitor to confirm availability.</p>
+            
+            <p>Thank you for being a partner with Feline Finder!</p>
         </div>
         
         <div class="footer">

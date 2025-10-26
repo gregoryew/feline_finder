@@ -6,9 +6,9 @@ class CustomPlayIndicatorBorder extends ShapeBorder {
   final BorderRadius borderRadius;
 
   const CustomPlayIndicatorBorder({
-    this.borderWidth: 1.0,
-    this.borderRadius: BorderRadius.zero,
-  }) : assert(borderRadius != null);
+    this.borderWidth = 1.0,
+    this.borderRadius = BorderRadius.zero,
+  });
 
   @override
   EdgeInsetsGeometry get dimensions {
@@ -25,7 +25,6 @@ class CustomPlayIndicatorBorder extends ShapeBorder {
 
   @override
   ShapeBorder lerpFrom(ShapeBorder? a, double t) {
-    assert(t != null);
     if (a is CustomPlayIndicatorBorder) {
       return new CustomPlayIndicatorBorder(
         borderWidth: ui.lerpDouble(a.borderWidth, borderWidth, t)!,

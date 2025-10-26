@@ -56,6 +56,7 @@ class petDetailState extends State<petDetail>
   late String userID;
   String? rescueGroupApi = "";
   late ScrollController _controller = ScrollController();
+  late PageController _pageController = PageController();
   int currentIndexPage = 0;
 
   final _dialog = RatingDialog(
@@ -142,6 +143,7 @@ class petDetailState extends State<petDetail>
   void dispose() {
     _controller.removeListener(_scrollListener);
     _controller.dispose();
+    _pageController.dispose();
     _sparkleController.dispose();
     super.dispose();
   }
@@ -324,6 +326,8 @@ class petDetailState extends State<petDetail>
     return Scaffold(
       appBar: AppBar(
         title: Text(petDetailInstance?.name ?? ""),
+        backgroundColor: Color(0xFF2196F3),
+        foregroundColor: Colors.white,
         actions: <Widget>[
           Padding(
             padding: EdgeInsets.only(right: 10.0),
@@ -400,32 +404,193 @@ class petDetailState extends State<petDetail>
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              SingleChildScrollView(
-                controller: _controller,
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: getMedia(petDetailInstance),
+              // Modern Photo Carousel
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(
-                height: 5,
-              ),
-              Center(
-                child: Visibility(
-                  visible: (petDetailInstance == null) ||
-                          petDetailInstance!.media.length < 2
-                      ? false
-                      : true,
-                  child: DotsIndicator(
-                    decorator: DotsDecorator(
-                        shapes: getShapes(petDetailInstance),
-                        activeShapes: getShapes(petDetailInstance)),
-                    dotsCount: (petDetailInstance == null)
-                        ? 1
-                        : petDetailInstance!.media.length == 0
-                            ? 1
-                            : petDetailInstance!.media.length,
-                    position: currentIndexPage.toDouble(),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9, // Standard widescreen ratio
+                    child: Stack(
+                      children: [
+                        // Main carousel
+                        PageView.builder(
+                          controller: _pageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              currentIndexPage = index;
+                            });
+                          },
+                          itemCount: petDetailInstance?.media.length ?? 0,
+                          itemBuilder: (context, index) {
+                            if (petDetailInstance == null ||
+                                petDetailInstance!.media.isEmpty) {
+                              return Container(
+                                color: Colors.grey[200],
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.pets,
+                                        size: 64,
+                                        color: Colors.grey[400],
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'No photos available',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final media = petDetailInstance!.media[index];
+                            return Container(
+                              width: double.infinity,
+                              child: media is YouTubeVideo
+                                  ? Container(
+                                      decoration: BoxDecoration(
+                                        image: DecorationImage(
+                                          image: NetworkImage(media.photo),
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      child: Container(
+                                        color: Colors.black.withOpacity(0.3),
+                                        child: Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.play_circle_filled,
+                                                size: 80,
+                                                color: Colors.white,
+                                              ),
+                                              SizedBox(height: 16),
+                                              Text(
+                                                'Video Available',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : CachedNetworkImage(
+                                      imageUrl: (media as SmallPhoto).photo,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Container(
+                                        color: Colors.grey[200],
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            color: Color(0xFF2196F3),
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                        color: Colors.grey[200],
+                                        child: Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.error_outline,
+                                                size: 64,
+                                                color: Colors.grey[400],
+                                              ),
+                                              SizedBox(height: 16),
+                                              Text(
+                                                'Failed to load image',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                            );
+                          },
+                        ),
+
+                        // Photo counter overlay
+                        if (petDetailInstance != null &&
+                            petDetailInstance!.media.length > 1)
+                          Positioned(
+                            top: 16,
+                            right: 16,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '${currentIndexPage + 1} / ${petDetailInstance!.media.length}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // Dots indicator at bottom
+                        if (petDetailInstance != null &&
+                            petDetailInstance!.media.length > 1)
+                          Positioned(
+                            bottom: 16,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: DotsIndicator(
+                                decorator: DotsDecorator(
+                                  color: Colors.white.withOpacity(0.5),
+                                  activeColor: Colors.white,
+                                  size: Size(8, 8),
+                                  activeSize: Size(12, 8),
+                                  spacing: EdgeInsets.symmetric(horizontal: 4),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  activeShape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                dotsCount: petDetailInstance!.media.length,
+                                position: currentIndexPage.toDouble(),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -433,36 +598,74 @@ class petDetailState extends State<petDetail>
                 height: 5,
               ),
               Container(
+                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 decoration: BoxDecoration(
-                    border: Border.all(
-                        color: const Color.fromARGB(184, 111, 97, 97)),
-                    color: Color.fromARGB(255, 225, 215, 215),
-                    borderRadius: const BorderRadius.all(Radius.circular(20))),
-                padding: const EdgeInsets.all(20),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),
+                padding: EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    Center(
-                        child: Text(
-                            petDetailInstance == null
-                                ? ""
-                                : petDetailInstance!.name ?? "",
-                            style: const TextStyle(
-                                fontSize: 30, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center)),
-                    const Divider(
-                      thickness: 1,
-                      indent: 30,
-                      endIndent: 30,
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Color(0xFF2196F3).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.pets,
+                            color: Color(0xFF2196F3),
+                            size: 24,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                petDetailInstance == null
+                                    ? ""
+                                    : petDetailInstance!.name ?? "",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2196F3),
+                                  fontFamily: 'Poppins',
+                                ),
+                                textAlign: TextAlign.left,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                petDetailInstance == null
+                                    ? ""
+                                    : petDetailInstance!.primaryBreed ?? "",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700],
+                                ),
+                                textAlign: TextAlign.left,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    Center(
-                        child: Text(
-                            petDetailInstance == null
-                                ? ""
-                                : petDetailInstance!.primaryBreed ?? "",
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center)),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     getStats(),
                   ],
                 ),
@@ -486,47 +689,79 @@ class petDetailState extends State<petDetail>
               const Text("General Information",
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
-              Center(
-                child: Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(
-                          color: const Color.fromARGB(184, 111, 97, 97)),
-                      color: Color.fromARGB(255, 225, 215, 215),
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(20))),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Contact",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
-                        textAlign: TextAlign.left,
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),
+                padding: EdgeInsets.all(20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF2196F3).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Divider(
-                        thickness: 1,
-                        color: Colors.grey[100],
+                      child: Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFF2196F3),
+                        size: 24,
                       ),
-                      Row(
+                    ),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: Image.asset(
-                                "assets/Icons/ToolBar_Directions.png",
-                                width: 20,
-                                fit: BoxFit.fitWidth),
+                          Text(
+                            "Contact",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2196F3),
+                              fontFamily: 'Poppins',
+                            ),
                           ),
-                          const SizedBox(width: 10),
-                          Flexible(
-                            child: Text(getAddress(petDetailInstance)),
+                          SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: 20,
+                                color: Color(0xFF2196F3),
+                              ),
+                              SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  getAddress(petDetailInstance),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey[700],
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 20),
@@ -568,44 +803,100 @@ class petDetailState extends State<petDetail>
     } else {
       textStyle = GoogleFonts.karla(fontSize: 16, fontWeight: FontWeight.w500);
     }
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
-            border: Border.all(color: const Color.fromARGB(184, 111, 97, 97)),
-            color: const Color.fromARGB(255, 225, 215, 215),
-            borderRadius: const BorderRadius.all(Radius.circular(20))),
-        padding: const EdgeInsets.all(20),
-        child: Column(
+
+    // Get appropriate icon for each section
+    IconData getIconForTitle(String title) {
+      switch (title.toLowerCase()) {
+        case 'about':
+          return Icons.info_outline;
+        case 'services':
+          return Icons.medical_services_outlined;
+        case 'adoption process':
+          return Icons.how_to_reg_outlined;
+        case 'meet pets':
+          return Icons.pets_outlined;
+        case 'adoption url':
+          return Icons.link_outlined;
+        case 'donation url':
+          return Icons.favorite_outline;
+        case 'sponsorship url':
+          return Icons.support_agent_outlined;
+        case 'facebook url':
+          return Icons.facebook_outlined;
+        case 'disclaimer':
+          return Icons.warning_outlined;
+        default:
+          return Icons.description_outlined;
+      }
+    }
+
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Color(0xFF2196F3).withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.grey),
-              textAlign: TextAlign.left,
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(0xFF2196F3).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                getIconForTitle(title),
+                color: Color(0xFF2196F3),
+                size: 24,
+              ),
             ),
-            Divider(
-              thickness: 1,
-              color: Colors.grey[100],
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2196F3),
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  LinkifyText(
+                    textString,
+                    textAlign: TextAlign.left,
+                    textStyle: textStyle.copyWith(
+                      color: Colors.grey[700],
+                      height: 1.5,
+                    ),
+                    linkTypes: const [LinkType.email, LinkType.url],
+                    linkStyle: TextStyle(
+                      color: Color(0xFF2196F3),
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                    ),
+                    onTap: (link) => _onOpen(link.value!),
+                  ),
+                ],
+              ),
             ),
-            //linkify(textString)
-            /*
-            Linkify(
-              onOpen: _onOpen,
-              textScaleFactor: 2,
-              text: textString,
-            )
-            */
-            LinkifyText(textString,
-                textAlign: TextAlign.left,
-                textStyle: textStyle,
-                linkTypes: const [LinkType.email, LinkType.url],
-                linkStyle: textStyle.copyWith(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-                onTap: (link) => _onOpen(link.value!)),
           ],
         ),
       ),

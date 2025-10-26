@@ -7,19 +7,20 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import 'package:catapp/models/favorite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:transparent_image/transparent_image.dart';
 
 import '../main.dart' as main;
-import '/ExampleCode/RescueGroups.dart';
+//import '/ExampleCode/RescueGroups.dart';
+import '../models/rescuegroups_v5.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import '/screens/petDetail.dart';
 import '/screens/search.dart';
 import '/screens/recommendations.dart';
+import '../config.dart';
 import 'globals.dart' as globals;
 import 'package:get/get.dart';
+import 'package:catapp/models/searchPageConfig.dart';
 
 class AdoptGrid extends StatefulWidget {
   // This widget is the home page of your application. It is stateful, meaning
@@ -44,7 +45,7 @@ class AdoptGridState extends State<AdoptGrid> {
   int tilesPerLoad = 25;
   late ScrollController controller;
   List<String> favorites = [];
-  late String userID;
+  String? userID;
   final server = globals.FelineFinderServer.instance;
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   //bool favorited = false;
@@ -61,22 +62,40 @@ class AdoptGridState extends State<AdoptGrid> {
         fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
     filters_backup.add(Filters(
         fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
-    () async {
-      String user = await server.getUser();
-      favorites = await server.getFavorites(user);
-      var _zip = await _getZip();
-      var mapKeys = await globals.FelineFinderServer.instance
-          .parseStringToMap(assetsFileName: '.env');
 
-      setState(() {
-        main.favoritesSelected = false;
-        widget.setFav!(main.favoritesSelected);
-        globals.listOfFavorites = favorites;
-        userID = user;
-        server.zip = _zip;
-        RescueGroupApi = mapKeys["RescueGroupsAPIKey"];
-        getPets();
-      });
+    // Set the API key immediately during initialization
+    RescueGroupApi = AppConfig.rescueGroupsApiKey;
+    print("RescueGroupApi set during initState: '${RescueGroupApi}'");
+
+    () async {
+      try {
+        String user = await server.getUser();
+        favorites = await server.getFavorites(user);
+        var _zip = await _getZip();
+        // Temporarily hardcode the API key to test pet search functionality
+        print("Using hardcoded API key for testing");
+
+        setState(() {
+          main.favoritesSelected = false;
+          widget.setFav!(main.favoritesSelected);
+          globals.listOfFavorites = favorites;
+          userID = user;
+          server.zip = _zip;
+          RescueGroupApi = AppConfig.rescueGroupsApiKey;
+          print("RescueGroupApi after assignment: '${RescueGroupApi}'");
+          getPets();
+        });
+      } catch (e) {
+        print("Error initializing user data: $e");
+        // Set fallback values when Firestore fails
+        setState(() {
+          userID = "demo-user"; // Fallback user ID
+          favorites = [];
+          server.zip = AppConfig.defaultZipCode; // Default zip code
+          RescueGroupApi = AppConfig.rescueGroupsApiKey;
+          getPets();
+        });
+      }
     }();
   }
 
@@ -163,7 +182,9 @@ class AdoptGridState extends State<AdoptGrid> {
     }
 
     Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+        locationSettings: LocationSettings(
+      accuracy: LocationAccuracy.high,
+    ));
 
     print('location: ${position.latitude}');
     List<Placemark> addresses =
@@ -190,21 +211,41 @@ class AdoptGridState extends State<AdoptGrid> {
 
   void recommendations() async {
     await Get.to(() => CatRecommendationScreen(),
-      transition: Transition.fadeIn, duration: Duration(seconds: 1));
+        transition: Transition.fadeIn, duration: Duration(seconds: 1));
+  }
+
+  Map<CatClassification, List<filterOption>> _buildCategories() {
+    Map<CatClassification, List<filterOption>> categories = {};
+
+    for (var filter in filteringOptions) {
+      if (!categories.containsKey(filter.classification)) {
+        categories[filter.classification] = [];
+      }
+      categories[filter.classification]!.add(filter);
+    }
+
+    return categories;
   }
 
   void search() async {
-    var result;
-    result = await Get.to(() => searchScreen(),
-        transition: Transition.fadeIn, duration: Duration(seconds: 1));
-    /*
-    final result = await Navigator.push(
+    print("=== OPENING SEARCH SCREEN ===");
+    var result = await Navigator.push(
       context,
-      // Create the SelectionScreen in the next step.
-      MaterialPageRoute(builder: (context) => searchScreen()),
+      MaterialPageRoute(
+        builder: (context) => SearchScreen(
+          categories: _buildCategories(),
+          filteringOptions: filteringOptions,
+          userID: userID ?? "demo-user",
+        ),
+      ),
     );
-    */
+    print("=== SEARCH RESULT RECEIVED ===");
+    print("Result: $result");
+    print("Result length: ${result?.length}");
+
     if (result != null && result.length > 0) {
+      print("Applying search filters...");
+      print("Filters before: ${filters.length}");
       setState(
         () {
           filters = result;
@@ -214,9 +255,16 @@ class AdoptGridState extends State<AdoptGrid> {
           maxPets = -1;
           main.favoritesSelected = false;
           widget.setFav!(main.favoritesSelected);
+          print("Filters after: ${filters.length}");
+          for (var filter in filters) {
+            print(
+                "Applied filter: ${filter.fieldName} ${filter.operation} ${filter.criteria}");
+          }
           getPets();
         },
       );
+    } else {
+      print("No search results to apply");
     }
   }
 
@@ -255,7 +303,18 @@ class AdoptGridState extends State<AdoptGrid> {
             criteria: globals.listOfFavorites)
       ];
     } else {
-      filters = filters_backup;
+      // Only reset filters if they haven't been set by search
+      if (filters.isEmpty ||
+          (filters.length == 1 && filters[0].fieldName == "species.singular")) {
+        // Add default filters for cats
+        filters = [
+          Filters(
+              fieldName: "species.singular",
+              operation: "equals",
+              criteria: ["cat"])
+        ];
+        filters_backup = filters;
+      }
     }
 
     List<Map<dynamic, dynamic>> filtersJson = [];
@@ -276,37 +335,73 @@ class AdoptGridState extends State<AdoptGrid> {
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
+    print("RescueGroupApi value: '${RescueGroupApi}'");
+    print("RescueGroupApi is null: ${RescueGroupApi == null}");
+    print("RescueGroupApi is empty: ${RescueGroupApi?.isEmpty ?? true}");
+    print("Zip code: '${server.zip}'");
+    print("Distance: ${globals.distance}");
+    print("Filters count: ${filters.length}");
+    print("Filters: ${filtersJson}");
+    print("Request body: ${json.encode(data2.toJson())}");
+
     var response = await http.post(Uri.parse(url),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': RescueGroupApi!
+          'Authorization': '${RescueGroupApi}',
         },
         body: json.encode(data2.toJson()));
+
+    print("API Key being sent: ${RescueGroupApi}");
+    print("Response status: ${response.statusCode}");
+    print("Response headers: ${response.headers}");
 
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       // then parse the JSON.
       print("status 200");
-      var json = jsonDecode(response.body);
-      late pet petDecoded;
-      var meta = Meta.fromJson(json["meta"]);
-      if (meta.count == 0) {
-        petDecoded = pet(meta: meta, data: [], included: []);
-      } else {
-        petDecoded = pet.fromJson(jsonDecode(response.body));
-        if (maxPets < 1) {
+
+      // Check if response body is empty or null
+      if (response.body.isEmpty) {
+        print("Empty response body");
+        setState(() {
+          tiles = [];
+          maxPets = 0;
+          count = "No Matches";
+        });
+        return;
+      }
+
+      try {
+        var json = jsonDecode(response.body);
+        late pet petDecoded;
+        var meta = Meta.fromJson(json["meta"]);
+        if (meta.count == 0) {
+          petDecoded = pet(meta: meta, data: [], included: []);
+        } else {
+          petDecoded = pet.fromJson(json);
+          if (maxPets < 1) {
+            setState(() {
+              maxPets = (petDecoded.meta?.count ?? 0);
+              count = (maxPets == 0 ? "No Matches" : maxPets.toString());
+            });
+          }
           setState(() {
-            maxPets = (petDecoded.meta?.count ?? 0);
-            count = (maxPets == 0 ? "No Matches" : maxPets.toString());
+            petDecoded.data?.forEach((petData) {
+              tiles.add(PetTileData(petData, petDecoded.included!));
+            });
           });
         }
+        return;
+      } catch (e) {
+        print("JSON parsing error: $e");
+        print("Response body: ${response.body}");
         setState(() {
-          petDecoded.data?.forEach((petData) {
-            tiles.add(PetTileData(petData, petDecoded.included!));
-          });
+          tiles = [];
+          maxPets = 0;
+          count = "No Matches";
         });
+        return;
       }
-      ;
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
@@ -323,17 +418,19 @@ class AdoptGridState extends State<AdoptGrid> {
 
   Future<void> askForZip() async {
     late String? _zip;
-    late bool? valid = false;
+    late bool? valid = null; // Initialize as null instead of false
     late bool canceled = false;
     do {
       _zip = await openDialog();
       if (_zip != null && _zip.isNotEmpty) {
         var _valid = await server.isZipCodeValid(_zip);
+        print("ZIP validation result for $_zip: $_valid");
         setState(() {
           valid = _valid;
         });
       }
-      if (!valid!) {
+      if (valid == false) {
+        // Check for false instead of !valid!
         await Get.defaultDialog(
             title: "Invalid Zip Code",
             middleText: "Please enter a valid zip code.",
@@ -358,7 +455,7 @@ class AdoptGridState extends State<AdoptGrid> {
             barrierDismissible: false,
             radius: 30);
       }
-    } while (valid! == false);
+    } while (valid == false);
 
     if (canceled == false) {
       setState(() {
@@ -450,7 +547,9 @@ class AdoptGridState extends State<AdoptGrid> {
     await Get.to(() => petDetail(tiles[index].id!),
         transition: Transition.circularReveal, duration: Duration(seconds: 1));
 
-    favorites = await server.getFavorites(userID);
+    if (userID != null) {
+      favorites = await server.getFavorites(userID!);
+    }
     setState(() {
       globals.listOfFavorites = favorites;
       if (main.favoritesSelected &&
@@ -586,10 +685,6 @@ class AdoptGridState extends State<AdoptGrid> {
   }
 
   Widget getStats(PetTileData tile) {
-    if (tile == null) {
-      return const SizedBox.shrink();
-    }
-
     List<String> stats = [];
     if (tile.status != null) {
       stats.add(tile.status ?? "");

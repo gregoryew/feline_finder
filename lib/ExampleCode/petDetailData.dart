@@ -1,7 +1,6 @@
-import 'package:flutter/widgets.dart';
+import 'package:catapp/models/rescuegroups_v5.dart';
+import 'package:flutter/material.dart';
 import 'Media.dart';
-import 'RescueGroups.dart';
-import '../screens/globals.dart' as globals;
 
 class PetDetailData {
   String? id;
@@ -23,19 +22,16 @@ class PetDetailData {
   String? organizationName = "";
   String? description = "";
 
-  PetDetailData(
-      petDatum pet, List<Included> included, List<Relationship> relationships) {
+  PetDetailData(petDatum pet, List<Included> included, List<Relationship> relationships) {
     id = pet.id;
     name = pet.attributes!.name;
     primaryBreed = pet.attributes!.breedPrimary;
     ageGroup = ageGroupValues.reverse[pet.attributes!.ageGroup];
     sex = sexValues.reverse[pet.attributes!.sex];
     sizeGroup = sizeGroupValues.reverse[pet.attributes!.sizeGroup];
-    var statusList =
-        findAllOfACertainType(pet, included, "statuses", IncludedType.STATUSES);
+    var statusList = findAllOfACertainType(pet, included, "statuses", IncludedType.STATUSES);
     status = statusList[0].attributes!.name;
-    List<Included> picturesIncluded =
-        findAllOfACertainType(pet, included, "pictures", IncludedType.PICTURES);
+    List<Included> picturesIncluded = findAllOfACertainType(pet, included, "pictures", IncludedType.PICTURES);
     for (int i = 0; i < picturesIncluded.length; i++) {
       if (picturesIncluded[i].attributes!.large!.url != null) {
         mainPictures.add(picturesIncluded[i].attributes!.large!);
@@ -55,19 +51,18 @@ class PetDetailData {
       mediaWidths.add(total);
       media.add(photo);
     }
-    List<Included> videoListIncluded = findAllOfACertainType(
-        pet, included, "videourls", IncludedType.VIDEOURLS);
+    List<Included> videoListIncluded = findAllOfACertainType(pet, included, "videourls", IncludedType.VIDEOURLS);
     for (int i = 0; i < videoListIncluded.length; i++) {
       var video = YouTubeVideo(
-          videoListIncluded[i].attributes!.urlThumbnail ?? "",
-          videoListIncluded[i].attributes?.name ?? "",
-          videoListIncluded[i].attributes?.videoId ?? "");
+        videoListIncluded[i].attributes!.urlThumbnail ?? "",
+        videoListIncluded[i].attributes?.name ?? "",
+        videoListIncluded[i].attributes?.videoId ?? "",
+      );
       total += 330;
       mediaWidths.add(total);
       media.add(video);
     }
-    List<Included> organizationIncluded =
-        findAllOfACertainType(pet, included, "orgs", IncludedType.ORGS);
+    List<Included> organizationIncluded = findAllOfACertainType(pet, included, "orgs", IncludedType.ORGS);
     organizationID = organizationIncluded[0].id;
     organizationName = organizationIncluded[0].attributes!.name;
     street = organizationIncluded[0].attributes!.street;
@@ -78,10 +73,8 @@ class PetDetailData {
     description = pet.attributes!.descriptionText;
   }
 
-  List<Included> findAllOfACertainType(petDatum pet, List<Included> included,
-      String includeType, IncludedType type) {
-    if (pet.relationships![includeType] == null ||
-        pet.relationships![includeType]!.data == null) return [];
+  List<Included> findAllOfACertainType(petDatum pet, List<Included> included, String includeType, IncludedType type) {
+    if (pet.relationships![includeType] == null || pet.relationships![includeType]!.data == null) return [];
     final includedData = pet.relationships![includeType]!.data!;
     final includeds = included.where((l) => l.type == type).toList();
     List<Included> includedList = [];

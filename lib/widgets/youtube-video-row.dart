@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '/models/playlist.dart';
 import '../main.dart';
@@ -14,6 +15,7 @@ class YouTubeVideoRow extends StatefulWidget {
       {required this.playlist,
       required this.videoid,
       required this.title,
+      // ignore: unused_element_parameter
       this.fullScreen});
 
   const YouTubeVideoRow(
@@ -39,7 +41,7 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
         (widget.videoid == "") ? widget.playlist!.videoId : widget.videoid;
 
     _controller = YoutubePlayerController(
-      initialVideoId: id!,
+      initialVideoId: id ?? '',
       flags: const YoutubePlayerFlags(
         autoPlay: true,
         mute: false,
@@ -72,52 +74,113 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
       body: (widget.fullScreen ?? false)
           ? (Container(
               color: Colors.black,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  YoutubePlayerBuilder(
-                    player: YoutubePlayer(
-                      controller: _controller,
-                      onEnded: (_) {
-                        Get.off(const HomeScreen(title: 'Feline Finder'));
-                      },
-                    ),
-                    builder: (context, player) {
-                      return SingleChildScrollView(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (kIsWeb)
+                      Container(
+                        height: 300,
+                        width: double.infinity,
+                        color: Colors.grey[800],
                         child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            player,
-                            Padding(
-                              child: Text((widget.playlist != null)
-                                  ? widget.playlist!.description
-                                  : ""),
-                              padding: EdgeInsets.all(10),
+                            Icon(Icons.play_circle_outline,
+                                size: 64, color: Colors.white),
+                            SizedBox(height: 16),
+                            Text(
+                              'YouTube Player',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Video: ${widget.title ?? "Welcome To Feline Finder"}',
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                Get.off(
+                                    const HomeScreen(title: 'Feline Finder'));
+                              },
+                              child: Text('Continue to App'),
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-                ],
+                      )
+                    else
+                      YoutubePlayerBuilder(
+                        player: YoutubePlayer(
+                          controller: _controller,
+                          onEnded: (_) {
+                            Get.off(const HomeScreen(title: 'Feline Finder'));
+                          },
+                        ),
+                        builder: (context, player) {
+                          return SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                player,
+                                Padding(
+                                  child: Text((widget.playlist != null)
+                                      ? widget.playlist!.description
+                                      : ""),
+                                  padding: EdgeInsets.all(10),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
               ),
             ))
-          : (YoutubePlayerBuilder(
-              player: YoutubePlayer(controller: _controller),
-              builder: (context, player) {
-                return SingleChildScrollView(
+          : (kIsWeb
+              ? Container(
+                  height: 200,
+                  width: double.infinity,
+                  color: Colors.grey[800],
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      player,
-                      Padding(
-                        child: Text(widget.playlist?.description ?? ""),
-                        padding: EdgeInsets.all(10),
+                      Icon(Icons.play_circle_outline,
+                          size: 48, color: Colors.white),
+                      SizedBox(height: 12),
+                      Text(
+                        'YouTube Player',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Video: ${widget.title ?? "Welcome To Feline Finder"}',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
-                );
-              },
-            )),
+                )
+              : YoutubePlayerBuilder(
+                  player: YoutubePlayer(controller: _controller),
+                  builder: (context, player) {
+                    return SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          player,
+                          Padding(
+                            child: Text(widget.playlist?.description ?? ""),
+                            padding: EdgeInsets.all(10),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                )),
     );
   }
 }

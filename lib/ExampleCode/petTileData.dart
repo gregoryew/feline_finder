@@ -1,4 +1,4 @@
-import 'RescueGroups.dart';
+import 'package:catapp/models/rescuegroups_v5.dart';
 
 class PetTileData {
   String? id;

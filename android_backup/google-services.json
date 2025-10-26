@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "330705375055",
+    "project_id": "catapp-44885",
+    "storage_bucket": "catapp-44885.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:330705375055:android:cac0ad5d0ee6531993ff3a",
+        "android_client_info": {
+          "package_name": "com.gregorysiosgames.catapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "330705375055-n7e31n55fe92nlvvkdtduc7psild8mhj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gregorysiosgames.catapp",
+            "certificate_hash": "50cf0ceb8077689fb93cce952f799d20a7326457"
+          }
+        },
+        {
+          "client_id": "330705375055-2kqft34mo9cr9eamc950spnica348ej7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHt2l5jQCWskt8moNjCuO4cUx3SbDBKWg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "330705375055-2kqft34mo9cr9eamc950spnica348ej7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "330705375055-2nadcve6c1fb6sri3fjl99tg0gpdqq5i.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.gregorysiosgames.catapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

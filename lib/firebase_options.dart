@@ -25,10 +25,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for windows - '
@@ -48,7 +45,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyCJ-G6VCIKzMOD3-UPxEwDP4deZ-HlUQYo',
-    appId: '1:330705375055:web:9f6ba32406f5d3f293ff3a',
+    appId: '1:330705375055:android:cac0ad5d0ee6531993ff3a',
     messagingSenderId: '330705375055',
     projectId: 'catapp-44885',
     authDomain: 'catapp-44885.firebaseapp.com',
@@ -58,13 +55,26 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCHt2l5jQCWskt8moNjCuO4cUx3SbDBKWg',
-    appId: '1:330705375055:android:a8f742f988a5a08993ff3a',
+    appId: '1:330705375055:android:cac0ad5d0ee6531993ff3a',
     messagingSenderId: '330705375055',
     projectId: 'catapp-44885',
     storageBucket: 'catapp-44885.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyAzeUC9Y3JPaMd4B6gqP4aa-CfDy9Jl_R8',
+    appId: '1:330705375055:ios:9e146ee6eb48f08a93ff3a',
+    messagingSenderId: '330705375055',
+    projectId: 'catapp-44885',
+    storageBucket: 'catapp-44885.appspot.com',
+    androidClientId:
+        '330705375055-n7e31n55fe92nlvvkdtduc7psild8mhj.apps.googleusercontent.com',
+    iosClientId:
+        '330705375055-5fn167olgtt5ro0ftugsqul9cbgtovjn.apps.googleusercontent.com',
+    iosBundleId: 'com.gregorysiosgames.catapp',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAzeUC9Y3JPaMd4B6gqP4aa-CfDy9Jl_R8',
     appId: '1:330705375055:ios:9e146ee6eb48f08a93ff3a',
     messagingSenderId: '330705375055',

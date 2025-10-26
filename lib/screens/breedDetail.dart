@@ -1,10 +1,8 @@
 import 'dart:convert';
 //import 'dart:html';
-import 'dart:ui';
+import 'package:catapp/models/rescuegroups_v5.dart';
 import 'package:flutter/material.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import 'package:catapp/screens/petDetail.dart';
-import 'package:transparent_image/transparent_image.dart';
 import '/models/breed.dart';
 import '/models/question.dart';
 import 'package:http/http.dart' as http;
@@ -13,8 +11,8 @@ import '/models/playlist.dart';
 import '/widgets/playlist-row.dart';
 import '/utils/constants.dart';
 import '/models/wikipediaExtract.dart';
+import '../config.dart';
 import 'globals.dart' as globals;
-import '/ExampleCode/RescueGroups.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import 'package:get/get.dart';
@@ -66,10 +64,8 @@ class _BreedDetailState extends State<BreedDetail>
     _animation = Tween(begin: 0.0, end: 1.0).animate(_controller);
     Map<String, String>? mapKeys;
     () async {
-      mapKeys = await globals.FelineFinderServer.instance
-          .parseStringToMap(assetsFileName: '.env');
       setState(() {
-        rescueGroupApi = mapKeys!["RescueGroupsAPIKey"];
+        rescueGroupApi = AppConfig.rescueGroupsApiKey;
         getPlaylists();
         getBreedDescription(widget.breed.htmlUrl);
         getPets(widget.breed.rid.toString());

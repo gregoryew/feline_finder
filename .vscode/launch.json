@@ -1,18 +1,58 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Dart: Attach to Process",
-            "type": "dart",
-            "request": "attach"
-        },
-        {
-            "name": "Flutter",
-            "request": "launch",
-            "type": "dart"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Feline Finder (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "chrome",
+        "--web-port=8080",
+        "--web-hostname=localhost"
+      ],
+      "console": "debugConsole",
+      "cwd": "${workspaceFolder}/feline_finder",
+      "deviceId": "chrome"
+    },
+    {
+      "name": "Feline Finder (iOS Simulator)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "ios"
+      ],
+      "console": "debugConsole"
+    },
+    {
+      "name": "Feline Finder (Android)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "android"
+      ],
+      "console": "debugConsole"
+    },
+    {
+      "name": "Feline Finder (macOS)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "-d",
+        "macos"
+      ],
+      "console": "debugConsole"
+    },
+    {
+      "name": "Dart: Attach to Process",
+      "type": "dart",
+      "request": "attach"
+    }
+  ]
 }

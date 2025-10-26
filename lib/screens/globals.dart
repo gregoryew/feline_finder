@@ -44,19 +44,37 @@ class FelineFinderServer {
 
   Future<Map<String, String>> parseStringToMap(
       {String assetsFileName = '.env'}) async {
-    final lines = await rootBundle.loadString(assetsFileName);
-    Map<String, String> environment = {};
-    for (String line in lines.split('\n')) {
-      line = line.trim();
-      if (line.contains('=') //Set Key Value Pairs on lines separated by =
-          &&
-          !line.startsWith(RegExp(r'=|#'))) {
-        //No need to add emty keys and remove comments
-        List<String> contents = line.split('=');
-        environment[contents[0]] = contents.sublist(1).join('=');
+    print("=== LOADING .ENV FILE ===");
+    print("Assets file name: $assetsFileName");
+
+    try {
+      final lines = await rootBundle.loadString(assetsFileName);
+      print("Raw .env content: $lines");
+
+      Map<String, String> environment = {};
+      for (String line in lines.split('\n')) {
+        line = line.trim();
+        print("Processing line: '$line'");
+
+        if (line.contains('=') //Set Key Value Pairs on lines separated by =
+            &&
+            !line.startsWith(RegExp(r'=|#'))) {
+          //No need to add emty keys and remove comments
+          List<String> contents = line.split('=');
+          String key = contents[0];
+          String value = contents.sublist(1).join('=');
+          environment[key] = value;
+          print("Added to environment: '$key' = '$value'");
+        }
       }
+
+      print("Final environment map: $environment");
+      print("=== END LOADING .ENV FILE ===");
+      return environment;
+    } catch (e) {
+      print("Error loading .env file: $e");
+      return {};
     }
-    return environment;
   }
 
   var loggedIn = false;
@@ -78,7 +96,7 @@ class FelineFinderServer {
     loggedIn = true;
 
     try {
-      docRef.get().then((docSnapshot) {
+      await docRef.get().then((docSnapshot) {
         if (docSnapshot.exists) {
           int logins = docSnapshot.data()!['logins'] ?? 0;
           docRef.set({'lastLogin': DateTime.now(), 'logins': logins + 1},
@@ -89,25 +107,30 @@ class FelineFinderServer {
             'createdDate': DateTime.now(),
             'lastLogin': DateTime.now(),
             'logins': 1,
-            'platform': platform.name
+            'platform': platform.toString()
           });
         }
       });
     } catch (e) {
-      print(e.toString());
+      print("Error initializing user data: $e");
+      // Continue without Firestore if it fails
     }
 
     return _userID;
   }
 
   void favoritePet(String userID, String petID) async {
-    List<String> currentArray = await getFavorites(userID);
-    if (!currentArray.contains(petID)) {
-      currentArray.add(petID);
-      await FirebaseFirestore.instance
-          .collection('Favorites')
-          .doc(userID)
-          .set({'PetIDs': currentArray});
+    try {
+      List<String> currentArray = await getFavorites(userID);
+      if (!currentArray.contains(petID)) {
+        currentArray.add(petID);
+        await FirebaseFirestore.instance
+            .collection('Favorites')
+            .doc(userID)
+            .set({'PetIDs': currentArray});
+      }
+    } catch (e) {
+      print("Error favoriting pet: $e");
     }
   }
 
@@ -117,44 +140,75 @@ class FelineFinderServer {
   }
 
   Future<List<String>> getFavorites(String userID) async {
-    _userID = await getUser();
-    DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
-        .collection('Favorites')
-        .doc(_userID)
-        .get();
-    final data = documentSnapshot.data();
-    Map<String, dynamic> myMap;
-    if (data == null) {
-      myMap = {"PetIDs": []};
-    } else {
-      myMap = data as Map<String, dynamic>;
+    try {
+      _userID = await getUser();
+      DocumentSnapshot documentSnapshot = await FirebaseFirestore.instance
+          .collection('Favorites')
+          .doc(_userID)
+          .get();
+      final data = documentSnapshot.data();
+      Map<String, dynamic> myMap;
+      if (data == null) {
+        myMap = {"PetIDs": []};
+      } else {
+        myMap = data as Map<String, dynamic>;
+      }
+      List<String> currentArray = List<String>.from(myMap['PetIDs']);
+      return currentArray;
+    } catch (e) {
+      print("Error getting favorites: $e");
+      return [];
     }
-    List<String> currentArray = List<String>.from(myMap['PetIDs']);
-    return currentArray;
   }
 
   void unfavoritePet(String userID, String petID) async {
-    List<String> currentArray = await getFavorites(userID);
-    if (currentArray.contains(petID)) {
-      currentArray.remove(petID);
-      await FirebaseFirestore.instance
-          .collection('Favorites')
-          .doc(userID)
-          .set({'PetIDs': currentArray});
+    try {
+      List<String> currentArray = await getFavorites(userID);
+      if (currentArray.contains(petID)) {
+        currentArray.remove(petID);
+        await FirebaseFirestore.instance
+            .collection('Favorites')
+            .doc(userID)
+            .set({'PetIDs': currentArray});
+      }
+    } catch (e) {
+      print("Error unfavoriting pet: $e");
     }
   }
 
   Future<bool?> isZipCodeValid(String zipCode) async {
     var url = "https://api.zippopotam.us/us/${zipCode}";
 
+    print("=== ZIP CODE VALIDATION START ===");
     print("URL = $url");
+    print("ZIP Code to validate: $zipCode");
 
     try {
       var response = await http.get(Uri.parse(url));
+      print("Response status: ${response.statusCode}");
+      print("Response body: ${response.body}");
+
       if (response.statusCode == 200) {
-        var places = Zippopotam.fromJson(jsonDecode(response.body));
-        return places.toString() != "{}";
+        var jsonData = jsonDecode(response.body);
+
+        // Check if response is empty (invalid ZIP)
+        if (jsonData.isEmpty) {
+          print("ZIP code validation result: false (empty response)");
+          return false;
+        }
+
+        var places = Zippopotam.fromJson(jsonData);
+
+        // Check if we have valid places data
+        bool isValid = places.places.isNotEmpty &&
+            places.country.isNotEmpty &&
+            places.postCode.isNotEmpty;
+
+        print("ZIP code validation result: $isValid");
+        print("=== ZIP CODE VALIDATION END ===");
+        return isValid;
       } else {
+        print("HTTP error: ${response.statusCode}");
         if (response.statusCode != 404) {
           await Get.dialog(
             AlertDialog(
@@ -173,25 +227,28 @@ class FelineFinderServer {
           );
         }
         return false;
-        //throw Exception('Failed to validate zip code ' + response.body);
       }
     } catch (e) {
+      print("Exception during ZIP validation: $e");
       return false;
     }
   }
 
   String getCountryISOCode() {
-    final WidgetsBinding? instance = WidgetsBinding.instance;
-    if (instance != null) {
-      final List<Locale> systemLocales = instance.window.locales;
-      String? isoCountryCode = systemLocales.first.countryCode;
-      if (isoCountryCode != null) {
-        return isoCountryCode;
-      } else {
-        throw Exception("Unable to get Country ISO code");
+    try {
+      final List<Locale> systemLocales =
+          WidgetsBinding.instance.platformDispatcher.locales;
+      if (systemLocales.isNotEmpty) {
+        String? isoCountryCode = systemLocales.first.countryCode;
+        if (isoCountryCode != null && isoCountryCode.isNotEmpty) {
+          return isoCountryCode;
+        }
       }
-    } else {
-      throw Exception("Unable to get Country ISO code");
+      // Fallback to US if no country code is available
+      return 'US';
+    } catch (e) {
+      // Fallback to US if any error occurs
+      return 'US';
     }
   }
 

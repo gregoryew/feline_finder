@@ -9,12 +9,14 @@ class Zippopotam {
   late final String country;
   late final String countryAbbreviation;
   late final List<Places> places;
-  
-  Zippopotam.fromJson(Map<String, dynamic> json){
-    postCode = json['post code'];
-    country = json['country'];
-    countryAbbreviation = json['country abbreviation'];
-    places = List.from(json['places']).map((e)=>Places.fromJson(e)).toList();
+
+  Zippopotam.fromJson(Map<String, dynamic> json) {
+    postCode = json['post code'] ?? '';
+    country = json['country'] ?? '';
+    countryAbbreviation = json['country abbreviation'] ?? '';
+    places = json['places'] != null
+        ? List.from(json['places']).map((e) => Places.fromJson(e)).toList()
+        : <Places>[];
   }
 
   Map<String, dynamic> toJson() {
@@ -22,7 +24,7 @@ class Zippopotam {
     _data['post code'] = postCode;
     _data['country'] = country;
     _data['country abbreviation'] = countryAbbreviation;
-    _data['places'] = places.map((e)=>e.toJson()).toList();
+    _data['places'] = places.map((e) => e.toJson()).toList();
     return _data;
   }
 }
@@ -40,8 +42,8 @@ class Places {
   late final String state;
   late final String stateAbbreviation;
   late final String latitude;
-  
-  Places.fromJson(Map<String, dynamic> json){
+
+  Places.fromJson(Map<String, dynamic> json) {
     placeName = json['place name'];
     longitude = json['longitude'];
     state = json['state'];

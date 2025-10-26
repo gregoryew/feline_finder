@@ -21,6 +21,10 @@ FirebaseAuth? auth;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Add a small delay to prevent Firestore lock errors
+  await Future.delayed(Duration(milliseconds: 500));
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -55,7 +59,7 @@ class _SplashPageState extends State<SplashPage> {
       return;
     }
     try {
-      final userCredential = await auth!.signInAnonymously();
+      await auth!.signInAnonymously();
       print("Signed in with temporary account.");
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
@@ -103,7 +107,41 @@ class _SplashPageState extends State<SplashPage> {
     }();
     return GetMaterialApp(
       title: 'Feline Finder',
-      theme: ThemeData(fontFamily: 'Poppins'),
+      theme: ThemeData(
+        fontFamily: 'Poppins',
+        primarySwatch: Colors.blue,
+        primaryColor: Color(0xFF2196F3),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Color(0xFF2196F3),
+          brightness: Brightness.light,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 8,
+          shadowColor: Colors.black26,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        bottomNavigationBarTheme: BottomNavigationBarThemeData(
+          backgroundColor: Colors.white,
+          selectedItemColor: Color(0xFF2196F3),
+          unselectedItemColor: Colors.grey[400],
+          type: BottomNavigationBarType.fixed,
+          elevation: 8,
+        ),
+        useMaterial3: true,
+      ),
       navigatorObservers: [routeObserver],
       home: Scaffold(
         body: Container(
@@ -280,74 +318,199 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     AdoptionGridKey = GlobalObjectKey<AdoptGridState>(context);
     return Scaffold(
-      appBar: AppBar(
-          title: const Center(child: Text("Feline Finder")),
-          automaticallyImplyLeading: false,
-          //leading: getLeadingButtons(_selectedIndex),
-          actions: getTrailingButtons(_selectedIndex)),
-      body: (_selectedIndex == 2)
-          ? AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton)
-          : pages[_selectedIndex],
-      // 4
-      bottomNavigationBar: BottomNavigationBar(
-        // 5
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        showSelectedLabels: true,
-        selectedItemColor: Colors.blue,
-        // 10
-        currentIndex: _selectedIndex,
-        // 11
-        onTap: _onItemTapped,
-        // 6
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            backgroundColor: Colors.white,
-            icon: ImageIcon(
-                AssetImage(_selectedIndex == 0
-                    ? "assets/Icons/fit_selected.png"
-                    : "assets/Icons/fit_unselected.png"),
-                color: (_selectedIndex == 0 ? Colors.blue : Colors.grey)),
-            label: 'Fit',
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF2196F3),
+              Color(0xFF21CBF3),
+              Color(0xFF64B5F6),
+            ],
           ),
-          BottomNavigationBarItem(
-            backgroundColor: Colors.white,
-            icon: ImageIcon(
-                AssetImage(_selectedIndex == 1
-                    ? "assets/Icons/breeds_selected.png"
-                    : "assets/Icons/breeds_unselected.png"),
-                color: (_selectedIndex == 1 ? Colors.blue : Colors.grey)),
-            label: "Breeds",
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar with gradient
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Feline Finder",
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(0, 2),
+                            blurRadius: 4,
+                            color: Colors.black26,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: getTrailingButtons(_selectedIndex) ?? [],
+                    ),
+                  ],
+                ),
+              ),
+              // Main content
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 20,
+                        offset: Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    child: (_selectedIndex == 2)
+                        ? AdoptGrid(
+                            key: AdoptionGridKey, setFav: _setFavoriteButton)
+                        : pages[_selectedIndex],
+                  ),
+                ),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            backgroundColor: Colors.white,
-            icon: ImageIcon(
-                AssetImage(_selectedIndex == 2
-                    ? "assets/Icons/adopt_selected.png"
-                    : "assets/Icons/adopt_unselected.png"),
-                color: (_selectedIndex == 2 ? Colors.blue : Colors.grey)),
-            label: 'Adopt',
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 20,
+              offset: Offset(0, -5),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
           ),
-          BottomNavigationBarItem(
+          child: BottomNavigationBar(
+            unselectedItemColor: Colors.grey[400],
+            showUnselectedLabels: true,
+            showSelectedLabels: true,
+            selectedItemColor: Color(0xFF2196F3),
             backgroundColor: Colors.white,
-            icon: ImageIcon(
-                AssetImage(_selectedIndex == 3
-                    ? "assets/Icons/talk_selected.png"
-                    : "assets/Icons/talk_unselected.png"),
-                color: (_selectedIndex == 3 ? Colors.blue : Colors.grey)),
-            label: 'Chat',
-          ) /*,
-          BottomNavigationBarItem(
-            backgroundColor: Colors.white,
-            icon: ImageIcon(
-                AssetImage(_selectedIndex == 3
-                    ? "assets/Icons/zoom_selected.png"
-                    : "assets/Icons/zoom_unselected.png"),
-                color: Colors.blue),
-            label: 'Meet',
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            elevation: 0,
+            items: <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                backgroundColor: Colors.white,
+                icon: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 0
+                        ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ImageIcon(
+                    AssetImage(_selectedIndex == 0
+                        ? "assets/Icons/fit_selected.png"
+                        : "assets/Icons/fit_unselected.png"),
+                    color: (_selectedIndex == 0
+                        ? Color(0xFF2196F3)
+                        : Colors.grey[400]),
+                    size: 24,
+                  ),
+                ),
+                label: 'Fit',
+              ),
+              BottomNavigationBarItem(
+                backgroundColor: Colors.white,
+                icon: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 1
+                        ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ImageIcon(
+                    AssetImage(_selectedIndex == 1
+                        ? "assets/Icons/breeds_selected.png"
+                        : "assets/Icons/breeds_unselected.png"),
+                    color: (_selectedIndex == 1
+                        ? Color(0xFF2196F3)
+                        : Colors.grey[400]),
+                    size: 24,
+                  ),
+                ),
+                label: "Breeds",
+              ),
+              BottomNavigationBarItem(
+                backgroundColor: Colors.white,
+                icon: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 2
+                        ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ImageIcon(
+                    AssetImage(_selectedIndex == 2
+                        ? "assets/Icons/adopt_selected.png"
+                        : "assets/Icons/adopt_unselected.png"),
+                    color: (_selectedIndex == 2
+                        ? Color(0xFF2196F3)
+                        : Colors.grey[400]),
+                    size: 24,
+                  ),
+                ),
+                label: 'Adopt',
+              ),
+              BottomNavigationBarItem(
+                backgroundColor: Colors.white,
+                icon: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 3
+                        ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ImageIcon(
+                    AssetImage(_selectedIndex == 3
+                        ? "assets/Icons/talk_selected.png"
+                        : "assets/Icons/talk_unselected.png"),
+                    color: (_selectedIndex == 3
+                        ? Color(0xFF2196F3)
+                        : Colors.grey[400]),
+                    size: 24,
+                  ),
+                ),
+                label: 'Chat',
+              ),
+            ],
           ),
-          */
-        ],
+        ),
       ),
     );
   }

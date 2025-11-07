@@ -38,22 +38,28 @@ service cloud.firestore {
       // Allow authenticated users (including anonymous) to create bookings from Flutter app
       allow create: if isAuthenticated() 
         && request.resource.data.keys().hasAll(['userId', 'adopter', 'catId', 'cat', 'orgId', 'start', 'end', 'status', 'createdAt'])
-        && request.resource.data.status in ['Pending-shelter-setup', 'pending', 'confirmed'];
+        && request.resource.data.status in ['Pending-shelter-setup', 'pending', 'confirmed']
+        && request.resource.data.userId is string
+        && request.resource.data.adopter is string
+        && request.resource.data.catId is int
+        && request.resource.data.cat is string
+        && request.resource.data.orgId is string;
       
-      // Allow shelter admins to read bookings (from org portal)
-      allow read: if isSignedIn() && request.auth.token.role == 'shelter_admin';
-      
-      // Allow authenticated users to read their own bookings (from Flutter app)
+      // Allow authenticated users to read bookings (from Flutter app)
       allow read: if isAuthenticated();
       
-      // Allow shelter admins to write bookings (from org portal)
-      allow write: if isSignedIn() && request.auth.token.role == 'shelter_admin';
+      // Allow shelter admins to read bookings (from org portal) - in addition to authenticated users
+      allow read: if isSignedIn() && request.auth.token.role == 'shelter_admin';
       
       // Allow authenticated users to update bookings (from Flutter app)
       allow update: if isAuthenticated();
       
-      // Allow delete for authenticated users
+      // Allow authenticated users to delete bookings (from Flutter app)
       allow delete: if isAuthenticated();
+      
+      // Note: We use specific rules (create, update, delete) instead of a general 'write' rule
+      // to allow both adopters (authenticated users) and shelter admins to write bookings
+      // The specific rules above take precedence and allow adopters to create/update/delete
     }
     
     // Organizations Collection

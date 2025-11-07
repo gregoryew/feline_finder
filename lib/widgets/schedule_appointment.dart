@@ -853,13 +853,44 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
       'createdAt': Timestamp.now(),
     };
 
-    print('📝 Creating booking with data: ${bookingData.keys.toList()}');
+    // Debug: Check authentication state
+    final currentAuthUser = FirebaseAuth.instance.currentUser;
+    print('🔐 Auth check before booking creation:');
+    print('   User: ${currentAuthUser?.uid ?? "null"}');
+    print('   Anonymous: ${currentAuthUser?.isAnonymous ?? "null"}');
+    print('   Email: ${currentAuthUser?.email ?? "null"}');
+
+    // Debug: Verify required fields
+    final requiredFields = [
+      'userId',
+      'adopter',
+      'catId',
+      'cat',
+      'orgId',
+      'start',
+      'end',
+      'status',
+      'createdAt'
+    ];
+    final hasAllFields =
+        requiredFields.every((field) => bookingData.containsKey(field));
+    print('📋 Field check:');
+    print('   Has all required fields: $hasAllFields');
+    print(
+        '   Missing fields: ${requiredFields.where((f) => !bookingData.containsKey(f)).toList()}');
+    print('   Booking data keys: ${bookingData.keys.toList()}');
+
+    print('📝 Creating booking with data:');
     print('   userId: ${bookingData['userId']}');
     print('   adopter: ${bookingData['adopter']}');
     print(
         '   catId: ${bookingData['catId']} (type: ${bookingData['catId'].runtimeType})');
     print('   cat: ${bookingData['cat']}');
     print('   orgId: ${bookingData['orgId']}');
+    print('   status: ${bookingData['status']}');
+    print('   start: ${bookingData['start']}');
+    print('   end: ${bookingData['end']}');
+    print('   createdAt: ${bookingData['createdAt']}');
 
     try {
       final bookingRef = await FirebaseFirestore.instance
@@ -972,7 +1003,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
             'Failed precondition. Required fields may be missing or invalid.';
         print('📋 Check that all required booking fields are present:');
         print(
-            '   Required: userId, adopterName, catId, catName, orgId, start, end, status, createdAt');
+            '   Required: userId, adopter, catId, cat, orgId, start, end, status, createdAt');
       } else {
         errorMessage = 'Error: ${e.message ?? e.code}';
       }

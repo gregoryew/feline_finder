@@ -9,9 +9,9 @@ class RescueGroupsQuery {
   }
 
   Map<dynamic, dynamic> toJson() {
-    final _data = <dynamic, dynamic>{};
-    _data['data'] = data.toJson();
-    return _data;
+    final data = <dynamic, dynamic>{};
+    data['data'] = data.toJson();
+    return data;
   }
 }
 
@@ -30,10 +30,10 @@ class Data {
   }
 
   Map<dynamic, dynamic> toJson() {
-    final _data = <String, dynamic>{};
-    _data['filterRadius'] = filterRadius.toJson();
-    _data['filters'] = filters.map((e) => e.toJson()).toList();
-    return _data;
+    final data = <String, dynamic>{};
+    data['filterRadius'] = filterRadius.toJson();
+    data['filters'] = filters.map((e) => e.toJson()).toList();
+    return data;
   }
 }
 
@@ -51,10 +51,10 @@ class FilterRadius {
   }
 
   Map<dynamic, dynamic> toJson() {
-    final _data = <String, dynamic>{};
-    _data['miles'] = miles;
-    _data['postalcode'] = postalcode;
-    return _data;
+    final data = <String, dynamic>{};
+    data['miles'] = miles;
+    data['postalcode'] = postalcode;
+    return data;
   }
 }
 
@@ -83,10 +83,10 @@ class Filters {
   }
 
   Map<dynamic, dynamic> toJson() {
-    final _data = <dynamic, dynamic>{};
-    _data['fieldName'] = fieldName;
-    _data['operation'] = operation;
-    _data['criteria'] = criteria;
-    return _data;
+    final data = <dynamic, dynamic>{};
+    data['fieldName'] = fieldName;
+    data['operation'] = operation;
+    data['criteria'] = criteria;
+    return data;
   }
 }

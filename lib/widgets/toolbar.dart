@@ -20,7 +20,7 @@ class Tool extends StatelessWidget {
   final PetDetailData? detail;
   final Shelter? shelterData;
 
-  Tool(
+  const Tool(
       {Key? key,
       required this.tool,
       required this.detail,
@@ -108,7 +108,7 @@ class Tool extends StatelessWidget {
               meet(context);
             });
       default:
-        return Column();
+        return const Column();
     }
   }
 
@@ -119,18 +119,15 @@ class Tool extends StatelessWidget {
   map(BuildContext context) async {
     List<Location> locations = await locationFromAddress(
         "${detail?.street ?? ""}, ${detail?.cityState ?? ""} ${detail?.postalCode ?? ""}");
-    print("******************** LAT = " +
-        locations[0].latitude.toString() +
-        " LONG = " +
-        locations[0].longitude.toString());
+    print("******************** LAT = ${locations[0].latitude} LONG = ${locations[0].longitude}");
 
     //print("***************** LAT = " + data.latitude.toString() + ", LOMG = " + data.longitude.toString());
-    if (locations.length == 0) {
+    if (locations.isEmpty) {
       showDialog<String>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
           title: const Text('Location not found'),
-          content: Text(
+          content: const Text(
               'Sorry, there was a problem with the address given and the shelter can not be found.'),
           actions: <Widget>[
             TextButton(
@@ -152,7 +149,7 @@ class Tool extends StatelessWidget {
     var url = '';
     var urlAppleMaps = '';
     if (Platform.isAndroid) {
-      url = "https://www.google.com/maps/search/?api=1&query=${lat},${lng}";
+      url = "https://www.google.com/maps/search/?api=1&query=$lat,$lng";
     } else {
       urlAppleMaps = 'https://maps.apple.com/?q=$lat,$lng';
       url = "comgooglemaps://?saddr=&daddr=$lat,$lng&directionsmode=driving";
@@ -188,7 +185,7 @@ class Tool extends StatelessWidget {
         context: context,
         builder: (BuildContext context) => AlertDialog(
           title: const Text('Email not available'),
-          content: Text('Sorry, email cannot be opened on this device.'),
+          content: const Text('Sorry, email cannot be opened on this device.'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -317,7 +314,7 @@ class ToolBar extends StatelessWidget {
 
     if (shelterDetail != null &&
         shelterDetail!.data != null &&
-        shelterDetail!.data!.length > 0 &&
+        shelterDetail!.data!.isNotEmpty &&
         shelterDetail!.data![0].attributes != null) {
       toolsList.add(Tool(
           tool: toolType.share, detail: detail, shelterData: shelterDetail));
@@ -337,7 +334,7 @@ class ToolBar extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Tool> tools = getTools(detail);
     if (tools.isEmpty) {
-      return Column();
+      return const Column();
     } else {
       return GridView.count(
           shrinkWrap: true,

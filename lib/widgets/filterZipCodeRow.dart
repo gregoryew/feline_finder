@@ -25,6 +25,7 @@ class _FilterZipCodeRow extends State<FilterZipCodeRow> {
   late TextEditingController controller2;
   final server = globals.FelineFinderServer.instance;
 
+  @override
   void initState() {
     super.initState();
     controller2 = TextEditingController();
@@ -55,32 +56,32 @@ class _FilterZipCodeRow extends State<FilterZipCodeRow> {
   }
 
   Future<void> askForZip() async {
-    var _zip = await openDialog();
-    if (_zip == null || _zip.isEmpty) {
-      _zip = "66952";
+    var zip = await openDialog();
+    if (zip == null || zip.isEmpty) {
+      zip = "66952";
     }
     setState(() {
-      server.zip = _zip!;
+      server.zip = zip!;
     });
     SharedPreferences prefs = await _prefs;
-    prefs.setString("zipCode", _zip);
+    prefs.setString("zipCode", zip);
   }
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(widget.filter.name), flex: 1),
+        Expanded(flex: 1, child: Text(widget.filter.name)),
         Expanded(
           flex: 2,
           child: Row(
             children: [
               ElevatedButton(
-                  child: Text(server.zip),
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size(130, 25),
                       maximumSize: const Size(130, 25)),
-                  onPressed: () => {askForZip()}),
+                  onPressed: () => {askForZip()},
+                  child: Text(server.zip)),
             ],
           ),
         ),

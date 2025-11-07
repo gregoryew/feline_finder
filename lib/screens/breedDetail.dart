@@ -77,7 +77,7 @@ class _BreedDetailState extends State<BreedDetail> {
     var url =
         "https://api.rescuegroups.org/v5/public/animals/search/available/haspic?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText&limit=100&page=$currentPage";
 
-    print("***********BreedID = " + breedID);
+    print("***********BreedID = $breedID");
 
     Map<String, dynamic> data = {
       "data": {
@@ -129,7 +129,7 @@ class _BreedDetailState extends State<BreedDetail> {
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
-      throw Exception('Failed to load pet ' + response.body);
+      throw Exception('Failed to load pet ${response.body}');
     }
   }
 
@@ -157,9 +157,9 @@ class _BreedDetailState extends State<BreedDetail> {
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
-      print("response.statusCode = " + response.statusCode.toString());
+      print("response.statusCode = ${response.statusCode}");
       throw Exception(
-          'Failed to load wikipedia breed description ' + response.body);
+          'Failed to load wikipedia breed description ${response.body}');
     }
   }
 
@@ -254,14 +254,14 @@ class _BreedDetailState extends State<BreedDetail> {
             children: <Widget>[
               // 4 - Breed Image with modern styling
               Container(
-                margin: EdgeInsets.symmetric(horizontal: 16),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 20,
-                      offset: Offset(0, 8),
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -278,7 +278,7 @@ class _BreedDetailState extends State<BreedDetail> {
               const SizedBox(height: 20),
               // Breed name with modern card styling matching petDetail
               Container(
-                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -286,37 +286,37 @@ class _BreedDetailState extends State<BreedDetail> {
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 20,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                   border: Border.all(
-                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    color: const Color(0xFF2196F3).withOpacity(0.1),
                     width: 1,
                   ),
                 ),
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
                     Container(
-                      padding: EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Color(0xFF2196F3).withOpacity(0.1),
+                        color: const Color(0xFF2196F3).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.pets,
                         color: Color(0xFF2196F3),
                         size: 24,
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             widget.breed.name,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF2196F3),
@@ -333,7 +333,7 @@ class _BreedDetailState extends State<BreedDetail> {
               const SizedBox(height: 20),
               // Button grid with modern styling
               Container(
-                margin: EdgeInsets.symmetric(horizontal: 16),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -341,15 +341,15 @@ class _BreedDetailState extends State<BreedDetail> {
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 20,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                   border: Border.all(
-                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    color: const Color(0xFF2196F3).withOpacity(0.1),
                     width: 1,
                   ),
                 ),
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
@@ -367,15 +367,15 @@ class _BreedDetailState extends State<BreedDetail> {
                         ),
                       },
                       child: Container(
-                        margin: EdgeInsets.all(4),
+                        margin: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: index == hilightedCell
-                              ? Color(0xFF2196F3).withOpacity(0.1)
+                              ? const Color(0xFF2196F3).withOpacity(0.1)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
                           border: index == hilightedCell
                               ? Border.all(
-                                  color: Color(0xFF2196F3),
+                                  color: const Color(0xFF2196F3),
                                   width: 2,
                                 )
                               : null,
@@ -397,10 +397,10 @@ class _BreedDetailState extends State<BreedDetail> {
               Visibility(
                 visible: selectedWidgetMarker == WidgetMarker.adopt,
                 child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
                   child: (tiles.isEmpty)
                       ? Container(
-                          padding: EdgeInsets.all(40),
+                          padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
@@ -408,7 +408,7 @@ class _BreedDetailState extends State<BreedDetail> {
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 20,
-                                offset: Offset(0, 4),
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
@@ -446,7 +446,7 @@ class _BreedDetailState extends State<BreedDetail> {
                                       color:
                                           Colors.black.withValues(alpha: 0.1),
                                       blurRadius: 10,
-                                      offset: Offset(0, 4),
+                                      offset: const Offset(0, 4),
                                     ),
                                   ],
                                 ),
@@ -484,7 +484,7 @@ class _BreedDetailState extends State<BreedDetail> {
                                               ],
                                             ),
                                           ),
-                                          padding: EdgeInsets.all(12),
+                                          padding: const EdgeInsets.all(12),
                                           child: OutlinedText(
                                             text: Text(
                                               tiles[index].name ??
@@ -516,10 +516,10 @@ class _BreedDetailState extends State<BreedDetail> {
               Visibility(
                 visible: selectedWidgetMarker == WidgetMarker.videos,
                 child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
                   child: (playlists.isEmpty)
                       ? Container(
-                          padding: EdgeInsets.all(40),
+                          padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
@@ -527,7 +527,7 @@ class _BreedDetailState extends State<BreedDetail> {
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 20,
-                                offset: Offset(0, 4),
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
@@ -549,11 +549,11 @@ class _BreedDetailState extends State<BreedDetail> {
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 20,
-                                offset: Offset(0, 4),
+                                offset: const Offset(0, 4),
                               ),
                             ],
                             border: Border.all(
-                              color: Color(0xFF2196F3).withOpacity(0.1),
+                              color: const Color(0xFF2196F3).withOpacity(0.1),
                               width: 1,
                             ),
                           ),
@@ -567,7 +567,7 @@ class _BreedDetailState extends State<BreedDetail> {
                             itemCount: playlists.length,
                             itemBuilder: (context, index) {
                               return Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
                                 child: PlaylistRow(
                                   displayDescription: false,
                                   playlist: playlists[index],
@@ -582,7 +582,7 @@ class _BreedDetailState extends State<BreedDetail> {
               Visibility(
                 visible: selectedWidgetMarker == WidgetMarker.stats,
                 child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -590,45 +590,45 @@ class _BreedDetailState extends State<BreedDetail> {
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 20,
-                        offset: Offset(0, 4),
+                        offset: const Offset(0, 4),
                       ),
                     ],
                     border: Border.all(
-                      color: Color(0xFF2196F3).withOpacity(0.1),
+                      color: const Color(0xFF2196F3).withOpacity(0.1),
                       width: 1,
                     ),
                   ),
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       Row(
                         children: [
                           Container(
-                            padding: EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Color(0xFF2196F3).withOpacity(0.1),
+                              color: const Color(0xFF2196F3).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.analytics_outlined,
                               color: Color(0xFF2196F3),
                               size: 24,
                             ),
                           ),
-                          SizedBox(width: 16),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: Text(
                               "Breed Traits & Fit",
                               style: GoogleFonts.poppins(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2196F3),
+                                color: const Color(0xFF2196F3),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Center(
                         child: Text(
                           "🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
@@ -747,7 +747,7 @@ class _BreedDetailState extends State<BreedDetail> {
               Visibility(
                 visible: selectedWidgetMarker == WidgetMarker.info,
                 child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
                   child: textBox(widget.breed.name, BreedDescription),
                 ),
               ),
@@ -760,7 +760,7 @@ class _BreedDetailState extends State<BreedDetail> {
 
   Widget textBox(String title, String textBlock) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -768,32 +768,32 @@ class _BreedDetailState extends State<BreedDetail> {
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: Color(0xFF2196F3).withOpacity(0.1),
+          color: const Color(0xFF2196F3).withOpacity(0.1),
           width: 1,
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFF2196F3).withOpacity(0.1),
+                color: const Color(0xFF2196F3).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.info_outline,
                 color: Color(0xFF2196F3),
                 size: 24,
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -803,10 +803,10 @@ class _BreedDetailState extends State<BreedDetail> {
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
+                      color: const Color(0xFF2196F3),
                     ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   LinkifyText(
                     textBlock.isEmpty
                         ? "Loading breed information..."
@@ -819,7 +819,7 @@ class _BreedDetailState extends State<BreedDetail> {
                       height: 1.5,
                     ),
                     linkTypes: const [LinkType.email, LinkType.url],
-                    linkStyle: TextStyle(
+                    linkStyle: const TextStyle(
                       color: Color(0xFF2196F3),
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.underline,

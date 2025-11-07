@@ -76,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await _authService.resetPassword(_emailController.text.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Password reset email sent! Check your inbox.'),
             backgroundColor: Colors.green,
           ),
@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -106,14 +106,14 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Card(
                 elevation: 8,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -128,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
                           _isLogin
                               ? 'Sign in to continue'
@@ -139,14 +139,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 32),
+                        const SizedBox(height: 32),
                         if (!_isLogin) ...[
                           TextFormField(
                             controller: _nameController,
                             decoration: InputDecoration(
                               labelText: 'Name',
                               hintText: 'Enter your full name',
-                              prefixIcon: Icon(Icons.person),
+                              prefixIcon: const Icon(Icons.person),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
+                                borderSide: const BorderSide(
                                   color: Color(0xFF2196F3),
                                   width: 2,
                                 ),
@@ -171,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                             style: GoogleFonts.poppins(fontSize: 15),
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                         ],
                         TextFormField(
                           controller: _emailController,
@@ -179,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: InputDecoration(
                             labelText: 'Email',
                             hintText: 'Enter your email address',
-                            prefixIcon: Icon(Icons.email),
+                            prefixIcon: const Icon(Icons.email),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -189,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
+                              borderSide: const BorderSide(
                                 color: Color(0xFF2196F3),
                                 width: 2,
                               ),
@@ -206,14 +206,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           style: GoogleFonts.poppins(fontSize: 15),
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
                           decoration: InputDecoration(
                             labelText: 'Password',
                             hintText: 'Enter your password',
-                            prefixIcon: Icon(Icons.lock),
+                            prefixIcon: const Icon(Icons.lock),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -223,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
+                              borderSide: const BorderSide(
                                 color: Color(0xFF2196F3),
                                 width: 2,
                               ),
@@ -240,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           style: GoogleFonts.poppins(fontSize: 15),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         if (_isLogin)
                           Align(
                             alignment: Alignment.centerRight,
@@ -250,15 +250,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                 'Forgot Password?',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
-                                  color: Color(0xFF2196F3),
+                                  color: const Color(0xFF2196F3),
                                 ),
                               ),
                             ),
                           ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         if (_errorMessage != null) ...[
                           Container(
-                            padding: EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.red[50],
                               borderRadius: BorderRadius.circular(8),
@@ -268,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 Icon(Icons.error_outline,
                                     color: Colors.red[800], size: 20),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     _errorMessage!,
@@ -281,20 +281,20 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                         ],
                         ElevatedButton(
                           onPressed: _isLoading ? null : _handleSubmit,
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            backgroundColor: Color(0xFF2196F3),
+                            backgroundColor: const Color(0xFF2196F3),
                             disabledBackgroundColor: Colors.grey[300],
                           ),
                           child: _isLoading
-                              ? SizedBox(
+                              ? const SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
@@ -312,7 +312,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         TextButton(
                           onPressed: _isLoading
                               ? null
@@ -329,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : 'Already have an account? Sign in',
                             style: GoogleFonts.poppins(
                               fontSize: 14,
-                              color: Color(0xFF2196F3),
+                              color: const Color(0xFF2196F3),
                             ),
                           ),
                         ),

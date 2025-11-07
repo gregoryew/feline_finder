@@ -39,8 +39,8 @@ class PlaylistRow extends StatelessWidget {
               middleText:
                   "Viewing videos requires you to be connected to the internet.  Please connect to the internet and try again.",
               backgroundColor: Colors.red,
-              titleStyle: TextStyle(color: Colors.white),
-              middleTextStyle: TextStyle(color: Colors.white),
+              titleStyle: const TextStyle(color: Colors.white),
+              middleTextStyle: const TextStyle(color: Colors.white),
               textConfirm: "OK",
               confirmTextColor: Colors.white,
               onConfirm: () {
@@ -58,14 +58,14 @@ class PlaylistRow extends StatelessWidget {
             elevation: 3.0,
             shadowColor: Colors.grey,
             child: Padding(
-              padding: EdgeInsets.all(10.0),
+              padding: const EdgeInsets.all(10.0),
               child: Column(
                 children: [
                   Padding(
-                    padding: EdgeInsets.only(bottom: 15.0, top: 10.0),
+                    padding: const EdgeInsets.only(bottom: 15.0, top: 10.0),
                     child: Text(
                       playlist.title,
-                      style: TextStyle(fontSize: 20.0),
+                      style: const TextStyle(fontSize: 20.0),
                     ),
                   ),
                   Container(
@@ -80,20 +80,20 @@ class PlaylistRow extends StatelessWidget {
                   Visibility(
                     visible: displayDescription,
                     child: Padding(
-                        padding: EdgeInsets.all(10.0),
+                        padding: const EdgeInsets.all(10.0),
                         child: Text(playlist.description)),
                   ),
                   Visibility(
                     visible: displayDescription == false,
                     child: Padding(
-                      padding: EdgeInsets.all(10.0),
+                      padding: const EdgeInsets.all(10.0),
                       child: ReadMoreText(
                         playlist.description,
                         trimLines: 2,
                         preDataText: "",
                         preDataTextStyle:
-                            TextStyle(fontWeight: FontWeight.w500),
-                        style: TextStyle(color: Colors.black),
+                            const TextStyle(fontWeight: FontWeight.w500),
+                        style: const TextStyle(color: Colors.black),
                         colorClickableText: Colors.pink,
                         trimMode: TrimMode.Line,
                         trimCollapsedText: 'Show more',

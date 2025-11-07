@@ -9,7 +9,7 @@ class SmallPhoto extends StatefulWidget {
   int order = 0;
   String photo = "";
 
-  SmallPhoto(this.order, this.photo);
+  SmallPhoto(this.order, this.photo, {Key? key}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -38,7 +38,7 @@ class YouTubeVideo extends StatefulWidget {
   String videoID = "";
   String title = "";
 
-  YouTubeVideo(this.photo, this.title, this.videoID);
+  YouTubeVideo(this.photo, this.title, this.videoID, {Key? key}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -74,8 +74,8 @@ class _YouTubeVideo extends State<YouTubeVideo> {
               middleText:
                   "Viewing videos requires you to be connected to the internet.  Please connect to the internet and try again.",
               backgroundColor: Colors.red,
-              titleStyle: TextStyle(color: Colors.white),
-              middleTextStyle: TextStyle(color: Colors.white),
+              titleStyle: const TextStyle(color: Colors.white),
+              middleTextStyle: const TextStyle(color: Colors.white),
               textConfirm: "OK",
               confirmTextColor: Colors.white,
               onConfirm: () {

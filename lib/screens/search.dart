@@ -109,7 +109,7 @@ class SearchScreenState extends State<SearchScreen> {
           _zipCodeIsValid = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
                 Icon(Icons.error_outline, color: Colors.white),
@@ -163,19 +163,19 @@ class SearchScreenState extends State<SearchScreen> {
             SnackBar(
               content: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 8),
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
                   Text('ZIP code saved: $zip'),
                 ],
               ),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         } else {
           // Show error message for invalid ZIP
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Row(
                 children: [
                   Icon(Icons.error_outline, color: Colors.white),
@@ -195,7 +195,7 @@ class SearchScreenState extends State<SearchScreen> {
           _zipCodeIsValid = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
                 Icon(Icons.error_outline, color: Colors.white),
@@ -419,17 +419,17 @@ class SearchScreenState extends State<SearchScreen> {
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
-            offset: Offset(0, 8),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(Icons.search, color: Color(0xFF2196F3), size: 28),
-              SizedBox(width: 12),
+              const Icon(Icons.search, color: Color(0xFF2196F3), size: 28),
+              const SizedBox(width: 12),
               Expanded(
                 child: TextField(
                   controller: controller2,
@@ -443,48 +443,48 @@ class SearchScreenState extends State<SearchScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
-                          BorderSide(color: Color(0xFF2196F3).withOpacity(0.3)),
+                          BorderSide(color: const Color(0xFF2196F3).withOpacity(0.3)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
-                          BorderSide(color: Color(0xFF2196F3), width: 2),
+                          const BorderSide(color: Color(0xFF2196F3), width: 2),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _performQuickSearch(),
-                  icon: Icon(Icons.search, color: Colors.white),
-                  label: Text("Show Me", style: TextStyle(color: Colors.white)),
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  label: const Text("Show Me", style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF2196F3),
+                    backgroundColor: const Color(0xFF2196F3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _clearAllFilters(),
-                  icon: Icon(Icons.clear, color: Color(0xFF2196F3)),
+                  icon: const Icon(Icons.clear, color: Color(0xFF2196F3)),
                   label:
-                      Text("Clear", style: TextStyle(color: Color(0xFF2196F3))),
+                      const Text("Clear", style: TextStyle(color: Color(0xFF2196F3))),
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    side: BorderSide(color: Color(0xFF2196F3)),
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: Color(0xFF2196F3)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
@@ -510,7 +510,7 @@ class SearchScreenState extends State<SearchScreen> {
 
     return Container(
       key: _categoryKeys[classification],
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -518,11 +518,11 @@ class SearchScreenState extends State<SearchScreen> {
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: Color(0xFF2196F3).withOpacity(0.1),
+          color: const Color(0xFF2196F3).withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -536,16 +536,16 @@ class SearchScreenState extends State<SearchScreen> {
           });
         },
         leading: Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Color(0xFF2196F3).withOpacity(0.1),
+            color: const Color(0xFF2196F3).withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: Color(0xFF2196F3), size: 20),
+          child: Icon(icon, color: const Color(0xFF2196F3), size: 20),
         ),
         title: Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Color(0xFF2196F3),
@@ -554,7 +554,7 @@ class SearchScreenState extends State<SearchScreen> {
         ),
         children: [
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: filters
                   .map((filter) => _buildFilterRow(filter, classification))
@@ -574,23 +574,23 @@ class SearchScreenState extends State<SearchScreen> {
     return Container(
       key: filterKey,
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isAnimating
-              ? Color(0xFF2196F3).withOpacity(0.1)
+              ? const Color(0xFF2196F3).withOpacity(0.1)
               : Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isAnimating ? Color(0xFF2196F3) : Colors.grey[200]!,
+            color: isAnimating ? const Color(0xFF2196F3) : Colors.grey[200]!,
             width: isAnimating ? 2 : 1,
           ),
           boxShadow: isAnimating
               ? [
                   BoxShadow(
-                    color: Color(0xFF2196F3).withOpacity(0.3),
+                    color: const Color(0xFF2196F3).withOpacity(0.3),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
@@ -608,19 +608,19 @@ class SearchScreenState extends State<SearchScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: isAnimating ? Color(0xFF2196F3) : Colors.grey[800],
+                      color: isAnimating ? const Color(0xFF2196F3) : Colors.grey[800],
                     ),
                   ),
                 ),
                 if (isAnimating)
                   TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0.0, end: 1.0),
-                    duration: Duration(milliseconds: 400),
+                    duration: const Duration(milliseconds: 400),
                     curve: Curves.elasticOut,
                     builder: (context, value, child) {
                       return Transform.scale(
                         scale: 0.8 + (value * 0.2),
-                        child: Icon(
+                        child: const Icon(
                           Icons.check_circle,
                           color: Color(0xFF2196F3),
                           size: 24,
@@ -630,7 +630,7 @@ class SearchScreenState extends State<SearchScreen> {
                   ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             if (filter.fieldName == "zipCode")
               _buildZipCodeInput(filter)
             else if (filter.classification == CatClassification.breed)
@@ -664,10 +664,10 @@ class SearchScreenState extends State<SearchScreen> {
       final zipLength = _zipCodeController.text.length;
       if (_zipCodeIsValid == true && zipLength == 5) {
         // Show green check mark for valid ZIP
-        suffixIcon = Icon(Icons.check_circle, color: Colors.green, size: 24);
+        suffixIcon = const Icon(Icons.check_circle, color: Colors.green, size: 24);
       } else if (_zipCodeIsValid == false) {
         // Show red error circle for invalid ZIP (either invalid format or invalid code)
-        suffixIcon = Icon(Icons.cancel, color: Colors.red, size: 24);
+        suffixIcon = const Icon(Icons.cancel, color: Colors.red, size: 24);
       }
     }
 
@@ -684,7 +684,7 @@ class SearchScreenState extends State<SearchScreen> {
           borderSide: BorderSide(
             color: _zipCodeValidated && _zipCodeIsValid == false
                 ? Colors.red
-                : Color(0xFF2196F3).withOpacity(0.3),
+                : const Color(0xFF2196F3).withOpacity(0.3),
             width: _zipCodeValidated && _zipCodeIsValid == false ? 2 : 1,
           ),
         ),
@@ -693,7 +693,7 @@ class SearchScreenState extends State<SearchScreen> {
           borderSide: BorderSide(
             color: _zipCodeValidated && _zipCodeIsValid == false
                 ? Colors.red
-                : Color(0xFF2196F3).withOpacity(0.3),
+                : const Color(0xFF2196F3).withOpacity(0.3),
           ),
         ),
         focusedBorder: OutlineInputBorder(
@@ -701,17 +701,17 @@ class SearchScreenState extends State<SearchScreen> {
           borderSide: BorderSide(
             color: _zipCodeValidated && _zipCodeIsValid == false
                 ? Colors.red
-                : Color(0xFF2196F3),
+                : const Color(0xFF2196F3),
             width: 2,
           ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.red, width: 2),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.red, width: 2),
+          borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
         filled: true,
         fillColor: Colors.grey[50],
@@ -757,7 +757,7 @@ class SearchScreenState extends State<SearchScreen> {
       }
     }
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: () async {
@@ -775,21 +775,21 @@ class SearchScreenState extends State<SearchScreen> {
             });
           }
         },
-        icon: Icon(Icons.pets, color: Colors.white),
+        icon: const Icon(Icons.pets, color: Colors.white),
         label: Text(
           selectedBreedsText,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF2196F3),
+          backgroundColor: const Color(0xFF2196F3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           elevation: 2,
         ),
       ),
@@ -809,7 +809,7 @@ class SearchScreenState extends State<SearchScreen> {
         final isHighlighted = _highlightedOptions.containsKey(highlightKey);
 
         return AnimatedContainer(
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
           child: FilterChip(
             label: Text(option.displayName),
@@ -845,19 +845,19 @@ class SearchScreenState extends State<SearchScreen> {
               });
             },
             selectedColor: (isSelected || isHighlighted)
-                ? Color(0xFF2196F3).withOpacity(isHighlighted ? 0.5 : 0.2)
-                : Color(0xFF2196F3).withOpacity(0.2),
-            checkmarkColor: Color(0xFF2196F3),
+                ? const Color(0xFF2196F3).withOpacity(isHighlighted ? 0.5 : 0.2)
+                : const Color(0xFF2196F3).withOpacity(0.2),
+            checkmarkColor: const Color(0xFF2196F3),
             backgroundColor: Colors.white,
             side: BorderSide(
               color: (isSelected || isHighlighted)
-                  ? Color(0xFF2196F3)
+                  ? const Color(0xFF2196F3)
                   : Colors.grey[300]!,
               width:
                   (isSelected || isHighlighted) ? (isHighlighted ? 3 : 2) : 1,
             ),
             avatar: isHighlighted
-                ? Icon(Icons.check_circle, color: Color(0xFF2196F3), size: 18)
+                ? const Icon(Icons.check_circle, color: Color(0xFF2196F3), size: 18)
                 : null,
           ),
         );
@@ -897,28 +897,28 @@ class SearchScreenState extends State<SearchScreen> {
       }
 
       // Check if the current value is being highlighted
-      final highlightKey = '${filter.fieldName}:${currentValue}';
+      final highlightKey = '${filter.fieldName}:$currentValue';
       final isHighlighted = _highlightedOptions.containsKey(highlightKey) ||
           (currentValueStr != null &&
               _highlightedOptions
                   .containsKey('${filter.fieldName}:$currentValueStr'));
 
       return AnimatedContainer(
-        duration: Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        padding: EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           border: Border.all(
             color: isHighlighted
-                ? Color(0xFF2196F3)
-                : Color(0xFF2196F3).withOpacity(0.3),
+                ? const Color(0xFF2196F3)
+                : const Color(0xFF2196F3).withOpacity(0.3),
             width: isHighlighted ? 3 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
           boxShadow: isHighlighted
               ? [
                   BoxShadow(
-                    color: Color(0xFF2196F3).withOpacity(0.3),
+                    color: const Color(0xFF2196F3).withOpacity(0.3),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
@@ -939,14 +939,14 @@ class SearchScreenState extends State<SearchScreen> {
                 child: Row(
                   children: [
                     if (isOptionHighlighted)
-                      Icon(Icons.check_circle,
+                      const Icon(Icons.check_circle,
                           color: Color(0xFF2196F3), size: 18),
-                    if (isOptionHighlighted) SizedBox(width: 8),
+                    if (isOptionHighlighted) const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         option.displayName,
                         style: TextStyle(
-                          color: isOptionHighlighted ? Color(0xFF2196F3) : null,
+                          color: isOptionHighlighted ? const Color(0xFF2196F3) : null,
                           fontWeight: isOptionHighlighted
                               ? FontWeight.bold
                               : FontWeight.normal,
@@ -984,27 +984,27 @@ class SearchScreenState extends State<SearchScreen> {
       print('Error building dropdown for filter ${filter.name}: $e');
       // Return a simple text widget as fallback
       return Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.red.withOpacity(0.3)),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text('Error loading ${filter.name}',
-            style: TextStyle(color: Colors.red)),
+            style: const TextStyle(color: Colors.red)),
       );
     }
   }
 
   Widget _buildBottomButtons() {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
-            offset: Offset(0, -4),
+            offset: const Offset(0, -4),
           ),
         ],
       ),
@@ -1013,19 +1013,19 @@ class SearchScreenState extends State<SearchScreen> {
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () => saveSearch(),
-              icon: Icon(Icons.bookmark_outline, color: Color(0xFF2196F3)),
-              label: Text("Save Search",
+              icon: const Icon(Icons.bookmark_outline, color: Color(0xFF2196F3)),
+              label: const Text("Save Search",
                   style: TextStyle(color: Color(0xFF2196F3))),
               style: OutlinedButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                side: BorderSide(color: Color(0xFF2196F3)),
-                padding: EdgeInsets.symmetric(vertical: 16),
+                side: const BorderSide(color: Color(0xFF2196F3)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             flex: 2,
             child: ElevatedButton.icon(
@@ -1042,15 +1042,15 @@ class SearchScreenState extends State<SearchScreen> {
                   Navigator.pop(context, []);
                 }
               },
-              icon: Icon(Icons.search, color: Colors.white),
-              label: Text("Find Cats",
+              icon: const Icon(Icons.search, color: Colors.white),
+              label: const Text("Find Cats",
                   style: TextStyle(color: Colors.white, fontSize: 16)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF2196F3),
+                backgroundColor: const Color(0xFF2196F3),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
           ),
@@ -1064,7 +1064,7 @@ class SearchScreenState extends State<SearchScreen> {
 
     if (query.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please enter a search query'),
           backgroundColor: Colors.orange,
         ),
@@ -1076,7 +1076,7 @@ class SearchScreenState extends State<SearchScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Center(
+      builder: (context) => const Center(
         child: Card(
           child: Padding(
             padding: EdgeInsets.all(20),
@@ -1130,7 +1130,7 @@ class SearchScreenState extends State<SearchScreen> {
 
     if (query.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please enter a search query'),
           backgroundColor: Colors.orange,
         ),
@@ -1142,7 +1142,7 @@ class SearchScreenState extends State<SearchScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Center(
+      builder: (context) => const Center(
         child: Card(
           child: Padding(
             padding: EdgeInsets.all(20),
@@ -1232,7 +1232,7 @@ class SearchScreenState extends State<SearchScreen> {
 
     // Show confirmation message
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Row(
           children: [
             Icon(Icons.check_circle_outline, color: Colors.white),
@@ -1646,7 +1646,7 @@ class SearchScreenState extends State<SearchScreen> {
     // If navigating directly, skip animation and go straight to results
     if (navigateDirect) {
       await Future.delayed(
-          Duration(milliseconds: 100)); // Brief delay for UI update
+          const Duration(milliseconds: 100)); // Brief delay for UI update
 
       // Generate filters and navigate back
       try {
@@ -1670,7 +1670,7 @@ class SearchScreenState extends State<SearchScreen> {
       FocusScope.of(context).unfocus();
 
       // Small delay to let the UI update and keyboard close
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
 
       // Now start the animation
       await _animateFilterUpdates(filtersToUpdate, appliedFilters);
@@ -1679,8 +1679,8 @@ class SearchScreenState extends State<SearchScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('✓ Applied ${appliedFilters.length} filters'),
-          backgroundColor: Color(0xFF2196F3),
-          duration: Duration(seconds: 2),
+          backgroundColor: const Color(0xFF2196F3),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -2099,13 +2099,13 @@ class SearchScreenState extends State<SearchScreen> {
       SnackBar(
         content: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.white),
-            SizedBox(width: 8),
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
             Expanded(child: Text(message)),
           ],
         ),
         backgroundColor: Colors.red,
-        duration: Duration(seconds: 4),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -2123,13 +2123,13 @@ class SearchScreenState extends State<SearchScreen> {
       SnackBar(
         content: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.white),
-            SizedBox(width: 8),
+            const Icon(Icons.warning_amber_rounded, color: Colors.white),
+            const SizedBox(width: 8),
             Expanded(child: Text(message)),
           ],
         ),
         backgroundColor: Colors.orange,
-        duration: Duration(seconds: 3),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -2146,10 +2146,10 @@ class SearchScreenState extends State<SearchScreen> {
 
     print('🎬 Starting animation for ${filters.length} filters');
     HapticFeedback.mediumImpact();
-    final animationDuration = Duration(milliseconds: 800);
-    final staggerDelay = Duration(milliseconds: 400);
-    final scrollDuration = Duration(milliseconds: 500);
-    final expansionDelay = Duration(milliseconds: 400);
+    const animationDuration = Duration(milliseconds: 800);
+    const staggerDelay = Duration(milliseconds: 400);
+    const scrollDuration = Duration(milliseconds: 500);
+    const expansionDelay = Duration(milliseconds: 400);
 
     // Clear previous animations and highlights
     setState(() {
@@ -2158,7 +2158,7 @@ class SearchScreenState extends State<SearchScreen> {
     });
 
     // Wait a frame to ensure previous state is cleared
-    await Future.delayed(Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 50));
 
     // Animate each filter one by one
     for (int i = 0; i < filters.length; i++) {
@@ -2182,7 +2182,7 @@ class SearchScreenState extends State<SearchScreen> {
           alignment: 0.1, // Position category near top
         );
         await Future.delayed(
-            Duration(milliseconds: 150)); // Wait for scroll to settle
+            const Duration(milliseconds: 150)); // Wait for scroll to settle
         print('   ✅ Scrolled to category');
       } else {
         print('   ⚠️ Category key or context is null');
@@ -2199,7 +2199,7 @@ class SearchScreenState extends State<SearchScreen> {
         });
 
         // Wait a bit for the state update to take effect
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // Trigger another rebuild to ensure ExpansionTile gets the new state
         setState(() {
@@ -2222,7 +2222,7 @@ class SearchScreenState extends State<SearchScreen> {
           alignment: 0.2, // Position filter 20% from top
         );
         await Future.delayed(
-            Duration(milliseconds: 150)); // Wait for scroll to settle
+            const Duration(milliseconds: 150)); // Wait for scroll to settle
         print('   ✅ Scrolled to filter row');
       } else {
         print('   ⚠️ Filter row key or context is null');
@@ -2240,7 +2240,7 @@ class SearchScreenState extends State<SearchScreen> {
               '      List filter - chosen values: ${filter.choosenListValues}');
           if (filter.choosenListValues.isNotEmpty) {
             for (var value in filter.choosenListValues) {
-              final highlightKey = '${filterKey}:$value';
+              final highlightKey = '$filterKey:$value';
               _highlightedOptions[highlightKey] = true;
               print('      Highlighting option: $highlightKey');
             }
@@ -2255,17 +2255,17 @@ class SearchScreenState extends State<SearchScreen> {
                 (opt) =>
                     opt.search.toString() == filter.choosenValue.toString(),
               );
-              final highlightKey = '${filterKey}:${matchingOption.value}';
+              final highlightKey = '$filterKey:${matchingOption.value}';
               _highlightedOptions[highlightKey] = true;
               print(
                   '      Highlighting option: $highlightKey (value: ${matchingOption.value})');
 
               // Also add highlight for search value (for dropdown compatibility)
-              final searchHighlightKey = '${filterKey}:${filter.choosenValue}';
+              final searchHighlightKey = '$filterKey:${filter.choosenValue}';
               _highlightedOptions[searchHighlightKey] = true;
             } catch (e) {
               // If option not found, try direct value matching
-              final highlightKey = '${filterKey}:${filter.choosenValue}';
+              final highlightKey = '$filterKey:${filter.choosenValue}';
               _highlightedOptions[highlightKey] = true;
               print('      Highlighting option (fallback): $highlightKey');
             }
@@ -2288,7 +2288,7 @@ class SearchScreenState extends State<SearchScreen> {
         _highlightedOptions.clear();
       });
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       // Step 7: Remove filter row highlight (section stays expanded)
       setState(() {
@@ -2312,8 +2312,8 @@ class SearchScreenState extends State<SearchScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Color(0xFF2196F3),
-        duration: Duration(seconds: 3),
+        backgroundColor: const Color(0xFF2196F3),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -2327,8 +2327,8 @@ class SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Find Your Perfect Cat"),
-        backgroundColor: Color(0xFF2196F3),
+        title: const Text("Find Your Perfect Cat"),
+        backgroundColor: const Color(0xFF2196F3),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -2338,19 +2338,19 @@ class SearchScreenState extends State<SearchScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF2196F3).withOpacity(0.1),
+              const Color(0xFF2196F3).withOpacity(0.1),
               Colors.white,
             ],
           ),
         ),
         child: SingleChildScrollView(
           controller: _scrollController,
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               // Quick Search Section
               _buildQuickSearchCard(),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Filter Categories
               _buildFilterCategory(
@@ -2368,7 +2368,7 @@ class SearchScreenState extends State<SearchScreen> {
               _buildFilterCategory(
                   "Saved Searches", Icons.save_alt, CatClassification.saves),
 
-              SizedBox(height: 100), // Space for bottom buttons
+              const SizedBox(height: 100), // Space for bottom buttons
             ],
           ),
         ),
@@ -2427,12 +2427,7 @@ class SearchScreenState extends State<SearchScreen> {
                 fieldName: "animals.updatedDate",
                 operation: "greaterthan",
                 criteria: [
-                  date.year.toString() +
-                      "-" +
-                      date.month.toString() +
-                      "-" +
-                      date.day.toString() +
-                      "T00:00:00Z"
+                  "${date.year}-${date.month}-${date.day}T00:00:00Z"
                 ]));
           } else {
             updatedSince = 4;

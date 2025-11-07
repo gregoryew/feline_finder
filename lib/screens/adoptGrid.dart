@@ -65,13 +65,13 @@ class AdoptGridState extends State<AdoptGrid> {
 
     // Set the API key immediately during initialization
     RescueGroupApi = AppConfig.rescueGroupsApiKey;
-    print("RescueGroupApi set during initState: '${RescueGroupApi}'");
+    print("RescueGroupApi set during initState: '$RescueGroupApi'");
 
     () async {
       try {
         String user = await server.getUser();
         favorites = await server.getFavorites(user);
-        var _zip = await _getZip();
+        var zip = await _getZip();
         // Temporarily hardcode the API key to test pet search functionality
         print("Using hardcoded API key for testing");
 
@@ -80,9 +80,9 @@ class AdoptGridState extends State<AdoptGrid> {
           widget.setFav!(main.favoritesSelected);
           globals.listOfFavorites = favorites;
           userID = user;
-          server.zip = _zip;
+          server.zip = zip;
           RescueGroupApi = AppConfig.rescueGroupsApiKey;
-          print("RescueGroupApi after assignment: '${RescueGroupApi}'");
+          print("RescueGroupApi after assignment: '$RescueGroupApi'");
           getPets();
         });
       } catch (e) {
@@ -104,15 +104,15 @@ class AdoptGridState extends State<AdoptGrid> {
     String? zipCode = "";
     if (prefs.containsKey('zipCode')) {
       print("got zipCode");
-      var _zip = prefs.getString('zipCode') ?? "";
+      var zip = prefs.getString('zipCode') ?? "";
       setState(() {
-        zipCode = _zip;
+        zipCode = zip;
       });
     }
     if (zipCode!.isEmpty) {
-      var _zip = await _getGPSZip();
+      var zip = await _getGPSZip();
       setState(() {
-        zipCode = _zip;
+        zipCode = zip;
         prefs.setString("zipCode", zipCode!);
       });
     }
@@ -123,7 +123,7 @@ class AdoptGridState extends State<AdoptGrid> {
       }
       prefs.setString("zipCode", zipCode!);
     }
-    print("%%%%%%%%% ZIP CODE = " + zipCode!);
+    print("%%%%%%%%% ZIP CODE = ${zipCode!}");
     return zipCode!;
   }
 
@@ -182,7 +182,7 @@ class AdoptGridState extends State<AdoptGrid> {
     }
 
     Position position = await Geolocator.getCurrentPosition(
-        locationSettings: LocationSettings(
+        locationSettings: const LocationSettings(
       accuracy: LocationAccuracy.high,
     ));
 
@@ -211,7 +211,7 @@ class AdoptGridState extends State<AdoptGrid> {
 
   void recommendations() async {
     await Get.to(() => CatRecommendationScreen(),
-        transition: Transition.fadeIn, duration: Duration(seconds: 1));
+        transition: Transition.fadeIn, duration: const Duration(seconds: 1));
   }
 
   Map<CatClassification, List<filterOption>> _buildCategories() {
@@ -298,7 +298,7 @@ class AdoptGridState extends State<AdoptGrid> {
     var url =
         "https://api.rescuegroups.org/v5/public/animals/search/available?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status&sort=$sortMethod&limit=25&page=$currentPage";
 
-    print("&&&&&& zip = " + server.zip);
+    print("&&&&&& zip = ${server.zip}");
 
     if (main.favoritesSelected) {
       filters = [
@@ -340,13 +340,13 @@ class AdoptGridState extends State<AdoptGrid> {
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
-    print("RescueGroupApi value: '${RescueGroupApi}'");
+    print("RescueGroupApi value: '$RescueGroupApi'");
     print("RescueGroupApi is null: ${RescueGroupApi == null}");
     print("RescueGroupApi is empty: ${RescueGroupApi?.isEmpty ?? true}");
     print("Zip code: '${server.zip}'");
     print("Distance: ${globals.distance}");
     print("Filters count: ${filters.length}");
-    print("Filters: ${filtersJson}");
+    print("Filters: $filtersJson");
     print("Request body: ${json.encode(data2.toJson())}");
 
     // Print curl command for debugging
@@ -357,7 +357,7 @@ class AdoptGridState extends State<AdoptGrid> {
     final curlUrl = url.replaceAll('[', '%5B').replaceAll(']', '%5D');
     final curlCommand = "curl -X POST '$curlUrl' \\\n"
         "  -H 'Content-Type: application/json; charset=UTF-8' \\\n"
-        "  -H 'Authorization: ${RescueGroupApi}' \\\n"
+        "  -H 'Authorization: $RescueGroupApi' \\\n"
         "  -d '$escapedBody'";
 
     print("\n\n\n\n\n");
@@ -371,11 +371,11 @@ class AdoptGridState extends State<AdoptGrid> {
     var response = await http.post(Uri.parse(encodedUrl),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': '${RescueGroupApi}',
+          'Authorization': '$RescueGroupApi',
         },
         body: json.encode(data2.toJson()));
 
-    print("API Key being sent: ${RescueGroupApi}");
+    print("API Key being sent: $RescueGroupApi");
     print("Response status: ${response.statusCode}");
     print("Response headers: ${response.headers}");
 
@@ -429,7 +429,7 @@ class AdoptGridState extends State<AdoptGrid> {
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
-      throw Exception('Failed to load pet ' + response.body);
+      throw Exception('Failed to load pet ${response.body}');
     }
   }
 
@@ -441,16 +441,16 @@ class AdoptGridState extends State<AdoptGrid> {
   }
 
   Future<void> askForZip() async {
-    late String? _zip;
-    late bool? valid = null; // Initialize as null instead of false
+    late String? zip;
+    bool? valid; // Initialize as null instead of false
     late bool canceled = false;
     do {
-      _zip = await openDialog();
-      if (_zip != null && _zip.isNotEmpty) {
-        var _valid = await server.isZipCodeValid(_zip);
-        print("ZIP validation result for $_zip: $_valid");
+      zip = await openDialog();
+      if (zip != null && zip.isNotEmpty) {
+        var valid0 = await server.isZipCodeValid(zip);
+        print("ZIP validation result for $zip: $valid0");
         setState(() {
-          valid = _valid;
+          valid = valid0;
         });
       }
       if (valid == false) {
@@ -459,8 +459,8 @@ class AdoptGridState extends State<AdoptGrid> {
             title: "Invalid Zip Code",
             middleText: "Please enter a valid zip code.",
             backgroundColor: Colors.red,
-            titleStyle: TextStyle(color: Colors.white),
-            middleTextStyle: TextStyle(color: Colors.white),
+            titleStyle: const TextStyle(color: Colors.white),
+            middleTextStyle: const TextStyle(color: Colors.white),
             textConfirm: "OK",
             confirmTextColor: Colors.white,
             onConfirm: () {
@@ -483,10 +483,10 @@ class AdoptGridState extends State<AdoptGrid> {
 
     if (canceled == false) {
       setState(() {
-        server.zip = _zip!;
+        server.zip = zip!;
       });
       SharedPreferences prefs = await _prefs;
-      prefs.setString("zipCode", _zip!);
+      prefs.setString("zipCode", zip!);
       setState(() {
         tiles = [];
         loadedPets = 0;
@@ -519,11 +519,11 @@ class AdoptGridState extends State<AdoptGrid> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
-                  child: Text("Zip: ${server.zip}"),
                   style: ElevatedButton.styleFrom(
                       minimumSize: const Size(130, 25),
                       maximumSize: const Size(130, 25)),
-                  onPressed: () => {askForZip()}),
+                  onPressed: () => {askForZip()},
+                  child: Text("Zip: ${server.zip}")),
               Text(status),
             ],
           ),
@@ -568,7 +568,7 @@ class AdoptGridState extends State<AdoptGrid> {
       BuildContext context, int index) async {
     final countOfFavorites = globals.listOfFavorites.length;
     await Get.to(() => petDetail(tiles[index].id!),
-        transition: Transition.circularReveal, duration: Duration(seconds: 1));
+        transition: Transition.circularReveal, duration: const Duration(seconds: 1));
 
     if (userID != null) {
       favorites = await server.getFavorites(userID!);
@@ -591,11 +591,11 @@ class AdoptGridState extends State<AdoptGrid> {
             20,
           ),
         ),
-        margin: EdgeInsets.all(5),
+        margin: const EdgeInsets.all(5),
         child: MediaQuery.removePadding(
             context: context,
             removeTop: true,
-            child: Container(
+            child: SizedBox(
               height: (tile.smallPictureResolutionY == 0
                       ? 100
                       : tile.smallPictureResolutionY!) +
@@ -607,7 +607,7 @@ class AdoptGridState extends State<AdoptGrid> {
                 children: [
                   Expanded(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.only(
+                      borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(
                           10,
                         ),
@@ -636,13 +636,13 @@ class AdoptGridState extends State<AdoptGrid> {
                         child: Stack(
                           children: [
                             Align(
-                                alignment: Alignment(-0.9, -0.9),
+                                alignment: const Alignment(-0.9, -0.9),
                                 child: Visibility(
                                     visible: favorites.contains(tile.id),
                                     child: Image.asset(
                                         "assets/Icons/favorited_icon_resized.png"))),
                             Align(
-                                alignment: Alignment(0.9, -0.9),
+                                alignment: const Alignment(0.9, -0.9),
                                 child: Visibility(
                                     visible: tile.hasVideos!,
                                     child: Image.asset(
@@ -660,7 +660,7 @@ class AdoptGridState extends State<AdoptGrid> {
                   Container(
                     //height: 130,
                     padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(20.0),
@@ -674,28 +674,28 @@ class AdoptGridState extends State<AdoptGrid> {
                           child: Text(
                             tile.name ?? "No Name",
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
                           ),
                         ),
-                        SizedBox(
+                        const SizedBox(
                           height: 5,
                         ),
                         Center(
                           child: Text(
                             tile.primaryBreed ?? "",
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.w500,
                               fontSize: 12,
                             ),
                           ),
                         ),
-                        SizedBox(
+                        const SizedBox(
                           height: 10,
                         ),
                         getStats(tile)
@@ -722,7 +722,7 @@ class AdoptGridState extends State<AdoptGrid> {
       stats.add(tile.size ?? "");
     }
     if (tile.cityState != null) {
-      stats.add("📌" + (tile.cityState ?? "Unknown"));
+      stats.add("📌${tile.cityState ?? "Unknown"}");
     }
     List<Color> foreground = [
       const Color.fromRGBO(101, 164, 43, 1),

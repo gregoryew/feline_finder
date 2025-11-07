@@ -121,7 +121,7 @@ class _BreedList extends State<BreedList> {
                                     breed: widget.letters[
                                         widget.keys[subSubMenuIndex]][index]),
                                 transition: Transition.circularReveal,
-                                duration: Duration(seconds: 1))
+                                duration: const Duration(seconds: 1))
                           },
                           child: Card(
                             elevation: 5,

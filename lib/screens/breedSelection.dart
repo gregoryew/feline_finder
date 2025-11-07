@@ -56,8 +56,8 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Select Breeds"),
-        backgroundColor: Color(0xFF2196F3),
+        title: const Text("Select Breeds"),
+        backgroundColor: const Color(0xFF2196F3),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -65,7 +65,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
             onPressed: () {
               Navigator.pop(context, selectedBreeds);
             },
-            child: Text(
+            child: const Text(
               "Done",
               style: TextStyle(
                 color: Colors.white,
@@ -82,7 +82,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF2196F3).withValues(alpha: 0.1),
+              const Color(0xFF2196F3).withValues(alpha: 0.1),
               Colors.white,
             ],
           ),
@@ -91,8 +91,8 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
           children: [
             // Selection summary
             Container(
-              margin: EdgeInsets.all(16),
-              padding: EdgeInsets.all(16),
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -100,24 +100,24 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.pets,
                     color: Color(0xFF2196F3),
                     size: 24,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       anySelected
                           ? "Any breed selected"
                           : "${selectedBreeds.length} breed${selectedBreeds.length == 1 ? '' : 's'} selected",
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF2196F3),
@@ -132,7 +132,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                           selectedBreeds = [0];
                         });
                       },
-                      child: Text("Clear All"),
+                      child: const Text("Clear All"),
                     ),
                 ],
               ),
@@ -141,7 +141,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
             // Breeds list
             Expanded(
               child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: breeds.length + 1, // +1 for "Any" option
                 itemBuilder: (context, index) {
                   if (index == 0) {
@@ -163,26 +163,26 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
 
   Widget _buildAnyOption() {
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _toggleBreed(0),
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: anySelected ? Color(0xFF2196F3) : Colors.white,
+              color: anySelected ? const Color(0xFF2196F3) : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: anySelected ? Color(0xFF2196F3) : Colors.grey[300]!,
+                color: anySelected ? const Color(0xFF2196F3) : Colors.grey[300]!,
                 width: anySelected ? 2 : 1,
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -195,16 +195,16 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                   decoration: BoxDecoration(
                     color: anySelected
                         ? Colors.white
-                        : Color(0xFF2196F3).withValues(alpha: 0.1),
+                        : const Color(0xFF2196F3).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.all_inclusive,
-                    color: anySelected ? Color(0xFF2196F3) : Color(0xFF2196F3),
+                    color: anySelected ? const Color(0xFF2196F3) : const Color(0xFF2196F3),
                     size: 32,
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +217,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                           color: anySelected ? Colors.white : Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         "Show all breeds",
                         style: TextStyle(
@@ -230,7 +230,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                   ),
                 ),
                 if (anySelected)
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: Colors.white,
                     size: 24,
@@ -247,28 +247,28 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
     bool isSelected = selectedBreeds.contains(breed.rid);
 
     return Container(
-      margin: EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _toggleBreed(breed.rid),
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: isSelected
-                  ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                  ? const Color(0xFF2196F3).withValues(alpha: 0.1)
                   : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? Color(0xFF2196F3) : Colors.grey[300]!,
+                color: isSelected ? const Color(0xFF2196F3) : Colors.grey[300]!,
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
-                  offset: Offset(0, 2),
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -297,7 +297,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,14 +308,14 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color:
-                              isSelected ? Color(0xFF2196F3) : Colors.black87,
+                              isSelected ? const Color(0xFF2196F3) : Colors.black87,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (isSelected)
-                  Icon(
+                  const Icon(
                     Icons.check_circle,
                     color: Color(0xFF2196F3),
                     size: 20,

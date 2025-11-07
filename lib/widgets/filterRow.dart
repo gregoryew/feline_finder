@@ -82,7 +82,7 @@ class _FilterRow extends State<FilterRow> {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(widget.filter.name), flex: 1),
+        Expanded(flex: 1, child: Text(widget.filter.name)),
         Expanded(
           flex: 2,
           child: Wrap(
@@ -122,12 +122,21 @@ class _FilterRow extends State<FilterRow> {
                                 widget.filter.choosenValue = item.search;
                               }
                             }
-                            ;
                           },
                         ),
                       },
                   },
                   child: Container(
+                      height: 40,
+                      width: ((widget.filter.classification == CatClassification.breed ||
+                              widget.filter.classification == CatClassification.saves)
+                          ? 210
+                          : 105),
+                      //padding: const EdgeInsets.only(left: 5, right: 5),
+                      decoration: BoxDecoration(
+                          border: Border.all(color: Colors.black),
+                          color: shouldSelect(item) ? Colors.blue : Colors.blueGrey[100],
+                          borderRadius: const BorderRadius.all(Radius.circular(5))),
                       child: Row(
                         children: <Widget>[
                           Expanded(
@@ -174,17 +183,7 @@ class _FilterRow extends State<FilterRow> {
                             ),
                           ),
                         ],
-                      ),
-                      height: 40,
-                      width: ((widget.filter.classification == CatClassification.breed ||
-                              widget.filter.classification == CatClassification.saves)
-                          ? 210
-                          : 105),
-                      //padding: const EdgeInsets.only(left: 5, right: 5),
-                      decoration: BoxDecoration(
-                          border: Border.all(color: Colors.black),
-                          color: shouldSelect(item) ? Colors.blue : Colors.blueGrey[100],
-                          borderRadius: const BorderRadius.all(Radius.circular(5)))),
+                      )),
                 );
               },
             ).toList(),

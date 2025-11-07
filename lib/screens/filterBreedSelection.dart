@@ -42,11 +42,11 @@ class FilterBreedSelectionState extends State<FilterBreedSelection> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: Text("Select Breeds"),
+          title: const Text("Select Breeds"),
           automaticallyImplyLeading: false,
           actions: [
             IconButton(
-              icon: Icon(Icons.delete),
+              icon: const Icon(Icons.delete),
               onPressed: () {
                 setState(() {
                   _selected = List<bool>.filled(breeds.length, false);
@@ -64,7 +64,7 @@ class FilterBreedSelectionState extends State<FilterBreedSelection> {
             Expanded(
               child: TextButton.icon(
                 style: TextButton.styleFrom(
-                  textStyle: TextStyle(color: Color.fromRGBO(255, 255, 255, 1)),
+                  textStyle: const TextStyle(color: Color.fromRGBO(255, 255, 255, 1)),
                   backgroundColor: Colors.green,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.0),

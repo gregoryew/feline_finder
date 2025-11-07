@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/organization_verification_service.dart';
-import '../models/organization.dart';
 import 'organizationSetupConfirmation.dart';
 import 'errorPage.dart';
 

@@ -11,6 +11,8 @@ class Recommendation {
 }
 
 class CatRecommendationScreen extends StatefulWidget {
+  const CatRecommendationScreen({Key? key}) : super(key: key);
+
   @override
   _CatRecommendationScreenState createState() =>
       _CatRecommendationScreenState();
@@ -21,7 +23,7 @@ class _CatRecommendationScreenState extends State<CatRecommendationScreen> {
   bool _isLoading = true; // Simulate loading data
   bool _notEnoughData = false; // Simulate not enough data
 
-  List<Recommendation> _recommendations = List.generate(100, (index) {
+  final List<Recommendation> _recommendations = List.generate(100, (index) {
     return Recommendation(
       catId: index,
       catName: 'Cat Name $index',
@@ -41,7 +43,7 @@ class _CatRecommendationScreenState extends State<CatRecommendationScreen> {
   void initState() {
     super.initState();
     // Simulate loading data
-    Future.delayed(Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () {
       setState(() {
         _isLoading = false;
       });
@@ -60,13 +62,13 @@ class _CatRecommendationScreenState extends State<CatRecommendationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cat Recommendations'),
+        title: const Text('Cat Recommendations'),
         actions: [
           IconButton(
             icon: Icon(
               Icons.thumb_up_alt_outlined,
               color: _selectedChoice == 'A'
-                  ? Color.fromARGB(255, 23, 206, 32)
+                  ? const Color.fromARGB(255, 23, 206, 32)
                   : Colors.grey,
             ),
             onPressed: () {
@@ -89,12 +91,12 @@ class _CatRecommendationScreenState extends State<CatRecommendationScreen> {
         ],
       ),
       body: _isLoading
-          ? Center(
+          ? const Center(
               child:
                   CircularProgressIndicator()) // Display spinner while loading data
           : _notEnoughData
-              ? Padding(
-                  padding: const EdgeInsets.all(16.0),
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -129,7 +131,7 @@ class _CatRecommendationScreenState extends State<CatRecommendationScreen> {
                           child: Row(
                             children: [
                               Container(
-                                padding: EdgeInsets.all(8.0),
+                                padding: const EdgeInsets.all(8.0),
                                 child: Image.network(
                                   recommendation.catPhotoUrl ?? "",
                                   width: 100,
@@ -142,7 +144,7 @@ class _CatRecommendationScreenState extends State<CatRecommendationScreen> {
                                 children: [
                                   Text(
                                     '${index + 1}.',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,
                                     ),
@@ -151,11 +153,11 @@ class _CatRecommendationScreenState extends State<CatRecommendationScreen> {
                                   Text(
                                     recommendation.catName ?? "",
                                     style:
-                                        TextStyle(fontWeight: FontWeight.bold),
+                                        const TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
-                              Spacer(),
+                              const Spacer(),
                               Row(
                                 children: [
                                   IconButton(

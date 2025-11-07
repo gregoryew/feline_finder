@@ -17,18 +17,18 @@ class PortalUserService {
       _userID = (prefs.getString('uuid') ?? "");
     } else {
       print("created userid");
-      var _userID = FirebaseAuth.instance.currentUser?.uid ?? "";
-      prefs.setString("uuid", _userID);
-      createUser(_userID, "portal_user", "portal_password");
+      var userID = FirebaseAuth.instance.currentUser?.uid ?? "";
+      prefs.setString("uuid", userID);
+      createUser(userID, "portal_user", "portal_password");
     }
     return _userID;
   }
 
   void createUser(String userID, String userName, String password) async {
     // Use shelter_people collection for portal users
-    final CollectionReference _users =
+    final CollectionReference users =
         FirebaseFirestore.instance.collection("shelter_people");
-    await _users.add({
+    await users.add({
       "UID": userID,
       "Created": DateTime.now(),
       "LastLoggedIn": DateTime.now(),

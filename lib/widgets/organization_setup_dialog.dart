@@ -205,6 +205,14 @@ class _OrganizationSetupDialogState extends State<OrganizationSetupDialog> {
                           : () async {
                               await _savePreferences();
                             },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: Theme.of(context).primaryColor,
+                        disabledBackgroundColor: Colors.grey[300],
+                      ),
                       child: _isSaving
                           ? SizedBox(
                               height: 20,
@@ -223,14 +231,6 @@ class _OrganizationSetupDialogState extends State<OrganizationSetupDialog> {
                                 color: Colors.white,
                               ),
                             ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        backgroundColor: Theme.of(context).primaryColor,
-                        disabledBackgroundColor: Colors.grey[300],
-                      ),
                     ),
                   ),
                 ],
@@ -245,7 +245,7 @@ class _OrganizationSetupDialogState extends State<OrganizationSetupDialog> {
   Future<void> _savePreferences() async {
     if (_inPerson == null && _webMeeting == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please select at least one appointment type'),
           backgroundColor: Colors.orange,
         ),
@@ -271,7 +271,7 @@ class _OrganizationSetupDialogState extends State<OrganizationSetupDialog> {
       if (mounted) {
         Navigator.of(context).pop(true); // Return true to indicate success
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Organization setup completed successfully!'),
             backgroundColor: Colors.green,
           ),

@@ -527,7 +527,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
         const SizedBox(height: 12),
         ListView.builder(
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: getAvailableTimeSlots().length,
           itemBuilder: (context, index) {
             final timeSlot = getAvailableTimeSlots()[index];
@@ -582,7 +582,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                       ),
                       if (isSelected) ...[
                         const Spacer(),
-                        Icon(
+                        const Icon(
                           Icons.check_circle,
                           color: Colors.white,
                           size: 22,
@@ -1082,7 +1082,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
 
   /// Create email body for suggestion
   String _createSuggestionEmailBody() {
-    final portalUrl = 'https://feline-finder-org-portal.web.app';
+    const portalUrl = 'https://feline-finder-org-portal.web.app';
     final dateStr = DateFormat('EEEE, MMMM d, yyyy').format(selectedDate);
     final timeStr = selectedTimeSlot ?? 'Not specified';
 
@@ -1211,7 +1211,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
         ),
         padding: const EdgeInsets.all(24),
         child: _isLoadingUserData
-            ? Center(
+            ? const Center(
                 child: CircularProgressIndicator(),
               )
             : Form(
@@ -1326,7 +1326,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                         decoration: InputDecoration(
                           labelText: 'Name',
                           hintText: 'Enter your full name',
-                          prefixIcon: Icon(Icons.person),
+                          prefixIcon: const Icon(Icons.person),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1359,7 +1359,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                         decoration: InputDecoration(
                           labelText: 'Email',
                           hintText: 'Enter your email address',
-                          prefixIcon: Icon(Icons.email),
+                          prefixIcon: const Icon(Icons.email),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1396,7 +1396,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                         decoration: InputDecoration(
                           labelText: 'Phone (Optional)',
                           hintText: 'Enter your phone number',
-                          prefixIcon: Icon(Icons.phone),
+                          prefixIcon: const Icon(Icons.phone),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1449,9 +1449,9 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
 
                       // Organization State UI
                       if (_organizationState == OrganizationState.loading)
-                        Center(
+                        const Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: EdgeInsets.all(16.0),
                             child: CircularProgressIndicator(),
                           ),
                         )
@@ -1544,7 +1544,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                         const SizedBox(height: 12),
                         ListView.builder(
                           shrinkWrap: true,
-                          physics: NeverScrollableScrollPhysics(),
+                          physics: const NeverScrollableScrollPhysics(),
                           itemCount: availableSlots.length,
                           itemBuilder: (context, index) {
                             final timeSlot = availableSlots[index];
@@ -1602,7 +1602,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                                       ),
                                       if (isSelected) ...[
                                         const Spacer(),
-                                        Icon(
+                                        const Icon(
                                           Icons.check_circle,
                                           color: Colors.white,
                                           size: 22,
@@ -1720,6 +1720,15 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                                         });
                                       }
                                     },
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                backgroundColor: Theme.of(context).primaryColor,
+                                disabledBackgroundColor: Colors.grey[300],
+                              ),
                               child: _isSubmitting
                                   ? SizedBox(
                                       height: 20,
@@ -1743,15 +1752,6 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                                         color: Colors.white,
                                       ),
                                     ),
-                              style: ElevatedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                backgroundColor: Theme.of(context).primaryColor,
-                                disabledBackgroundColor: Colors.grey[300],
-                              ),
                             ),
                           ),
                         ],

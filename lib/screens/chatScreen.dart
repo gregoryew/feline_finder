@@ -7,18 +7,18 @@ class ChatScreen extends StatefulWidget {
   final String catName;
   final String shelterName;
 
-  ChatScreen(
-      {required this.currentUser,
+  const ChatScreen(
+      {Key? key, required this.currentUser,
       required this.otherUser,
       required this.catName,
-      required this.shelterName});
+      required this.shelterName}) : super(key: key);
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  TextEditingController _messageController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
   final List<Map<String, dynamic>> _messages = []; // List to store messages
 
   @override
@@ -44,13 +44,12 @@ class _ChatScreenState extends State<ChatScreen> {
         message['timestamp']; // Replace with your message timestamp
     DateTime messageDate = DateTime.now();
     bool isFirstMessage = true;
-    if (_messages.length > 0 && timestamp is DateTime) {
+    if (_messages.isNotEmpty && timestamp is DateTime) {
       messageDate = message['timestamp']; // Replace with your message timestamp
       isFirstMessage = index == 0 ||
           messageDate.day !=
               (_messages[index - 1]['timestamp'] as DateTime?)?.day;
     }
-    ;
 
     return Column(
       children: [
@@ -59,7 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Text(
               DateFormat('MMM d yyyy')
                   .format(messageDate), // Format this date as "MMM D YYYY"
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         MessageBubble(
@@ -76,24 +75,24 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            CircleAvatar(
+            const CircleAvatar(
               radius: 20,
               backgroundImage: AssetImage('assets/Cartoon/Devon_Rex.png'),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "⚪ ${widget.otherUser}",
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   '${widget.catName} - ${widget.shelterName}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -103,7 +102,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -120,13 +119,13 @@ class _ChatScreenState extends State<ChatScreen> {
           Row(
             children: [
               IconButton(
-                icon: Icon(Icons.photo),
+                icon: const Icon(Icons.photo),
                 onPressed: () {
                   // Handle photo sending
                 },
               ),
               IconButton(
-                icon: Icon(Icons.attach_file),
+                icon: const Icon(Icons.attach_file),
                 onPressed: () {
                   // Handle file attaching
                 },
@@ -141,19 +140,19 @@ class _ChatScreenState extends State<ChatScreen> {
                     children: [
                       Expanded(
                         child: Padding(
-                          padding: EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.only(left: 8),
                           child: TextField(
                             controller: _messageController,
                             maxLines: null,
                             keyboardType: TextInputType.multiline,
-                            decoration: InputDecoration.collapsed(
+                            decoration: const InputDecoration.collapsed(
                               hintText: 'Type a message...',
                             ),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.send),
+                        icon: const Icon(Icons.send),
                         onPressed: () {
                           final messageText = _messageController.text;
                           if (messageText.isNotEmpty) {
@@ -177,22 +176,22 @@ class MessageBubble extends StatelessWidget {
   final String message;
   final bool isCurrentUser;
 
-  MessageBubble({required this.message, required this.isCurrentUser});
+  const MessageBubble({Key? key, required this.message, required this.isCurrentUser}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        padding: EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isCurrentUser ? Colors.blue : Colors.grey,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           message,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
           ),

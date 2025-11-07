@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'chatScreen.dart';
 
 class ConversationListScreen extends StatelessWidget {
+  const ConversationListScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Conversations')),
+      appBar: AppBar(title: const Text('Conversations')),
       body: ListView.builder(
         itemCount: 10, // Replace with actual number of conversations
         itemBuilder: (context, index) {
@@ -41,11 +43,11 @@ class ConversationCard extends StatelessWidget {
     'assets/Cartoon/Devon_Rex.png'
   ];
 
-  ConversationCard({
+  ConversationCard({Key? key, 
     required this.senderName,
     required this.latestMessage,
     required this.isCurrentUserTurn,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -68,9 +70,9 @@ class ConversationCard extends StatelessWidget {
           );
         },
         child: Card(
-          margin: EdgeInsets.all(8),
+          margin: const EdgeInsets.all(8),
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
@@ -86,19 +88,19 @@ class ConversationCard extends StatelessWidget {
                           height: 50,
                           width: 50)),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         senderName,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         latestMessage,
                         maxLines: 2,
@@ -109,14 +111,14 @@ class ConversationCard extends StatelessWidget {
                 ),
                 if (isCurrentUserTurn)
                   Container(
-                    margin: EdgeInsets.only(
+                    margin: const EdgeInsets.only(
                         left: 12), // Add margin around the "Your Turn" badge
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Your Turn',
                       style: TextStyle(color: Colors.white, fontSize: 11),
                     ),

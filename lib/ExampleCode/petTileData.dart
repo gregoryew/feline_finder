@@ -83,7 +83,9 @@ class PetTileData {
   List<Included> findAllOfACertainType(petDatum pet, List<Included> included,
       String includeType, IncludedType type) {
     if (pet.relationships![includeType] == null ||
-        pet.relationships![includeType]!.data == null) return [];
+        pet.relationships![includeType]!.data == null) {
+      return [];
+    }
     final includedData = pet.relationships![includeType]!.data!;
     final includeds = included.where((l) => l.type == type).toList();
     List<Included> includedList = [];

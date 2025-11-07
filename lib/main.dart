@@ -21,7 +21,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Add a small delay to prevent Firestore lock errors
-  await Future.delayed(Duration(milliseconds: 500));
+  await Future.delayed(const Duration(milliseconds: 500));
 
   try {
     await Firebase.initializeApp(
@@ -114,12 +114,12 @@ class _SplashPageState extends State<SplashPage> {
       theme: ThemeData(
         fontFamily: 'Poppins',
         primarySwatch: Colors.blue,
-        primaryColor: Color(0xFF2196F3),
+        primaryColor: const Color(0xFF2196F3),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(0xFF2196F3),
+          seedColor: const Color(0xFF2196F3),
           brightness: Brightness.light,
         ),
-        appBarTheme: AppBarTheme(
+        appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
@@ -139,7 +139,7 @@ class _SplashPageState extends State<SplashPage> {
         ),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: Colors.white,
-          selectedItemColor: Color(0xFF2196F3),
+          selectedItemColor: const Color(0xFF2196F3),
           unselectedItemColor: Colors.grey[400],
           type: BottomNavigationBarType.fixed,
           elevation: 8,
@@ -189,7 +189,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     super.initState();
     // Initialize sparkle animation
     _sparkleController = AnimationController(
-      duration: Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
     _sparkleAnimation = Tween<double>(
@@ -208,8 +208,8 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   static List<Widget> pages = <Widget>[
-    AdoptGrid(), // Index 0 - Adopt a cat (first tab)
-    Fit(), // Index 1 - Fit (second tab)
+    const AdoptGrid(), // Index 0 - Adopt a cat (first tab)
+    const Fit(), // Index 1 - Fit (second tab)
     BreedList(title: "Breed List"), // Index 2 - Breed info (third tab)
     ConversationListScreen() // Index 3 - Chat (fourth tab)
   ];
@@ -229,21 +229,21 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
             onTap: () {
               AdoptionGridKey.currentState!.recommendations();
             },
-            child: Icon(
+            child: const Icon(
               Icons.thumb_up_alt_rounded,
               size: 40,
             )),
         const SizedBox(width: 10, height: 30),
         GestureDetector(
             onTap: () {
-              var _favoritesSelected = (favoritesSelected) ? false : true;
-              AdoptionGridKey.currentState!.setFavorites(_favoritesSelected);
+              var favoritesSelected = (favoritesSelected) ? false : true;
+              AdoptionGridKey.currentState!.setFavorites(favoritesSelected);
               setState(() {
-                favoritesSelected = _favoritesSelected;
+                favoritesSelected = favoritesSelected;
               });
 
               // Trigger sparkle animation when favorited
-              if (_favoritesSelected) {
+              if (favoritesSelected) {
                 _sparkleController.reset();
                 _sparkleController.forward();
               }
@@ -264,7 +264,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         scale: _sparkleAnimation.value,
                         child: Opacity(
                           opacity: 1.0 - _sparkleAnimation.value,
-                          child: Icon(
+                          child: const Icon(
                             Icons.auto_awesome,
                             color: Colors.yellow,
                             size: 20,
@@ -324,7 +324,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     AdoptionGridKey = GlobalObjectKey<AdoptGridState>(context);
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -340,11 +340,11 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               // Custom App Bar with gradient
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       "Feline Finder",
                       style: TextStyle(
                         fontFamily: 'Poppins',
@@ -369,7 +369,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
               // Main content
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(24),
@@ -384,7 +384,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.only(
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
                     ),
@@ -400,7 +400,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           boxShadow: [
             BoxShadow(
               color: Colors.black12,
@@ -410,7 +410,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.only(
+          borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
           ),
@@ -418,7 +418,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
             unselectedItemColor: Colors.grey[400],
             showUnselectedLabels: true,
             showSelectedLabels: true,
-            selectedItemColor: Color(0xFF2196F3),
+            selectedItemColor: const Color(0xFF2196F3),
             backgroundColor: Colors.white,
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
@@ -428,10 +428,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
               BottomNavigationBarItem(
                 backgroundColor: Colors.white,
                 icon: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _selectedIndex == 0
-                        ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                        ? const Color(0xFF2196F3).withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -440,7 +440,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         ? "assets/Icons/adopt_selected.png"
                         : "assets/Icons/adopt_unselected.png"),
                     color: (_selectedIndex == 0
-                        ? Color(0xFF2196F3)
+                        ? const Color(0xFF2196F3)
                         : Colors.grey[400]),
                     size: 24,
                   ),
@@ -450,10 +450,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
               BottomNavigationBarItem(
                 backgroundColor: Colors.white,
                 icon: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _selectedIndex == 1
-                        ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                        ? const Color(0xFF2196F3).withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -462,7 +462,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         ? "assets/Icons/fit_selected.png"
                         : "assets/Icons/fit_unselected.png"),
                     color: (_selectedIndex == 1
-                        ? Color(0xFF2196F3)
+                        ? const Color(0xFF2196F3)
                         : Colors.grey[400]),
                     size: 24,
                   ),
@@ -472,10 +472,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
               BottomNavigationBarItem(
                 backgroundColor: Colors.white,
                 icon: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _selectedIndex == 2
-                        ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                        ? const Color(0xFF2196F3).withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -484,7 +484,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         ? "assets/Icons/breeds_selected.png"
                         : "assets/Icons/breeds_unselected.png"),
                     color: (_selectedIndex == 2
-                        ? Color(0xFF2196F3)
+                        ? const Color(0xFF2196F3)
                         : Colors.grey[400]),
                     size: 24,
                   ),
@@ -494,10 +494,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
               BottomNavigationBarItem(
                 backgroundColor: Colors.white,
                 icon: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _selectedIndex == 3
-                        ? Color(0xFF2196F3).withValues(alpha: 0.1)
+                        ? const Color(0xFF2196F3).withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -506,7 +506,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         ? "assets/Icons/talk_selected.png"
                         : "assets/Icons/talk_unselected.png"),
                     color: (_selectedIndex == 3
-                        ? Color(0xFF2196F3)
+                        ? const Color(0xFF2196F3)
                         : Colors.grey[400]),
                     size: 24,
                   ),

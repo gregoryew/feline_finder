@@ -10,13 +10,13 @@ class SearchAIService {
   factory SearchAIService() => _instance;
   SearchAIService._internal();
 
-  static Duration get _timeout => Duration(seconds: 10);
+  static Duration get _timeout => const Duration(seconds: 10);
   late GenerativeModel _model;
   bool _initialized = false;
 
   void initialize() {
     if (!_initialized) {
-      final apiKey = AppConfig.geminiApiKey;
+      const apiKey = AppConfig.geminiApiKey;
       if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY_HERE') {
         print('⚠️ Warning: Gemini API key not configured in config.dart');
         return;
@@ -42,7 +42,7 @@ class SearchAIService {
       print('\n🔍 Checking available Gemini models...');
       final url = Uri.parse(
           'https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey');
-      final response = await http.get(url).timeout(Duration(seconds: 5));
+      final response = await http.get(url).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -702,7 +702,7 @@ IMPORTANT - Handling OR conditions:
 
       // Use geocoding to convert city name to coordinates, then get placemark with ZIP
       List<Location> locations = await locationFromAddress(searchQuery).timeout(
-        Duration(seconds: 5),
+        const Duration(seconds: 5),
         onTimeout: () {
           print('⚠️ Geocoding timeout for: $cityName');
           return <Location>[];
@@ -719,7 +719,7 @@ IMPORTANT - Handling OR conditions:
         locations.first.latitude,
         locations.first.longitude,
       ).timeout(
-        Duration(seconds: 5),
+        const Duration(seconds: 5),
         onTimeout: () {
           print('⚠️ Placemark lookup timeout for: $cityName');
           return <Placemark>[];

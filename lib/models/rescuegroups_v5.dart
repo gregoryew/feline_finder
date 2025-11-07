@@ -121,13 +121,13 @@ class DatumAttributes {
         "ageGroup": ageGroup == null ? null : ageGroupValues.reverse[ageGroup],
         "sex": sexValues.reverse[sex],
         "updatedDate": updatedDate!.toIso8601String(),
-        "birthDate": birthDate == null ? null : birthDate!.toIso8601String(),
+        "birthDate": birthDate?.toIso8601String(),
         "descriptionHtml": descriptionHtml,
         "descriptionText": descriptionText,
         "sizeGroup":
             sizeGroup == null ? null : sizeGroupValues.reverse[sizeGroup],
         "availableDate":
-            availableDate == null ? null : availableDate!.toIso8601String(),
+            availableDate?.toIso8601String(),
       };
 }
 
@@ -246,7 +246,7 @@ class Included {
         "type": includedTypeValues.reverse[type],
         "id": id,
         "attributes": attributes?.toJson(),
-        "links": links == null ? null : links?.toJson(),
+        "links": links?.toJson(),
       };
 }
 
@@ -333,32 +333,32 @@ class IncludedAttributes {
 
   factory IncludedAttributes.fromJson(Map<dynamic, dynamic> json) =>
       IncludedAttributes(
-        name: json["name"] == null ? null : json["name"],
-        singular: json["singular"] == null ? null : json["singular"],
-        plural: json["plural"] == null ? null : json["plural"],
+        name: json["name"],
+        singular: json["singular"],
+        plural: json["plural"],
         youngSingular:
-            json["youngSingular"] == null ? null : json["youngSingular"],
-        youngPlural: json["youngPlural"] == null ? null : json["youngPlural"],
-        description: json["description"] == null ? null : json["description"],
-        street: json["street"] == null ? null : json["street"],
-        city: json["city"] == null ? null : json["city"],
-        state: json["state"] == null ? null : json["state"],
-        citystate: json["citystate"] == null ? null : json["citystate"],
-        postalcode: json["postalcode"] == null ? null : json["postalcode"],
+            json["youngSingular"],
+        youngPlural: json["youngPlural"],
+        description: json["description"],
+        street: json["street"],
+        city: json["city"],
+        state: json["state"],
+        citystate: json["citystate"],
+        postalcode: json["postalcode"],
         country: json["country"] == null
             ? null
             : countryValues.map![json["country"]],
-        phone: json["phone"] == null ? null : json["phone"],
-        lat: json["lat"] == null ? null : json["lat"].toDouble(),
-        lon: json["lon"] == null ? null : json["lon"].toDouble(),
-        coordinates: json["coordinates"] == null ? null : json["coordinates"],
-        email: json["email"] == null ? null : json["email"],
-        url: json["url"] == null ? null : json["url"],
-        facebookUrl: json["facebookUrl"] == null ? null : json["facebookUrl"],
+        phone: json["phone"],
+        lat: json["lat"]?.toDouble(),
+        lon: json["lon"]?.toDouble(),
+        coordinates: json["coordinates"],
+        email: json["email"],
+        url: json["url"],
+        facebookUrl: json["facebookUrl"],
         adoptionProcess:
-            json["adoptionProcess"] == null ? null : json["adoptionProcess"],
-        about: json["about"] == null ? null : json["about"],
-        services: json["services"] == null ? null : json["services"],
+            json["adoptionProcess"],
+        about: json["about"],
+        services: json["services"],
         type: json["type"] == null
             ? null
             : attributesTypeValues.map![json["type"]],
@@ -366,64 +366,64 @@ class IncludedAttributes {
             json["original"] == null ? null : Large.fromJson(json["original"]),
         large: json["large"] == null ? null : Large.fromJson(json["large"]),
         small: json["small"] == null ? null : Large.fromJson(json["small"]),
-        order: json["order"] == null ? null : json["order"],
+        order: json["order"],
         created:
             json["created"] == null ? null : DateTime.parse(json["created"]),
         updated:
             json["updated"] == null ? null : DateTime.parse(json["updated"]),
-        videoId: json["videoId"] == null ? null : json["videoId"],
+        videoId: json["videoId"],
         urlThumbnail:
-            json["urlThumbnail"] == null ? null : json["urlThumbnail"],
+            json["urlThumbnail"],
         postalcodePlus4:
-            json["postalcodePlus4"] == null ? null : json["postalcodePlus4"],
-        donationUrl: json["donationUrl"] == null ? null : json["donationUrl"],
-        firstname: json["firstname"] == null ? null : json["firstname"],
-        fullname: json["fullname"] == null ? null : json["fullname"],
-        adoptionUrl: json["adoptionUrl"] == null ? null : json["adoptionUrl"],
+            json["postalcodePlus4"],
+        donationUrl: json["donationUrl"],
+        firstname: json["firstname"],
+        fullname: json["fullname"],
+        adoptionUrl: json["adoptionUrl"],
         sponsorshipUrl:
-            json["sponsorshipUrl"] == null ? null : json["sponsorshipUrl"],
-        fileSize: json["fileSize"] == null ? null : json["fileSize"],
+            json["sponsorshipUrl"],
+        fileSize: json["fileSize"],
       );
 
   Map<dynamic, dynamic> toJson() => {
-        "name": name == null ? null : name,
-        "singular": singular == null ? null : singular,
-        "plural": plural == null ? null : plural,
-        "youngSingular": youngSingular == null ? null : youngSingular,
-        "youngPlural": youngPlural == null ? null : youngPlural,
-        "description": description == null ? null : description,
-        "street": street == null ? null : street,
-        "city": city == null ? null : city,
-        "state": state == null ? null : state,
-        "citystate": citystate == null ? null : citystate,
-        "postalcode": postalcode == null ? null : postalcode,
+        "name": name,
+        "singular": singular,
+        "plural": plural,
+        "youngSingular": youngSingular,
+        "youngPlural": youngPlural,
+        "description": description,
+        "street": street,
+        "city": city,
+        "state": state,
+        "citystate": citystate,
+        "postalcode": postalcode,
         "country": country == null ? null : countryValues.reverse[country],
-        "phone": phone == null ? null : phone,
-        "lat": lat == null ? null : lat,
-        "lon": lon == null ? null : lon,
-        "coordinates": coordinates == null ? null : coordinates,
-        "email": email == null ? null : email,
-        "url": url == null ? null : url,
-        "facebookUrl": facebookUrl == null ? null : facebookUrl,
-        "adoptionProcess": adoptionProcess == null ? null : adoptionProcess,
-        "about": about == null ? null : about,
-        "services": services == null ? null : services,
+        "phone": phone,
+        "lat": lat,
+        "lon": lon,
+        "coordinates": coordinates,
+        "email": email,
+        "url": url,
+        "facebookUrl": facebookUrl,
+        "adoptionProcess": adoptionProcess,
+        "about": about,
+        "services": services,
         "type": type == null ? null : attributesTypeValues.reverse[type],
-        "original": original == null ? null : original!.toJson(),
-        "large": large == null ? null : large!.toJson(),
-        "small": small == null ? null : small!.toJson(),
-        "order": order == null ? null : order,
-        "created": created == null ? null : created!.toIso8601String(),
-        "updated": updated == null ? null : updated!.toIso8601String(),
-        "videoId": videoId == null ? null : videoId,
-        "urlThumbnail": urlThumbnail == null ? null : urlThumbnail,
-        "postalcodePlus4": postalcodePlus4 == null ? null : postalcodePlus4,
-        "donationUrl": donationUrl == null ? null : donationUrl,
-        "firstname": firstname == null ? null : firstname,
-        "fullname": fullname == null ? null : fullname,
-        "adoptionUrl": adoptionUrl == null ? null : adoptionUrl,
-        "sponsorshipUrl": sponsorshipUrl == null ? null : sponsorshipUrl,
-        "fileSize": fileSize == null ? null : fileSize,
+        "original": original?.toJson(),
+        "large": large?.toJson(),
+        "small": small?.toJson(),
+        "order": order,
+        "created": created?.toIso8601String(),
+        "updated": updated?.toIso8601String(),
+        "videoId": videoId,
+        "urlThumbnail": urlThumbnail,
+        "postalcodePlus4": postalcodePlus4,
+        "donationUrl": donationUrl,
+        "firstname": firstname,
+        "fullname": fullname,
+        "adoptionUrl": adoptionUrl,
+        "sponsorshipUrl": sponsorshipUrl,
+        "fileSize": fileSize,
       };
 }
 
@@ -524,9 +524,7 @@ class EnumValues<T> {
   EnumValues(this.map);
 
   Map<T, dynamic> get reverse {
-    if (reverseMap == null) {
-      reverseMap = map!.map((k, v) => new MapEntry(v, k));
-    }
+    reverseMap ??= map!.map((k, v) => new MapEntry(v, k));
     return reverseMap!;
   }
 }

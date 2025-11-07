@@ -12,12 +12,12 @@ class CustomPlayIndicatorBorder extends ShapeBorder {
 
   @override
   EdgeInsetsGeometry get dimensions {
-    return new EdgeInsets.all(borderWidth);
+    return EdgeInsets.all(borderWidth);
   }
 
   @override
   ShapeBorder scale(double t) {
-    return new CustomPlayIndicatorBorder(
+    return CustomPlayIndicatorBorder(
       borderWidth: borderWidth * (t),
       borderRadius: borderRadius * (t),
     );
@@ -26,7 +26,7 @@ class CustomPlayIndicatorBorder extends ShapeBorder {
   @override
   ShapeBorder lerpFrom(ShapeBorder? a, double t) {
     if (a is CustomPlayIndicatorBorder) {
-      return new CustomPlayIndicatorBorder(
+      return CustomPlayIndicatorBorder(
         borderWidth: ui.lerpDouble(a.borderWidth, borderWidth, t)!,
         borderRadius: BorderRadius.lerp(a.borderRadius, borderRadius, t)!,
       );
@@ -37,7 +37,7 @@ class CustomPlayIndicatorBorder extends ShapeBorder {
   @override
   ShapeBorder lerpTo(ShapeBorder? b, double t) {
     if (b is CustomPlayIndicatorBorder) {
-      return new CustomPlayIndicatorBorder(
+      return CustomPlayIndicatorBorder(
         borderWidth: ui.lerpDouble(borderWidth, b.borderWidth, t)!,
         borderRadius: BorderRadius.lerp(borderRadius, b.borderRadius, t)!,
       );
@@ -68,7 +68,7 @@ class CustomPlayIndicatorBorder extends ShapeBorder {
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
     Paint paint;
-    paint = new Paint()
+    paint = Paint()
       ..color = Colors.transparent
       ..style = PaintingStyle.stroke
       ..strokeWidth = borderWidth;

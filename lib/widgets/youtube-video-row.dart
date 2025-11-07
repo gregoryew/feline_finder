@@ -59,7 +59,7 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
           Visibility(
             visible: widget.fullScreen ?? false,
             child: IconButton(
-              icon: Icon(
+              icon: const Icon(
                 Icons.close,
                 color: Colors.white,
               ),
@@ -87,28 +87,28 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.play_circle_outline,
+                            const Icon(Icons.play_circle_outline,
                                 size: 64, color: Colors.white),
-                            SizedBox(height: 16),
-                            Text(
+                            const SizedBox(height: 16),
+                            const Text(
                               'YouTube Player',
                               style:
                                   TextStyle(color: Colors.white, fontSize: 18),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               'Video: ${widget.title ?? "Welcome To Feline Finder"}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                   color: Colors.white70, fontSize: 14),
                               textAlign: TextAlign.center,
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () {
                                 Get.off(
                                     const HomeScreen(title: 'Feline Finder'));
                               },
-                              child: Text('Continue to App'),
+                              child: const Text('Continue to App'),
                             ),
                           ],
                         ),
@@ -127,10 +127,10 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                               children: [
                                 player,
                                 Padding(
+                                  padding: const EdgeInsets.all(10),
                                   child: Text((widget.playlist != null)
                                       ? widget.playlist!.description
                                       : ""),
-                                  padding: EdgeInsets.all(10),
                                 ),
                               ],
                             ),
@@ -149,17 +149,17 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.play_circle_outline,
+                      const Icon(Icons.play_circle_outline,
                           size: 48, color: Colors.white),
-                      SizedBox(height: 12),
-                      Text(
+                      const SizedBox(height: 12),
+                      const Text(
                         'YouTube Player',
                         style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         'Video: ${widget.title ?? "Welcome To Feline Finder"}',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -173,8 +173,8 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                         children: [
                           player,
                           Padding(
+                            padding: const EdgeInsets.all(10),
                             child: Text(widget.playlist?.description ?? ""),
-                            padding: EdgeInsets.all(10),
                           ),
                         ],
                       ),

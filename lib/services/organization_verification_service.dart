@@ -119,7 +119,7 @@ class OrganizationVerificationService {
       final webAppUrl = AppConfig.emailServiceUrl.replaceAll('/api', '');
       final verificationUrl = '$webAppUrl/verify-organization?token=$jwt';
 
-      final subject = 'Feline Finder - Organization Verification';
+      const subject = 'Feline Finder - Organization Verification';
       final body = '''
         <html>
         <body>

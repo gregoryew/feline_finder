@@ -4,19 +4,19 @@ import 'package:flutter/material.dart';
 final _dialog = RatingDialog(
   initialRating: 1.0,
   // your app's name?
-  title: Text(
+  title: const Text(
     'Rating Dialog',
     textAlign: TextAlign.center,
-    style: const TextStyle(
+    style: TextStyle(
       fontSize: 25,
       fontWeight: FontWeight.bold,
     ),
   ),
   // encourage your user to leave a high rating?
-  message: Text(
+  message: const Text(
     'Tap a star to set your rating. Add more description here if you want.',
     textAlign: TextAlign.center,
-    style: const TextStyle(fontSize: 15),
+    style: TextStyle(fontSize: 15),
   ),
   // your app's logo?
   image: const FlutterLogo(size: 100),

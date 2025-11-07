@@ -109,7 +109,7 @@ class FitState extends State<Fit> {
           : Curves.fastLinearToSlowEaseIn,
       duration: const Duration(milliseconds: 1000),
       child: Card(
-        margin: EdgeInsets.all(8.0),
+        margin: const EdgeInsets.all(8.0),
         elevation: 5,
         child: Padding(
           // Even Padding On All Sides
@@ -122,19 +122,17 @@ class FitState extends State<Fit> {
                 children: [
                   Expanded(
                       child: Text(
-                          question.name +
-                              ": " +
-                              question
+                          "${question.name}: ${question
                                   .choices[globals.FelineFinderServer.instance
                                       .sliderValue[question.id]]
-                                  .name,
+                                  .name}",
                           style: const TextStyle(fontSize: 13))),
                   IconButton(
                     icon: AnimatedRotation(
                         turns:
                             _descriptionVisible[question.id] ? -1 * (1 / 2) : 0,
                         duration: const Duration(milliseconds: 250),
-                        child: Icon(Icons.expand_less)),
+                        child: const Icon(Icons.expand_less)),
                     onPressed: () => {showDescription(question.id)},
                   )
                 ],
@@ -146,11 +144,11 @@ class FitState extends State<Fit> {
                 endIndent: 5,
               ),
               SfSliderTheme(
-                data: SfSliderThemeData(
+                data: const SfSliderThemeData(
                   inactiveTrackColor: Color.fromARGB(255, 193, 186, 186),
                   activeTrackColor: Color.fromARGB(255, 193, 186, 186),
-                  inactiveDividerColor: const Color(0xff2196F2),
-                  activeDividerColor: const Color(0xff2196F2),
+                  inactiveDividerColor: Color(0xff2196F2),
+                  activeDividerColor: Color(0xff2196F2),
                   activeTrackHeight: 12,
                   inactiveTrackHeight: 12,
                   activeDividerRadius: 2,
@@ -324,7 +322,7 @@ class FitState extends State<Fit> {
           onTap: () {
             Get.to(() => BreedDetail(breed: breeds[index]),
                 transition: Transition.circularReveal,
-                duration: Duration(seconds: 1));
+                duration: const Duration(seconds: 1));
           },
           child: buildBreedCard(breeds[index]),
         );

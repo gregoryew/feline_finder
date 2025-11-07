@@ -28,8 +28,8 @@ class petDetail extends StatefulWidget {
   final server = globals.FelineFinderServer.instance;
 
   petDetail(
-    this.petID,
-  );
+    this.petID, {Key? key},
+  ) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -55,26 +55,26 @@ class petDetailState extends State<petDetail>
   int selectedImage = 0;
   late String userID;
   String? rescueGroupApi = "";
-  late ScrollController _controller = ScrollController();
-  late PageController _pageController = PageController();
+  late final ScrollController _controller = ScrollController();
+  late final PageController _pageController = PageController();
   int currentIndexPage = 0;
 
   final _dialog = RatingDialog(
     initialRating: 1.0,
     // your app's name?
-    title: Text(
+    title: const Text(
       'Feline Finder',
       textAlign: TextAlign.center,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 25,
         fontWeight: FontWeight.bold,
       ),
     ),
     // encourage your user to leave a high rating?
-    message: Text(
+    message: const Text(
       'Like the app? Then please rate it.  A review would also be appreciated.',
       textAlign: TextAlign.center,
-      style: const TextStyle(fontSize: 15),
+      style: TextStyle(fontSize: 15),
     ),
     // your app's logo?
     image: Image.asset("assets/icon/icon_rating.png"),
@@ -83,8 +83,8 @@ class petDetailState extends State<petDetail>
     onCancelled: () => print('cancelled'),
     onSubmitted: (response) async {
       print('rating: ${response.rating}, comment: ${response.comment}');
-      Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-      final SharedPreferences prefs = await _prefs;
+      Future<SharedPreferences> prefs = SharedPreferences.getInstance();
+      final SharedPreferences prefs = await prefs;
       if (!prefs.containsKey("RatedApp")) {
         await prefs.setString("RatedApp", "True");
       }
@@ -95,7 +95,7 @@ class petDetailState extends State<petDetail>
   void initState() {
     // Initialize sparkle animation
     _sparkleController = AnimationController(
-      duration: Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
     _sparkleAnimation = Tween<double>(
@@ -149,7 +149,7 @@ class petDetailState extends State<petDetail>
   }
 
   void getShelterDetail(String orgID) async {
-    var url = "https://api.rescuegroups.org/v5/public/orgs/${orgID}";
+    var url = "https://api.rescuegroups.org/v5/public/orgs/$orgID";
 
     print("URL = $url");
 
@@ -169,8 +169,8 @@ class petDetailState extends State<petDetail>
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
-      print("response.statusCode = " + response.statusCode.toString());
-      throw Exception('Failed to load pet ' + response.body);
+      print("response.statusCode = ${response.statusCode}");
+      throw Exception('Failed to load pet ${response.body}');
     }
   }
 
@@ -179,10 +179,10 @@ class petDetailState extends State<petDetail>
 
     String id2 = widget.petID;
 
-    print("id = ${id2}");
+    print("id = $id2");
 
     var url =
-        "https://api.rescuegroups.org/v5/public/animals/${id2}?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText&limit=1";
+        "https://api.rescuegroups.org/v5/public/animals/$id2?fields[animals]=sizeGroup,ageGroup,sex,distance,id,name,breedPrimary,updatedDate,status,descriptionHtml,descriptionText&limit=1";
 
     print("URL = $url");
 
@@ -223,8 +223,8 @@ class petDetailState extends State<petDetail>
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
-      print("response.statusCode = " + response.statusCode.toString());
-      throw Exception('Failed to load pet ' + response.body);
+      print("response.statusCode = ${response.statusCode}");
+      throw Exception('Failed to load pet ${response.body}');
     }
   }
 
@@ -243,9 +243,7 @@ class petDetailState extends State<petDetail>
       lines.add(petDetailInstance.street ?? "");
     }
 
-    var thirdLine = (petDetailInstance.cityState ?? " ") +
-        " " +
-        (petDetailInstance.postalCode ?? "");
+    var thirdLine = "${petDetailInstance.cityState ?? " "} ${petDetailInstance.postalCode ?? ""}";
     if (thirdLine.trim() != "") {
       lines.add(thirdLine);
     }
@@ -326,25 +324,22 @@ class petDetailState extends State<petDetail>
     return Scaffold(
       appBar: AppBar(
         title: Text(petDetailInstance?.name ?? ""),
-        backgroundColor: Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2196F3),
         foregroundColor: Colors.white,
         actions: <Widget>[
           Padding(
-            padding: EdgeInsets.only(right: 10.0),
+            padding: const EdgeInsets.only(right: 10.0),
             child: LikeButton(
               onTap: (isLiked) async {
-                print("userID = " +
-                    userID.toString() +
-                    "petID = " +
-                    widget.petID.toString());
+                print("userID = ${userID}petID = ${widget.petID}");
                 if (isLiked == true) {
                   widget.server.unfavoritePet(userID, widget.petID);
                   isFavorited = false;
                   globals.listOfFavorites.remove(widget.petID);
                 } else if (isLiked == false) {
-                  Future<SharedPreferences> _prefs =
+                  Future<SharedPreferences> prefs0 =
                       SharedPreferences.getInstance();
-                  final SharedPreferences prefs = await _prefs;
+                  final SharedPreferences prefs = await prefs0;
                   if (!prefs.containsKey("RatedApp")) {
                     showDialog(
                       context: context,
@@ -361,7 +356,7 @@ class petDetailState extends State<petDetail>
                   _sparkleController.reset();
                   _sparkleController.forward();
                 }
-                print("Set changed to " + isFavorited.toString());
+                print("Set changed to $isFavorited");
                 return isFavorited;
               },
               size: 40,
@@ -369,7 +364,7 @@ class petDetailState extends State<petDetail>
               likeBuilder: (isLiked) {
                 final color = isLiked ? Colors.red : Colors.blueGrey;
                 return AnimatedContainer(
-                  duration: Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 300),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -382,7 +377,7 @@ class petDetailState extends State<petDetail>
                               scale: _sparkleAnimation.value,
                               child: Opacity(
                                 opacity: 1.0 - _sparkleAnimation.value,
-                                child: Icon(
+                                child: const Icon(
                                   Icons.auto_awesome,
                                   color: Colors.yellow,
                                   size: 20,
@@ -406,14 +401,14 @@ class petDetailState extends State<petDetail>
             children: [
               // Modern Photo Carousel
               Container(
-                margin: EdgeInsets.symmetric(horizontal: 16),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 20,
-                      offset: Offset(0, 8),
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -446,7 +441,7 @@ class petDetailState extends State<petDetail>
                                         size: 64,
                                         color: Colors.grey[400],
                                       ),
-                                      SizedBox(height: 16),
+                                      const SizedBox(height: 16),
                                       Text(
                                         'No photos available',
                                         style: TextStyle(
@@ -461,7 +456,7 @@ class petDetailState extends State<petDetail>
                             }
 
                             final media = petDetailInstance!.media[index];
-                            return Container(
+                            return SizedBox(
                               width: double.infinity,
                               child: media is YouTubeVideo
                                   ? Container(
@@ -473,7 +468,7 @@ class petDetailState extends State<petDetail>
                                       ),
                                       child: Container(
                                         color: Colors.black.withOpacity(0.3),
-                                        child: Center(
+                                        child: const Center(
                                           child: Column(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
@@ -502,7 +497,7 @@ class petDetailState extends State<petDetail>
                                       fit: BoxFit.cover,
                                       placeholder: (context, url) => Container(
                                         color: Colors.grey[200],
-                                        child: Center(
+                                        child: const Center(
                                           child: CircularProgressIndicator(
                                             color: Color(0xFF2196F3),
                                           ),
@@ -521,7 +516,7 @@ class petDetailState extends State<petDetail>
                                                 size: 64,
                                                 color: Colors.grey[400],
                                               ),
-                                              SizedBox(height: 16),
+                                              const SizedBox(height: 16),
                                               Text(
                                                 'Failed to load image',
                                                 style: TextStyle(
@@ -545,7 +540,7 @@ class petDetailState extends State<petDetail>
                             top: 16,
                             right: 16,
                             child: Container(
-                              padding: EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.6),
@@ -553,7 +548,7 @@ class petDetailState extends State<petDetail>
                               ),
                               child: Text(
                                 '${currentIndexPage + 1} / ${petDetailInstance!.media.length}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -574,9 +569,9 @@ class petDetailState extends State<petDetail>
                                 decorator: DotsDecorator(
                                   color: Colors.white.withOpacity(0.5),
                                   activeColor: Colors.white,
-                                  size: Size(8, 8),
-                                  activeSize: Size(12, 8),
-                                  spacing: EdgeInsets.symmetric(horizontal: 4),
+                                  size: const Size(8, 8),
+                                  activeSize: const Size(12, 8),
+                                  spacing: const EdgeInsets.symmetric(horizontal: 4),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(4),
                                   ),
@@ -598,7 +593,7 @@ class petDetailState extends State<petDetail>
                 height: 5,
               ),
               Container(
-                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -606,32 +601,32 @@ class petDetailState extends State<petDetail>
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 20,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                   border: Border.all(
-                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    color: const Color(0xFF2196F3).withOpacity(0.1),
                     width: 1,
                   ),
                 ),
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Color(0xFF2196F3).withOpacity(0.1),
+                            color: const Color(0xFF2196F3).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.pets,
                             color: Color(0xFF2196F3),
                             size: 24,
                           ),
                         ),
-                        SizedBox(width: 16),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -640,7 +635,7 @@ class petDetailState extends State<petDetail>
                                 petDetailInstance == null
                                     ? ""
                                     : petDetailInstance!.name ?? "",
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF2196F3),
@@ -648,7 +643,7 @@ class petDetailState extends State<petDetail>
                                 ),
                                 textAlign: TextAlign.left,
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Text(
                                 petDetailInstance == null
                                     ? ""
@@ -665,7 +660,7 @@ class petDetailState extends State<petDetail>
                         ),
                       ],
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     getStats(),
                   ],
                 ),
@@ -690,7 +685,7 @@ class petDetailState extends State<petDetail>
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               Container(
-                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -698,36 +693,36 @@ class petDetailState extends State<petDetail>
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 20,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                   border: Border.all(
-                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    color: const Color(0xFF2196F3).withOpacity(0.1),
                     width: 1,
                   ),
                 ),
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Color(0xFF2196F3).withOpacity(0.1),
+                        color: const Color(0xFF2196F3).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.location_on_outlined,
                         color: Color(0xFF2196F3),
                         size: 24,
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             "Contact",
                             style: TextStyle(
                               fontSize: 18,
@@ -736,15 +731,15 @@ class petDetailState extends State<petDetail>
                               fontFamily: 'Poppins',
                             ),
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.location_on_outlined,
                                 size: 20,
                                 color: Color(0xFF2196F3),
                               ),
-                              SizedBox(width: 10),
+                              const SizedBox(width: 10),
                               Flexible(
                                 child: Text(
                                   getAddress(petDetailInstance),
@@ -797,7 +792,7 @@ class petDetailState extends State<petDetail>
   Widget textBox(String title, String textBlock) {
     var document = parseFragment(textBlock);
     var textString = document.text ?? "";
-    final textStyle;
+    final TextStyle textStyle;
     if (title == "DISCLAIMER") {
       textStyle = GoogleFonts.karla(fontSize: 10, fontWeight: FontWeight.w500);
     } else {
@@ -831,7 +826,7 @@ class petDetailState extends State<petDetail>
     }
 
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -839,46 +834,46 @@ class petDetailState extends State<petDetail>
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: Color(0xFF2196F3).withOpacity(0.1),
+          color: const Color(0xFF2196F3).withOpacity(0.1),
           width: 1,
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFF2196F3).withOpacity(0.1),
+                color: const Color(0xFF2196F3).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 getIconForTitle(title),
-                color: Color(0xFF2196F3),
+                color: const Color(0xFF2196F3),
                 size: 24,
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2196F3),
                       fontFamily: 'Poppins',
                     ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   LinkifyText(
                     textString,
                     textAlign: TextAlign.left,
@@ -887,7 +882,7 @@ class petDetailState extends State<petDetail>
                       height: 1.5,
                     ),
                     linkTypes: const [LinkType.email, LinkType.url],
-                    linkStyle: TextStyle(
+                    linkStyle: const TextStyle(
                       color: Color(0xFF2196F3),
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.underline,
@@ -1063,7 +1058,7 @@ class petDetailState extends State<petDetail>
       List<ShapeBorder> list = [];
       for (var el in pd.media) {
         if (el is YouTubeVideo) {
-          list.add(CustomPlayIndicatorBorder());
+          list.add(const CustomPlayIndicatorBorder());
         } else {
           list.add(
             RoundedRectangleBorder(

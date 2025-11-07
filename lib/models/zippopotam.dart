@@ -20,12 +20,12 @@ class Zippopotam {
   }
 
   Map<String, dynamic> toJson() {
-    final _data = <String, dynamic>{};
-    _data['post code'] = postCode;
-    _data['country'] = country;
-    _data['country abbreviation'] = countryAbbreviation;
-    _data['places'] = places.map((e) => e.toJson()).toList();
-    return _data;
+    final data = <String, dynamic>{};
+    data['post code'] = postCode;
+    data['country'] = country;
+    data['country abbreviation'] = countryAbbreviation;
+    data['places'] = places.map((e) => e.toJson()).toList();
+    return data;
   }
 }
 
@@ -52,12 +52,12 @@ class Places {
   }
 
   Map<String, dynamic> toJson() {
-    final _data = <String, dynamic>{};
-    _data['place name'] = placeName;
-    _data['longitude'] = longitude;
-    _data['state'] = state;
-    _data['state abbreviation'] = stateAbbreviation;
-    _data['latitude'] = latitude;
-    return _data;
+    final data = <String, dynamic>{};
+    data['place name'] = placeName;
+    data['longitude'] = longitude;
+    data['state'] = state;
+    data['state abbreviation'] = stateAbbreviation;
+    data['latitude'] = latitude;
+    return data;
   }
 }

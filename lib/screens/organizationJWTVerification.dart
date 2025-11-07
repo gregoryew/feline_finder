@@ -163,7 +163,7 @@ class _OrganizationJWTVerificationScreenState
           TextButton(
             onPressed: () {
               Get.back();
-              Get.to(() => ErrorPage());
+              Get.to(() => const ErrorPage());
             },
             child: const Text('OK'),
           ),
@@ -219,7 +219,7 @@ class _OrganizationJWTVerificationScreenState
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: () => Get.to(() => ErrorPage()),
+                  onPressed: () => Get.to(() => const ErrorPage()),
                   child: const Text('Continue'),
                 ),
               ],

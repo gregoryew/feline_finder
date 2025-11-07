@@ -15,15 +15,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
-const double? petDetailImageHeight = 300;
-const double? petDetailImageWidth = 330;
+const double petDetailImageHeight = 300;
+const double petDetailImageWidth = 330;
 String sortMethod = "animals.distance";
 int distance = 1000;
 int updatedSince = 4;
 List<String> listOfFavorites = [];
 
 class FelineFinderServer {
-  static FelineFinderServer _instance = FelineFinderServer._();
+  static final FelineFinderServer _instance = FelineFinderServer._();
 
   String zip = "?";
 
@@ -220,7 +220,7 @@ class FelineFinderServer {
       }
     }
 
-    var url = "https://api.zippopotam.us/us/${zip}";
+    var url = "https://api.zippopotam.us/us/$zip";
 
     print("=== ZIP CODE VALIDATION START ===");
     print("URL = $url");
@@ -315,16 +315,16 @@ class FelineFinderServer {
       return RescueGroupsQuery.fromJson(jsonDecode(""));
     }
 
-    var _userID = await getUser();
+    var userID0 = await getUser();
 
     final QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
         .instance
         .collection("Filters")
         .where("name", isEqualTo: filterName)
-        .where("created_by", isEqualTo: _userID)
+        .where("created_by", isEqualTo: userID0)
         .get();
 
-    if (snapshot.docs.length == 0) {
+    if (snapshot.docs.isEmpty) {
       return null;
     }
 
@@ -339,10 +339,10 @@ class FelineFinderServer {
 
   Future<bool> saveFilter(
       String userID, String filterName, Object filter) async {
-    var _userID = await getUser();
+    var userID0 = await getUser();
 
     var json = {
-      'created_by': _userID,
+      'created_by': userID0,
       'name': filterName,
       'query': filter,
       'sort': (sortMethod == "animals.distance" ? 1 : 0),
@@ -351,7 +351,7 @@ class FelineFinderServer {
     };
 
     try {
-      await deleteQuery(_userID, filterName);
+      await deleteQuery(userID0, filterName);
       await FirebaseFirestore.instance.collection('Filters').add(json);
       return true;
     } catch (e) {
@@ -360,16 +360,16 @@ class FelineFinderServer {
   }
 
   Future<bool> deleteQuery(String userID, String filterName) async {
-    var _userID = await getUser();
+    var userID0 = await getUser();
 
     final QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
         .instance
         .collection("Filters")
         .where("name", isEqualTo: filterName)
-        .where("created_by", isEqualTo: _userID)
+        .where("created_by", isEqualTo: userID0)
         .get();
 
-    if (snapshot.docs.length == 0) {
+    if (snapshot.docs.isEmpty) {
       return true;
     }
 

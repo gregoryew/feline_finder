@@ -137,35 +137,95 @@ class AppointmentService {
 
   /// Get all appointments for a user (from bookings collection)
   static Stream<List<Appointment>> getUserAppointments(String userId) {
-    return _firestore
-        .collection(_collectionName)
-        .where('userId', isEqualTo: userId)
-        .orderBy('start', descending: false)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => _bookingToAppointment(doc))
-          .where((appt) => appt != null)
-          .cast<Appointment>()
-          .toList();
-    });
+    try {
+      return _firestore
+          .collection(_collectionName)
+          .where('userId', isEqualTo: userId)
+          .orderBy('start', descending: false)
+          .snapshots()
+          .map((snapshot) {
+        print(
+            '📋 getUserAppointments: Found ${snapshot.docs.length} bookings for user $userId');
+        return snapshot.docs
+            .map((doc) => _bookingToAppointment(doc))
+            .where((appt) => appt != null)
+            .cast<Appointment>()
+            .toList();
+      }).handleError((error) {
+        print('❌ Error in getUserAppointments: $error');
+        // If index error, try without orderBy
+        if (error.toString().contains('index') ||
+            error.toString().contains('requires an index')) {
+          print('⚠️ Index missing, trying query without orderBy');
+          return _firestore
+              .collection(_collectionName)
+              .where('userId', isEqualTo: userId)
+              .snapshots()
+              .map((snapshot) {
+            final appointments = snapshot.docs
+                .map((doc) => _bookingToAppointment(doc))
+                .where((appt) => appt != null)
+                .cast<Appointment>()
+                .toList();
+            // Sort manually
+            appointments
+                .sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+            return appointments;
+          });
+        }
+        return Stream.value(<Appointment>[]);
+      });
+    } catch (e) {
+      print('❌ Exception in getUserAppointments: $e');
+      return Stream.value(<Appointment>[]);
+    }
   }
 
   /// Get all appointments for an organization (from bookings collection)
   static Stream<List<Appointment>> getOrganizationAppointments(
       String organizationId) {
-    return _firestore
-        .collection(_collectionName)
-        .where('orgId', isEqualTo: organizationId)
-        .orderBy('start', descending: false)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => _bookingToAppointment(doc))
-          .where((appt) => appt != null)
-          .cast<Appointment>()
-          .toList();
-    });
+    try {
+      return _firestore
+          .collection(_collectionName)
+          .where('orgId', isEqualTo: organizationId)
+          .orderBy('start', descending: false)
+          .snapshots()
+          .map((snapshot) {
+        print(
+            '📋 getOrganizationAppointments: Found ${snapshot.docs.length} bookings for org $organizationId');
+        return snapshot.docs
+            .map((doc) => _bookingToAppointment(doc))
+            .where((appt) => appt != null)
+            .cast<Appointment>()
+            .toList();
+      }).handleError((error) {
+        print('❌ Error in getOrganizationAppointments: $error');
+        // If index error, try without orderBy
+        if (error.toString().contains('index') ||
+            error.toString().contains('requires an index')) {
+          print('⚠️ Index missing, trying query without orderBy');
+          return _firestore
+              .collection(_collectionName)
+              .where('orgId', isEqualTo: organizationId)
+              .snapshots()
+              .map((snapshot) {
+            final appointments = snapshot.docs
+                .map((doc) => _bookingToAppointment(doc))
+                .where((appt) => appt != null)
+                .cast<Appointment>()
+                .toList();
+            // Sort manually
+            appointments
+                .sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+            return appointments;
+          });
+        }
+        return Stream.value(<Appointment>[]);
+      });
+    } catch (e) {
+      print('❌ Exception in getOrganizationAppointments: $e');
+      return Stream.value(<Appointment>[]);
+    }
   }
 
   /// Convert booking document to Appointment object

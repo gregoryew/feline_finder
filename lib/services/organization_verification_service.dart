@@ -93,7 +93,7 @@ class OrganizationVerificationService {
     };
 
     // For now, using a simple base64 encoding
-    // In production, you should use a proper JWT library with secret key
+    // Note: This is acceptable for development. Use a proper JWT library with secret key for production.
     final header = base64Url
         .encode(utf8.encode(jsonEncode({'alg': 'HS256', 'typ': 'JWT'})));
     final payloadEncoded = base64Url.encode(utf8.encode(jsonEncode(payload)));

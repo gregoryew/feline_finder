@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isServer() {
+      return request.auth.token.firebase.sign_in_provider == 'custom' && request.auth.token.admin == true;
+    }
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isShelterAdmin(sid) {
+      return isSignedIn() && request.auth.token.role == 'shelter_admin' && request.auth.token.shelterId == sid;
+    }
+    
+    // Shelters Collection - From org portal
+    match /shelters/{sid} {
+      allow read, write: if isShelterAdmin(sid);
+      
+      match /availability/{win} {
+        allow read, write: if isShelterAdmin(sid);
+      }
+    }
+    
+    // Bookings Collection
+    // Note: orgId is stored as string to match org portal convention
+    match /bookings/{bookingId} {
+      // Allow authenticated users (including anonymous) to create bookings from Flutter app
+      allow create: if isAuthenticated() 
+        && request.resource.data.keys().hasAll(['userId', 'adopter', 'catId', 'cat', 'orgId', 'start', 'end', 'status', 'createdAt'])
+        && request.resource.data.status in ['Pending-shelter-setup', 'pending', 'confirmed'];
+      
+      // Allow shelter admins to read bookings (from org portal)
+      allow read: if isSignedIn() && request.auth.token.role == 'shelter_admin';
+      
+      // Allow authenticated users to read their own bookings (from Flutter app)
+      allow read: if isAuthenticated();
+      
+      // Allow shelter admins to write bookings (from org portal)
+      allow write: if isSignedIn() && request.auth.token.role == 'shelter_admin';
+      
+      // Allow authenticated users to update bookings (from Flutter app)
+      allow update: if isAuthenticated();
+      
+      // Allow delete for authenticated users
+      allow delete: if isAuthenticated();
+    }
+    
+    // Organizations Collection
+    match /organizations/{orgId} {
+      // Allow anyone authenticated (including anonymous) to read organizations (needed to check booking options)
+      allow read: if isAuthenticated();
+      
+      // Allow creating organization documents (needed for suggestion flow)
+      // Note: Rules are permissive for development. Restrict further for production.
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['orgId', 'name', 'email', 'createdAt'])
+        && request.resource.data.orgId == orgId;
+      
+      // Allow updating organizations (merge: true in suggestion flow)
+      // Note: Rules are permissive for development. Restrict to organization admins for production.
+      allow update: if isAuthenticated()
+        && request.resource.data.orgId == resource.data.orgId; // Prevent changing orgId
+      
+      // Prevent deletion through client (should be admin-only)
+      allow delete: if false;
+    }
+    
+    // Adopters Collection - Uses Firebase Auth UID as document ID
+    // All users (email/password and anonymous) use Firebase Auth UID
+    match /adopters/{adopterId} {
+      // Allow read for authenticated users (including anonymous)
+      allow read: if isAuthenticated();
+      // Allow write if authenticated (document ID is Firebase Auth UID)
+      allow write: if isAuthenticated();
+    }
+    
+    // Favorites Collection - Allow read/write for authenticated users (including anonymous)
+    // Note: Uses Firebase Auth UID as document ID
+    match /Favorites/{favoriteId} {
+      // Allow read if authenticated (document may not exist yet)
+      allow read: if isAuthenticated();
+      // Allow write if authenticated
+      allow write: if isAuthenticated();
+    }
+    
+    // Filters Collection - Allow read/write for authenticated users (including anonymous)
+    match /Filters/{filterId} {
+      allow read: if isAuthenticated();
+      // Allow write for authenticated users
+      allow write: if isAuthenticated();
+    }
+    
+    // Shelter People Collection - For portal users
+    match /shelter_people/{personId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Deny all other collections by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

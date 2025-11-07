@@ -1666,7 +1666,10 @@ class SearchScreenState extends State<SearchScreen> {
       print(
           '🎯 Starting filter animation with ${filtersToUpdate.length} filters');
 
-      // Small delay to let the UI update
+      // Dismiss keyboard before animation
+      FocusScope.of(context).unfocus();
+
+      // Small delay to let the UI update and keyboard close
       await Future.delayed(Duration(milliseconds: 100));
 
       // Now start the animation

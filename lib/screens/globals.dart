@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import '../models/searchPageConfig.dart';
@@ -14,6 +12,7 @@ import 'package:get/get.dart';
 import '../ExampleCode/RescueGroupsQuery.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
 const double? petDetailImageHeight = 300;
@@ -35,7 +34,6 @@ class FelineFinderServer {
   final _sliderValue = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   List<int> get sliderValue => _sliderValue;
 
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   String _userID = "";
 
   CatClassification? whichCategory = CatClassification.basic;
@@ -80,16 +78,35 @@ class FelineFinderServer {
   var loggedIn = false;
 
   Future<String> getUser() async {
-    final SharedPreferences prefs = await _prefs;
-    if (prefs.containsKey('uuid')) {
-      _userID = (prefs.getString('uuid') ?? "");
-    } else {
-      var userID = const Uuid();
-      _userID = userID.v1();
-      prefs.setString("uuid", _userID);
+    // Use Firebase Auth UID instead of UUID
+    try {
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser == null) {
+        // Sign in anonymously if no user
+        try {
+          final userCredential =
+              await FirebaseAuth.instance.signInAnonymously();
+          _userID = userCredential.user!.uid;
+          print("Signed in anonymously with UID: $_userID");
+        } catch (e) {
+          print("Error signing in anonymously: $e");
+          // Return a fallback UID if anonymous sign-in fails
+          _userID = "fallback-${DateTime.now().millisecondsSinceEpoch}";
+          print("Using fallback UID: $_userID");
+        }
+      } else {
+        _userID = authUser.uid;
+        print("Using existing auth user UID: $_userID");
+      }
+    } catch (e) {
+      print("Error in getUser(): $e");
+      // Return a fallback UID if everything fails
+      _userID = "fallback-${DateTime.now().millisecondsSinceEpoch}";
+      print("Using fallback UID after error: $_userID");
     }
 
-    final docRef = FirebaseFirestore.instance.collection('Users').doc(_userID);
+    final docRef =
+        FirebaseFirestore.instance.collection('adopters').doc(_userID);
 
     if (loggedIn) return _userID;
 
@@ -177,11 +194,37 @@ class FelineFinderServer {
   }
 
   Future<bool?> isZipCodeValid(String zipCode) async {
-    var url = "https://api.zippopotam.us/us/${zipCode}";
+    // Pre-validate: reject obviously invalid ZIP codes
+    final zip = zipCode.trim();
+
+    // Reject all zeros (00000)
+    if (zip == "00000" || RegExp(r'^0+$').hasMatch(zip)) {
+      print("=== ZIP CODE VALIDATION START ===");
+      print("ZIP Code to validate: $zip");
+      print("ZIP code validation result: false (all zeros)");
+      print("=== ZIP CODE VALIDATION END ===");
+      return false;
+    }
+
+    // Reject invalid ranges
+    final zipNum = int.tryParse(zip);
+    if (zipNum != null) {
+      // US ZIP codes range from 00501 to 99950
+      if (zipNum < 501 || zipNum > 99950) {
+        print("=== ZIP CODE VALIDATION START ===");
+        print("ZIP Code to validate: $zip");
+        print(
+            "ZIP code validation result: false (out of valid range: $zipNum)");
+        print("=== ZIP CODE VALIDATION END ===");
+        return false;
+      }
+    }
+
+    var url = "https://api.zippopotam.us/us/${zip}";
 
     print("=== ZIP CODE VALIDATION START ===");
     print("URL = $url");
-    print("ZIP Code to validate: $zipCode");
+    print("ZIP Code to validate: $zip");
 
     try {
       var response = await http.get(Uri.parse(url));

@@ -224,6 +224,11 @@ class AdoptGridState extends State<AdoptGrid> {
       categories[filter.classification]!.add(filter);
     }
 
+    // Sort filters within each category by sequence number
+    categories.forEach((key, value) {
+      value.sort((a, b) => a.sequence.compareTo(b.sequence));
+    });
+
     return categories;
   }
 
@@ -344,7 +349,26 @@ class AdoptGridState extends State<AdoptGrid> {
     print("Filters: ${filtersJson}");
     print("Request body: ${json.encode(data2.toJson())}");
 
-    var response = await http.post(Uri.parse(url),
+    // Print curl command for debugging
+    final requestBody = json.encode(data2.toJson());
+    final escapedBody = requestBody.replaceAll("'", "'\\''");
+
+    // URL-encode square brackets for iOS compatibility in curl command
+    final curlUrl = url.replaceAll('[', '%5B').replaceAll(']', '%5D');
+    final curlCommand = "curl -X POST '$curlUrl' \\\n"
+        "  -H 'Content-Type: application/json; charset=UTF-8' \\\n"
+        "  -H 'Authorization: ${RescueGroupApi}' \\\n"
+        "  -d '$escapedBody'";
+
+    print("\n\n\n\n\n");
+    print("THIS IS THE QUERY WE ARE RUNNING");
+    print("\n");
+    print(curlCommand);
+    print("\n\n\n");
+
+    // Uri.parse handles encoding automatically, but ensure brackets are encoded for iOS
+    final encodedUrl = url.replaceAll('[', '%5B').replaceAll(']', '%5D');
+    var response = await http.post(Uri.parse(encodedUrl),
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': '${RescueGroupApi}',
@@ -474,7 +498,6 @@ class AdoptGridState extends State<AdoptGrid> {
 
   @override
   Widget build(BuildContext context) {
-    String? zipCode;
     String status = "";
 
     if (main.favoritesSelected) {

@@ -1,4 +1,3 @@
-
 enum CatClassification {
   saves,
   breed,
@@ -84,6 +83,8 @@ List<filterOption> filteringOptions = [
       [],
       false,
       FilterType.advanced),
+  filterOption("Zip Code", "", "zipCode", false, false, CatClassification.sort,
+      3, [], [], false, FilterType.advanced),
   filterOption(
       "Distance",
       "",
@@ -91,7 +92,7 @@ List<filterOption> filteringOptions = [
       false,
       false,
       CatClassification.sort,
-      3,
+      4,
       [
         listOption("5", "5", 0),
         listOption("20", "20", 1),
@@ -110,7 +111,7 @@ List<filterOption> filteringOptions = [
       false,
       false,
       CatClassification.sort,
-      4,
+      5,
       [
         listOption("Day", "Day", 0),
         listOption("Week", "Week", 1),
@@ -568,7 +569,22 @@ List<filterOption> filteringOptions = [
       [],
       false,
       FilterType.advanced),
-  //filterOption("Affectionate", "animalAffectionate", false,  CatClassification.personality, [listOption("Yes","Yes", 0),listOption("Any","Any", 1)], FilterType.advanced))
+  filterOption(
+      "Affectionate",
+      "",
+      "animals.affectionate",
+      false,
+      false,
+      CatClassification.personality,
+      18,
+      [
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
+        listOption("Any", "Any", 2)
+      ],
+      [],
+      false,
+      FilterType.advanced),
   //filterOption("Crate trained", "animalCratetrained", false,  CatClassification.personality, [listOption("Yes","Yes", 0),listOption("Any","Any", 1)], ft: FilterType.advanced))
   //filterOption("Eager to please", "animalEagerToPlease", false,  CatClassification.personality, [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][], false, FilterType.advanced))
   //filterOption("Tries to escape", "animalEscapes", false,  CatClassification.personality, [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][], false, FilterType.advanced))

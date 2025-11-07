@@ -2,40 +2,72 @@ library felinefinderapp.globals;
 
 import 'dart:convert';
 
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 import "package:firebase_auth/firebase_auth.dart";
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FelineFinderServer {
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   late String _userID;
 
   Future<String> getUser() async {
     print("getUser called");
-    final SharedPreferences prefs = await _prefs;
-    await prefs.remove('uuid');
-    if (prefs.containsKey('uuid')) {
-      print("got userid");
-      _userID = (prefs.getString('uuid') ?? "");
-    } else {
-      print("created userid");
-      var _userID = FirebaseAuth.instance.currentUser?.uid ?? "";
-      prefs.setString("uuid", _userID);
-      createUser(_userID, "greg5", "password5");
+    // Use Firebase Auth UID instead of UUID
+    try {
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser == null) {
+        // Sign in anonymously if no user
+        try {
+          print("No auth user, signing in anonymously");
+          final userCredential =
+              await FirebaseAuth.instance.signInAnonymously();
+          _userID = userCredential.user!.uid;
+          print("Signed in anonymously with UID: $_userID");
+        } catch (e) {
+          print("Error signing in anonymously: $e");
+          // Return a fallback UID if anonymous sign-in fails
+          _userID = "fallback-${DateTime.now().millisecondsSinceEpoch}";
+          print("Using fallback UID: $_userID");
+        }
+      } else {
+        _userID = authUser.uid;
+        print("Using existing auth user UID: $_userID");
+      }
+
+      // Create or update adopter document using UID as document ID
+      try {
+        await createUser(_userID);
+      } catch (e) {
+        print("Error creating user document: $e");
+        // Continue even if Firestore fails
+      }
+      return _userID;
+    } catch (e) {
+      print("Error in getUser(): $e");
+      // Return a fallback UID if everything fails
+      _userID = "fallback-${DateTime.now().millisecondsSinceEpoch}";
+      print("Using fallback UID after error: $_userID");
+      return _userID;
     }
-    return _userID;
   }
 
-  void createUser(String userID, String userName, String password) async {
-    final CollectionReference _users =
-        FirebaseFirestore.instance.collection("Users");
-    await _users.add({
-      "UID": userID,
-      "Created": DateTime.now(),
-      "LastLoggedIn": DateTime.now()
-    });
+  Future<void> createUser(String userID) async {
+    // Use UID as document ID instead of adding to collection
+    final docRef =
+        FirebaseFirestore.instance.collection("adopters").doc(userID);
+    final docSnapshot = await docRef.get();
+
+    if (docSnapshot.exists) {
+      // Update last login
+      await docRef.update({"LastLoggedIn": DateTime.now()});
+    } else {
+      // Create new adopter document
+      await docRef.set({
+        "UID": userID,
+        "Created": DateTime.now(),
+        "LastLoggedIn": DateTime.now()
+      });
+    }
   }
 
   void favoritePet(String userID, String petID) async {

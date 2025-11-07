@@ -6,11 +6,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'services/search_ai_service.dart';
 
-import '../widgets/youtube-video-row.dart';
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
@@ -30,6 +28,15 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     auth = FirebaseAuth.instance;
+
+    // Initialize AI services
+    try {
+      final searchAIService = SearchAIService();
+      searchAIService.initialize();
+    } catch (e) {
+      print('AI service initialization failed: $e');
+      // Continue without AI - search will still work
+    }
   } catch (e) {
     print('Firebase initialization failed: $e');
     // Continue without Firebase for now
@@ -53,7 +60,24 @@ class _SplashPageState extends State<SplashPage> {
     super.initState();
   }
 
-  void signinAnon() async {
+  void checkAuthAndNavigate() async {
+    if (auth == null) {
+      print("Firebase Auth not available");
+      return;
+    }
+
+    final user = auth!.currentUser;
+
+    // Always sign in anonymously if no user (for UUID system compatibility)
+    if (user == null) {
+      await signinAnon();
+    }
+
+    // Proceed to home (UUID system will handle user creation)
+    await _navigateToHome();
+  }
+
+  Future<void> signinAnon() async {
     if (auth == null) {
       print("Firebase Auth not available, skipping anonymous sign-in");
       return;
@@ -72,39 +96,19 @@ class _SplashPageState extends State<SplashPage> {
     }
   }
 
+  Future<void> _navigateToHome() async {
+    // Navigate directly to home screen without showing introduction video
+    Timer(const Duration(seconds: 3),
+        () => Get.off(const HomeScreen(title: 'Feline Finder')));
+  }
+
   @override
   Widget build(BuildContext context) {
-    () async {
-      FlutterNetworkConnectivity flutterNetworkConnectivity =
-          FlutterNetworkConnectivity(
-        isContinousLookUp:
-            false, // optional, false if you cont want continous lookup
-        lookUpDuration: const Duration(
-            seconds: 5), // optional, to override default lookup duration
-        lookUpUrl: 'www.google.com', // optional, to override default lookup url
-      );
+    // Check authentication and navigate after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkAuthAndNavigate();
+    });
 
-      Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-      final SharedPreferences prefs = await _prefs;
-      if (!prefs.containsKey("FirstTime") &&
-          (kIsWeb ||
-              await flutterNetworkConnectivity
-                  .isInternetConnectionAvailable())) {
-        await prefs.setString("FirstTime", "False");
-        await Get.to(
-            () => YouTubeVideoRow(
-                  playlist: null,
-                  title: "Welcome To Feline Finder",
-                  videoid: "GPE4bd1w6Lg",
-                  fullScreen: true,
-                ),
-            transition: Transition.circularReveal);
-      } else {
-        Timer(const Duration(seconds: 3),
-            () => Get.off(const HomeScreen(title: 'Feline Finder')));
-      }
-      signinAnon();
-    }();
     return GetMaterialApp(
       title: 'Feline Finder',
       theme: ThemeData(
@@ -204,10 +208,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   static List<Widget> pages = <Widget>[
-    Fit(),
-    BreedList(title: "Breed List"),
-    AdoptGrid(),
-    ConversationListScreen()
+    AdoptGrid(), // Index 0 - Adopt a cat (first tab)
+    Fit(), // Index 1 - Fit (second tab)
+    BreedList(title: "Breed List"), // Index 2 - Breed info (third tab)
+    ConversationListScreen() // Index 3 - Chat (fourth tab)
   ];
 
 // 9
@@ -218,7 +222,8 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   List<Widget>? getTrailingButtons(selectedIndex) {
-    if (selectedIndex == 2) {
+    if (selectedIndex == 0) {
+      // Adopt tab is now at index 0
       return <Widget>[
         GestureDetector(
             onTap: () {
@@ -383,7 +388,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
                     ),
-                    child: (_selectedIndex == 2)
+                    child: (_selectedIndex == 0) // Adopt tab is now at index 0
                         ? AdoptGrid(
                             key: AdoptionGridKey, setFav: _setFavoriteButton)
                         : pages[_selectedIndex],
@@ -432,15 +437,15 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   child: ImageIcon(
                     AssetImage(_selectedIndex == 0
-                        ? "assets/Icons/fit_selected.png"
-                        : "assets/Icons/fit_unselected.png"),
+                        ? "assets/Icons/adopt_selected.png"
+                        : "assets/Icons/adopt_unselected.png"),
                     color: (_selectedIndex == 0
                         ? Color(0xFF2196F3)
                         : Colors.grey[400]),
                     size: 24,
                   ),
                 ),
-                label: 'Fit',
+                label: 'Adopt',
               ),
               BottomNavigationBarItem(
                 backgroundColor: Colors.white,
@@ -454,15 +459,15 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   child: ImageIcon(
                     AssetImage(_selectedIndex == 1
-                        ? "assets/Icons/breeds_selected.png"
-                        : "assets/Icons/breeds_unselected.png"),
+                        ? "assets/Icons/fit_selected.png"
+                        : "assets/Icons/fit_unselected.png"),
                     color: (_selectedIndex == 1
                         ? Color(0xFF2196F3)
                         : Colors.grey[400]),
                     size: 24,
                   ),
                 ),
-                label: "Breeds",
+                label: 'Fit',
               ),
               BottomNavigationBarItem(
                 backgroundColor: Colors.white,
@@ -476,15 +481,15 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   child: ImageIcon(
                     AssetImage(_selectedIndex == 2
-                        ? "assets/Icons/adopt_selected.png"
-                        : "assets/Icons/adopt_unselected.png"),
+                        ? "assets/Icons/breeds_selected.png"
+                        : "assets/Icons/breeds_unselected.png"),
                     color: (_selectedIndex == 2
                         ? Color(0xFF2196F3)
                         : Colors.grey[400]),
                     size: 24,
                   ),
                 ),
-                label: 'Adopt',
+                label: "Breeds",
               ),
               BottomNavigationBarItem(
                 backgroundColor: Colors.white,

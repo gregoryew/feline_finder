@@ -1,0 +1,329 @@
+{
+  "location": {
+    "field": "location",
+    "description": "Specifies the user's location and search radius. Extract ZIP codes when mentioned explicitly (e.g., 'cats in 90210', 'zip code 94040', 'near 10001') or when user says 'nearby', 'near me', 'close', or 'local' without specifying distance, default to 20 miles.",
+    "subfields": {
+      "zip": "User's ZIP code OR city name for location-based searching. Extract from queries like 'in 90210', 'zip code 94040', 'near 10001', 'cats in ZIP 12345', '90210 area', 'cats in Los Angeles', 'near New York', 'San Francisco area', or any 5-digit number/city name mentioned in context of location. If city name is provided, it will be converted to ZIP code automatically.",
+      "distance": "Maximum distance in miles from the ZIP code. Default to '20' for 'nearby' queries without explicit distance. Extract from queries like 'within 50 miles', '30 mile radius', '100 miles of', etc."
+    },
+    "example": { "zip": "94040", "distance": "20" }
+  },
+  "filters": {
+    "breed": {
+      "field": "animals.breedPrimaryId",
+      "description": "Restrict search results to cats of a specific breed.",
+      "options": [],
+      "keywords": {
+        "positive": ["breed", "ragdoll", "siamese", "persian", "maine coon"],
+        "negative": ["any breed", "all breeds"]
+      }
+    },
+    "sizeGroup": {
+      "field": "animals.sizeGroup",
+      "description": "Cat's general body size category.",
+      "options": ["Small", "Medium", "Large", "X-Large", "Any"],
+      "keywords": {
+        "positive": ["tiny", "small", "medium", "big", "large"],
+        "negative": ["not small", "not big", "no preference"]
+      }
+    },
+    "ageGroup": {
+      "field": "animals.ageGroup",
+      "description": "Cat's age group.",
+      "options": ["Baby", "Young", "Adult", "Senior", "Any"],
+      "keywords": {
+        "positive": ["kitten", "young", "adult", "senior"],
+        "negative": ["not kitten", "not senior"]
+      }
+    },
+    "sex": {
+      "field": "animals.sex",
+      "description": "Cat's biological sex.",
+      "options": ["Male", "Female", "Any"],
+      "keywords": {
+        "positive": ["male", "boy cat", "female", "girl cat"],
+        "negative": ["no gender preference"]
+      }
+    },
+    "coatLength": {
+      "field": "animals.coatLength",
+      "description": "Length of the cat's fur.",
+      "options": ["Short", "Medium", "Long", "Any"],
+      "keywords": {
+        "positive": ["short-haired", "long-haired", "fluffy", "smooth coat"],
+        "negative": ["not long-haired", "no coat preference"]
+      }
+    },
+    "affectionate": {
+      "field": "animals.affectionate",
+      "description": "How loving or people-oriented the cat is.",
+      "options": ["Yes", "No", "Any"],
+      "keywords": {
+        "positive": ["affectionate", "cuddly", "snuggly", "lap cat", "friendly"],
+        "negative": ["independent", "aloof", "not cuddly", "distant"]
+      }
+    },
+    "playful": {
+      "field": "animals.playful",
+      "description": "How much the cat enjoys playing and interaction.",
+      "options": ["Yes", "No", "Any"],
+      "keywords": {
+        "positive": ["playful", "active", "energetic", "likes toys"],
+        "negative": ["lazy", "not playful", "calm"]
+      }
+    },
+    "energyLevel": {
+      "field": "animals.energyLevel",
+      "description": "Overall activity or energy level.",
+      "options": ["Low", "Medium", "High", "Any"],
+      "keywords": {
+        "positive": ["calm", "moderate", "active", "energetic"],
+        "negative": ["hyper", "lazy", "sluggish", "no preference"]
+      }
+    },
+    "activityLevel": {
+      "field": "animals.activityLevel",
+      "description": "How active the cat tends to be daily.",
+      "options": ["None", "Low", "Medium", "High", "Any"],
+      "keywords": {
+        "positive": ["active", "energetic", "busy", "alert"],
+        "negative": ["inactive", "sedentary", "relaxed"]
+      }
+    },
+    "exerciseNeeds": {
+      "field": "animals.exerciseNeeds",
+      "description": "Amount of exercise or playtime typically required.",
+      "options": ["Not Required", "Low", "Medium", "High", "Any"],
+      "keywords": {
+        "positive": ["needs play", "needs activity", "active cat"],
+        "negative": ["low energy", "not active", "couch cat"]
+      }
+    },
+    "vocalLevel": {
+      "field": "animals.vocalLevel",
+      "description": "How vocal or talkative the cat is.",
+      "options": ["Quiet", "Some", "Lots", "Any"],
+      "keywords": {
+        "positive": ["quiet", "silent", "soft meow"],
+        "negative": ["talkative", "loud", "chatty"]
+      }
+    },
+    "newPeopleReaction": {
+      "field": "animals.newPeopleReaction",
+      "description": "How the cat reacts to strangers or new people.",
+      "options": ["Cautious", "Friendly", "Protective", "Aggressive", "Any"],
+      "keywords": {
+        "positive": ["friendly", "sociable", "trusting"],
+        "negative": ["shy", "timid", "hides from strangers"]
+      }
+    },
+    "isHousetrained": {
+      "field": "animals.isHousetrained",
+      "description": "Whether the cat reliably uses a litter box.",
+      "options": ["Yes", "No", "Any"],
+      "keywords": {
+        "positive": ["litter trained", "house trained", "clean"],
+        "negative": ["not trained", "accidents", "not litter trained"]
+      }
+    },
+    "isDogsOk": {
+      "field": "animals.isDogsOk",
+      "description": "Whether the cat gets along with dogs.",
+      "options": ["Yes", "No", "Any"],
+      "keywords": {
+        "positive": ["good with dogs", "dog friendly"],
+        "negative": ["dislikes dogs", "not dog friendly"]
+      }
+    },
+    "isCatsOk": {
+      "field": "animals.isCatsOk",
+      "description": "Whether the cat gets along with other cats.",
+      "options": ["Yes", "No", "Any"],
+      "keywords": {
+        "positive": ["good with cats", "cat friendly"],
+        "negative": ["territorial", "not cat friendly"]
+      }
+    },
+    "isKidsOk": {
+      "field": "animals.isKidsOk",
+      "description": "Whether the cat is suitable for homes with children.",
+      "options": ["Yes", "No", "Any"],
+      "keywords": {
+        "positive": ["good with kids", "family friendly"],
+        "negative": ["not good with kids", "no children"]
+      }
+    },
+    "ownerExperience": {
+      "field": "animals.ownerExperience",
+      "description": "How experienced an owner should be with cats or breeds.",
+      "options": ["None", "Species", "Breed", "Any"],
+      "keywords": {
+        "positive": ["experienced", "knows cats", "familiar with breed"],
+        "negative": ["first-time owner", "new to cats"]
+      }
+    },
+    "indoorOutdoor": {
+      "field": "animals.indoorOutdoor",
+      "description": "Indicates whether the cat should stay indoors, outdoors, or both.",
+      "options": ["Indoor", "Both", "Outdoor", "Any"],
+      "keywords": {
+        "positive": ["indoor", "house cat", "outdoor cat"],
+        "negative": ["no preference"]
+      }
+    },
+    "colorDetails": {
+      "field": "animals.colorDetails",
+      "description": "Primary or secondary color pattern of the cat's coat.",
+      "options": ["Black","Black and White","Tuxedo","Blue","Gray","Brown","Brown Tabby","Calico","Cream","Ivory","Silver Tabby","Red Tabby","Spotted","Tan","Fawn","Tortoiseshell","White","Any"],
+      "keywords": {
+        "positive": ["black cat","gray cat","white cat","tuxedo","tabby"],
+        "negative": ["no color preference"]
+      }
+    },
+    "eyeColor": {
+      "field": "animals.eyeColor",
+      "description": "Eye color of the cat.",
+      "options": ["Black","Blue","Brown","Green","Gold","Gray","Hazel","Mixed","Yellow","Any"],
+      "keywords": {
+        "positive": ["blue-eyed","green eyes","golden eyes"],
+        "negative": ["no preference"]
+      }
+    },
+    "tailType": {
+      "field": "animals.tailType",
+      "description": "Shape or condition of the cat's tail.",
+      "options": ["Bare","Bob","Curled","Docked","Kinked","Long","Short","Any"],
+      "keywords": {
+        "positive": ["bobtail","long tail","short tail"],
+        "negative": ["no preference"]
+      }
+    },
+    "groomingNeeds": {
+      "field": "animals.groomingNeeds",
+      "description": "How much grooming care the cat requires.",
+      "options": ["Not Required","Low","Medium","High", "Any"],
+      "keywords": {
+        "positive": ["low maintenance","easy grooming","needs brushing"],
+        "negative": ["no grooming preference"]
+      }
+    },
+    "sheddingLevel": {
+      "field": "animals.sheddingLevel",
+      "description": "Typical amount of fur shedding.",
+      "options": ["None","Some","High","Any"],
+      "keywords": {
+        "positive": ["low shedding","hairless","sheds a lot"],
+        "negative": ["no shedding preference"]
+      }
+    },
+    "hypoallergenic": {
+      "field": "animals.hypoallergenic",
+      "description": "Indicates if the cat produces fewer allergens.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["hypoallergenic","good for allergies","allergy friendly"],
+        "negative": ["not hypoallergenic","allergenic"]
+      }
+    },
+    "hasAllergies": {
+      "field": "animals.hasAllergies",
+      "description": "Indicates if the cat has known allergies.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["cat has allergies","food allergy","special care"],
+        "negative": ["no allergies"]
+      }
+    },
+    "hearingImpaired": {
+      "field": "animals.hearingImpaired",
+      "description": "Indicates if the cat is partially or fully deaf.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["deaf","hearing loss"],
+        "negative": ["normal hearing"]
+      }
+    },
+    "ongoingMedical": {
+      "field": "animals.ongoingMedical",
+      "description": "Whether the cat requires ongoing medical treatment.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["medical needs","requires medication","special care"],
+        "negative": ["healthy","no medical needs"]
+      }
+    },
+    "specialDiet": {
+      "field": "animals.specialDiet",
+      "description": "Whether the cat requires a specific diet.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["special diet","prescription food","dietary restriction"],
+        "negative": ["normal diet","no special diet"]
+      }
+    },
+    "isAltered": {
+      "field": "animals.altered",
+      "description": "Whether the cat has been spayed or neutered.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["spayed","neutered","fixed"],
+        "negative": ["intact","not altered"]
+      }
+    },
+    "isDeclawed": {
+      "field": "animals.declawed",
+      "description": "Whether the cat has been declawed.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["declawed"],
+        "negative": ["clawed","has claws"]
+      }
+    },
+    "isMicrochipped": {
+      "field": "animals.isMicrochipped",
+      "description": "Whether the cat has an identification microchip.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["microchipped","has chip"],
+        "negative": ["no chip","not microchipped"]
+      }
+    },
+    "isBreedMixed": {
+      "field": "animals.breedMixed",
+      "description": "Whether the cat is a mix of multiple breeds.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["mixed breed","domestic mix"],
+        "negative": ["purebred"]
+      }
+    },
+    "isSpecialNeeds": {
+      "field": "animals.isSpecialNeeds",
+      "description": "Indicates whether the cat has physical or behavioral special needs.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["special needs","disability","handicapped"],
+        "negative": ["no special needs"]
+      }
+    },
+    "isCurrentVaccinations": {
+      "field": "animals.isCurrentVaccinations",
+      "description": "Whether the cat is up to date on required vaccinations.",
+      "options": ["Yes","No","Any"],
+      "keywords": {
+        "positive": ["vaccinated","up to date on shots"],
+        "negative": ["not vaccinated"]
+      }
+    },
+    "updatedDate": {
+      "field": "animals.updatedDate",
+      "description": "Filter cats by when they were last updated/added. When user says 'new', 'new cats', 'recently added', 'just posted', default to 'Week' (updated within last 7 days).",
+      "options": ["Day","Week","Month","Year","Any"],
+      "keywords": {
+        "positive": ["new","new cats","new listings","recently added","just posted","fresh","recent"],
+        "negative": ["all","any","no preference"]
+      }
+    }
+  }
+}
+

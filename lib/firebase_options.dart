@@ -80,8 +80,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '330705375055',
     projectId: 'catapp-44885',
     storageBucket: 'catapp-44885.appspot.com',
-    androidClientId: '330705375055-n7e31n55fe92nlvvkdtduc7psild8mhj.apps.googleusercontent.com',
-    iosClientId: '330705375055-5fn167olgtt5ro0ftugsqul9cbgtovjn.apps.googleusercontent.com',
+    androidClientId:
+        '330705375055-n7e31n55fe92nlvvkdtduc7psild8mhj.apps.googleusercontent.com',
+    iosClientId:
+        '330705375055-5fn167olgtt5ro0ftugsqul9cbgtovjn.apps.googleusercontent.com',
     iosBundleId: 'com.gregorysiosgames.catapp',
   );
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/organization_verification_service.dart';
 import '../models/organization.dart';
 import '../services/portal_user_service.dart';
+import '../widgets/organization_setup_dialog.dart';
 import 'errorPage.dart';
 
 class OrganizationJWTVerificationScreen extends StatefulWidget {
@@ -75,24 +77,71 @@ class _OrganizationJWTVerificationScreenState
       );
 
       if (success) {
-        Get.dialog(
-          AlertDialog(
-            title: const Text('Verification Complete!'),
-            content: const Text(
-              'Your organization has been successfully verified and set up. You can now manage your organization on Feline Finder.',
+        // Get organization from verification result
+        final organization =
+            _verificationResult!['organization'] as Organization;
+
+        // Check if organization needs setup (pendingSetup is true)
+        final orgDoc = await FirebaseFirestore.instance
+            .collection('organizations')
+            .doc(_verificationResult!['orgId'])
+            .get();
+
+        final pendingSetup = orgDoc.data()?['pendingSetup'] ?? false;
+
+        if (pendingSetup) {
+          // Show setup dialog
+          final setupComplete = await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => OrganizationSetupDialog(
+              organizationId: _verificationResult!['orgId'],
+              organizationName: organization.name,
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Get.back();
-                  // Navigate to organization dashboard or main app
-                  Get.offAllNamed('/home');
-                },
-                child: const Text('Continue'),
+          );
+
+          if (setupComplete == true && mounted) {
+            // Setup completed, show success message
+            Get.dialog(
+              AlertDialog(
+                title: const Text('Verification Complete!'),
+                content: const Text(
+                  'Your organization has been successfully verified and set up. You can now manage your organization on Feline Finder.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Get.back();
+                      // Navigate to organization dashboard or main app
+                      Get.offAllNamed('/home');
+                    },
+                    child: const Text('Continue'),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
+            );
+          }
+        } else {
+          // Already set up, show success
+          Get.dialog(
+            AlertDialog(
+              title: const Text('Verification Complete!'),
+              content: const Text(
+                'Your organization has been successfully verified and set up. You can now manage your organization on Feline Finder.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Get.back();
+                    // Navigate to organization dashboard or main app
+                    Get.offAllNamed('/home');
+                  },
+                  child: const Text('Continue'),
+                ),
+              ],
+            ),
+          );
+        }
       } else {
         _showErrorDialog('Failed to complete verification. Please try again.');
       }

@@ -2,6 +2,7 @@ import 'dart:convert';
 //import 'dart:html';
 import 'package:catapp/models/rescuegroups_v5.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:catapp/screens/petDetail.dart';
 import '/models/breed.dart';
 import '/models/question.dart';
@@ -17,6 +18,8 @@ import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import 'package:get/get.dart';
 import 'package:outlined_text/outlined_text.dart';
+import 'package:linkfy_text/linkfy_text.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum WidgetMarker { adopt, videos, stats, info }
 
@@ -36,12 +39,9 @@ class BreedDetail extends StatefulWidget {
 
 enum BarType { traitBar, percentageBar, backgroundBar }
 
-class _BreedDetailState extends State<BreedDetail>
-    with SingleTickerProviderStateMixin<BreedDetail> {
+class _BreedDetailState extends State<BreedDetail> {
   WidgetMarker selectedWidgetMarker = WidgetMarker.info;
   late String BreedDescription = "";
-  late AnimationController _controller;
-  late Animation<double> _animation;
   List<Playlist> playlists = [];
   final maxValues = [5, 5, 5, 5, 5, 5, 5, 5, 4, 5, 5, 11, 6, 3, 12];
 
@@ -59,10 +59,6 @@ class _BreedDetailState extends State<BreedDetail>
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 3));
-    _animation = Tween(begin: 0.0, end: 1.0).animate(_controller);
-    Map<String, String>? mapKeys;
     () async {
       setState(() {
         rescueGroupApi = AppConfig.rescueGroupsApiKey;
@@ -234,6 +230,15 @@ class _BreedDetailState extends State<BreedDetail>
     );
   }
 
+  Future<void> _onOpen(String link) async {
+    var l = Uri.parse((!link.startsWith("http") ? "http://" : "") + link);
+    if (await canLaunchUrl(l)) {
+      await launchUrl(l);
+    } else {
+      throw 'Could not launch $link';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 1
@@ -247,244 +252,505 @@ class _BreedDetailState extends State<BreedDetail>
           padding: const EdgeInsets.all(10),
           child: Column(
             children: <Widget>[
-              // 4
-              ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+              // 4 - Breed Image with modern styling
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
                   child: Image(
                     width: MediaQuery.of(context).size.width,
                     fit: BoxFit.fitHeight,
                     image: AssetImage(
                         'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
-                  )),
-              const SizedBox(
-                height: 4,
-              ),
-              // 6
-              const SizedBox(height: 30),
-              SizedBox(
-                height: 70,
-                width: MediaQuery.of(context).size.width,
-                child: Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(
-                          color: const Color.fromARGB(184, 111, 97, 97)),
-                      color: const Color.fromARGB(255, 225, 215, 215),
-                      borderRadius:
-                          const BorderRadius.all(Radius.circular(20))),
-                  padding: const EdgeInsets.all(20),
-                  child: Text(
-                    widget.breed.name,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
                   ),
                 ),
               ),
-              // 5
-              const SizedBox(height: 30),
-              GridView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4, childAspectRatio: 4 / 3),
-                itemCount: 4,
-                itemBuilder: (BuildContext context, int index) {
-                  return GestureDetector(
-                    onTap: () => {
-                      setState(
-                        () {
-                          hilightedCell = index;
-                          selectedWidgetMarker = selectedIcon[index];
-                        },
+              const SizedBox(height: 20),
+              // Breed name with modern card styling matching petDetail
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),
+                padding: EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF2196F3).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    },
-                    child: Card(
-                      color: index == hilightedCell
-                          ? Color.fromARGB(255, 220, 219, 219)
-                          : Colors.white,
-                      child: Center(
-                        child: Image(
-                            width: 30,
-                            fit: BoxFit.fitWidth,
-                            image: AssetImage("assets/Icons/${icons[index]}")),
+                      child: Icon(
+                        Icons.pets,
+                        color: Color(0xFF2196F3),
+                        size: 24,
                       ),
                     ),
-                  );
-                },
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.breed.name,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2196F3),
+                              fontFamily: 'Poppins',
+                            ),
+                            textAlign: TextAlign.left,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 20),
+              // Button grid with modern styling
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Color(0xFF2196F3).withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),
+                padding: EdgeInsets.all(8),
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4, childAspectRatio: 4 / 3),
+                  itemCount: 4,
+                  itemBuilder: (BuildContext context, int index) {
+                    return GestureDetector(
+                      onTap: () => {
+                        setState(
+                          () {
+                            hilightedCell = index;
+                            selectedWidgetMarker = selectedIcon[index];
+                          },
+                        ),
+                      },
+                      child: Container(
+                        margin: EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: index == hilightedCell
+                              ? Color(0xFF2196F3).withOpacity(0.1)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: index == hilightedCell
+                              ? Border.all(
+                                  color: Color(0xFF2196F3),
+                                  width: 2,
+                                )
+                              : null,
+                        ),
+                        child: Center(
+                          child: Image(
+                              width: 30,
+                              fit: BoxFit.fitWidth,
+                              image:
+                                  AssetImage("assets/Icons/${icons[index]}")),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Cats subpage with modern styling
               Visibility(
                 visible: selectedWidgetMarker == WidgetMarker.adopt,
-                child: (tiles.isEmpty)
-                    ? const Center(child: Text("No Cats Returned."))
-                    : GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2, childAspectRatio: 3 / 4),
-                        itemCount: tiles.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return GestureDetector(
-                            onTap: () => {
-                              Get.to(
-                                  () => petDetail(tiles[index].id.toString())),
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                      image: NetworkImage(
-                                          tiles[index].picture ?? ""),
-                                      fit: BoxFit.fill)),
-                              child: Align(
-                                child: OutlinedText(
-                                  text: Text(
-                                    tiles[index].name ?? "Unknown Name",
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  strokes: [
-                                    OutlinedTextStroke(
-                                        color: Colors.black, width: 4),
-                                  ],
-                                ),
-                                alignment: Alignment.bottomCenter,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              Visibility(
-                visible: selectedWidgetMarker == WidgetMarker.videos,
-                child: (playlists.isEmpty)
-                    ? const Center(child: Text("No Cat Vidoes Available."))
-                    : ListView.separated(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        separatorBuilder: (context, index) => Divider(
-                          thickness: 2.0,
-                        ),
-                        itemCount: playlists.length,
-                        itemBuilder: (context, index) {
-                          return PlaylistRow(
-                            displayDescription: false,
-                            playlist: playlists[index],
-                          );
-                        },
-                      ),
-              ),
-              Visibility(
-                visible: selectedWidgetMarker == WidgetMarker.stats,
-                child: (Column(
-                  children: [
-                    const Center(
-                        child: Text("🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
-                            textAlign: TextAlign.center)),
-                    const SizedBox(height: 20),
-                    ListView.separated(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      separatorBuilder: (context, index) => const Divider(
-                        thickness: 2.0,
-                        color: Colors.white,
-                      ),
-                      itemCount: widget.breed.stats.length,
-                      itemBuilder: (context, index) {
-                        var statPrecentage =
-                            (widget.breed.stats[index].isPercent)
-                                ? widget.breed.stats[index].value.toDouble() /
-                                    maxValues[index].toDouble()
-                                : 1.0;
-                        var userPreference =
-                            (widget.breed.stats[index].isPercent)
-                                ? globals.FelineFinderServer.instance
-                                        .sliderValue[index] /
-                                    maxValues[index].toDouble()
-                                : 1.0;
-                        if (statPrecentage < userPreference) {
-                          return Stack(
-                            //alignment:new Alignment(x, y)
-                            children: <Widget>[
-                              bar(1, BarType.backgroundBar),
-                              bar(userPreference, BarType.percentageBar),
-                              Positioned(
-                                child: bar(statPrecentage, BarType.traitBar),
-                              ),
-                              Positioned.fill(
-                                child: Align(
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    "         " +
-                                        widget.breed.stats[index].name +
-                                        ': ' +
-                                        Question
-                                            .questions[index]
-                                            .choices[widget
-                                                .breed.stats[index].value
-                                                .toInt()]
-                                            .name,
-                                    style: const TextStyle(
-                                        fontSize: 16.0,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
+                child: Container(
+                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  child: (tiles.isEmpty)
+                      ? Container(
+                          padding: EdgeInsets.all(40),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 20,
+                                offset: Offset(0, 4),
                               ),
                             ],
-                          );
-                        } else {
-                          return Stack(
-                            children: <Widget>[
-                              bar(100, BarType.backgroundBar),
-                              bar(statPrecentage, BarType.percentageBar),
-                              Positioned(
-                                child: bar(userPreference, BarType.traitBar),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "No Cats Returned.",
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                color: Colors.grey[600],
                               ),
-                              Positioned(
-                                left: 13,
-                                top: 4,
-                                child: Text(statPrecentage == userPreference &&
-                                        (widget.breed.stats[index].isPercent)
-                                    ? "🎯"
-                                    : ""),
-                              ),
-                              Positioned.fill(
-                                child: Row(
-                                  children: <Widget>[
-                                    Align(
-                                      alignment: Alignment.center,
-                                      child: Text(
-                                        "         " +
-                                            widget.breed.stats[index].name +
-                                            ': ' +
-                                            Question
-                                                .questions[index]
-                                                .choices[widget
-                                                    .breed.stats[index].value
-                                                    .toInt()]
-                                                .name,
-                                        style: const TextStyle(
-                                            fontSize: 16.0,
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.bold),
-                                        textAlign: TextAlign.center,
-                                      ),
+                            ),
+                          ),
+                        )
+                      : GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  childAspectRatio: 3 / 4,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12),
+                          itemCount: tiles.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return GestureDetector(
+                              onTap: () => {
+                                Get.to(() =>
+                                    petDetail(tiles[index].id.toString())),
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 4),
                                     ),
                                   ],
                                 ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Image(
+                                        image: NetworkImage(
+                                            tiles[index].picture ?? ""),
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return Container(
+                                            color: Colors.grey[300],
+                                            child: Icon(Icons.pets,
+                                                size: 50,
+                                                color: Colors.grey[600]),
+                                          );
+                                        },
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        left: 0,
+                                        right: 0,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.transparent,
+                                                Colors.black.withOpacity(0.7),
+                                              ],
+                                            ),
+                                          ),
+                                          padding: EdgeInsets.all(12),
+                                          child: OutlinedText(
+                                            text: Text(
+                                              tiles[index].name ??
+                                                  "Unknown Name",
+                                              style: GoogleFonts.poppins(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            strokes: [
+                                              OutlinedTextStroke(
+                                                  color: Colors.black,
+                                                  width: 4),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ),
+              // YouTube videos subpage with modern styling
+              Visibility(
+                visible: selectedWidgetMarker == WidgetMarker.videos,
+                child: Container(
+                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  child: (playlists.isEmpty)
+                      ? Container(
+                          padding: EdgeInsets.all(40),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 20,
+                                offset: Offset(0, 4),
                               ),
                             ],
-                          );
-                        }
-                      },
-                    ),
-                  ],
-                )),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "No Cat Videos Available.",
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 20,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: Color(0xFF2196F3).withOpacity(0.1),
+                              width: 1,
+                            ),
+                          ),
+                          child: ListView.separated(
+                            physics: const NeverScrollableScrollPhysics(),
+                            shrinkWrap: true,
+                            separatorBuilder: (context, index) => Divider(
+                              thickness: 1.0,
+                              color: Colors.grey[200],
+                            ),
+                            itemCount: playlists.length,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: PlaylistRow(
+                                  displayDescription: false,
+                                  playlist: playlists[index],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                ),
               ),
+              // Fit/Stats subwindow with modern styling
               Visibility(
-                  visible: selectedWidgetMarker == WidgetMarker.info,
-                  child: Container(
-                      child: textBox(widget.breed.name, BreedDescription))),
+                visible: selectedWidgetMarker == WidgetMarker.stats,
+                child: Container(
+                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: Color(0xFF2196F3).withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF2196F3).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.analytics_outlined,
+                              color: Color(0xFF2196F3),
+                              size: 24,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              "Breed Traits & Fit",
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2196F3),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Center(
+                        child: Text(
+                          "🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ListView.separated(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        separatorBuilder: (context, index) => Divider(
+                          thickness: 1.0,
+                          color: Colors.grey[200],
+                        ),
+                        itemCount: widget.breed.stats.length,
+                        itemBuilder: (context, index) {
+                          var statPrecentage =
+                              (widget.breed.stats[index].isPercent)
+                                  ? widget.breed.stats[index].value.toDouble() /
+                                      maxValues[index].toDouble()
+                                  : 1.0;
+                          var userPreference =
+                              (widget.breed.stats[index].isPercent)
+                                  ? globals.FelineFinderServer.instance
+                                          .sliderValue[index] /
+                                      maxValues[index].toDouble()
+                                  : 1.0;
+                          if (statPrecentage < userPreference) {
+                            return Stack(
+                              //alignment:new Alignment(x, y)
+                              children: <Widget>[
+                                bar(1, BarType.backgroundBar),
+                                bar(userPreference, BarType.percentageBar),
+                                Positioned(
+                                  child: bar(statPrecentage, BarType.traitBar),
+                                ),
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      "         " +
+                                          widget.breed.stats[index].name +
+                                          ': ' +
+                                          Question
+                                              .questions[index]
+                                              .choices[widget
+                                                  .breed.stats[index].value
+                                                  .toInt()]
+                                              .name,
+                                      style: const TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Stack(
+                              children: <Widget>[
+                                bar(100, BarType.backgroundBar),
+                                bar(statPrecentage, BarType.percentageBar),
+                                Positioned(
+                                  child: bar(userPreference, BarType.traitBar),
+                                ),
+                                Positioned(
+                                  left: 13,
+                                  top: 4,
+                                  child: Text(statPrecentage ==
+                                              userPreference &&
+                                          (widget.breed.stats[index].isPercent)
+                                      ? "🎯"
+                                      : ""),
+                                ),
+                                Positioned.fill(
+                                  child: Row(
+                                    children: <Widget>[
+                                      Align(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          "         " +
+                                              widget.breed.stats[index].name +
+                                              ': ' +
+                                              Question
+                                                  .questions[index]
+                                                  .choices[widget
+                                                      .breed.stats[index].value
+                                                      .toInt()]
+                                                  .name,
+                                          style: const TextStyle(
+                                              fontSize: 16.0,
+                                              color: Colors.black,
+                                              fontWeight: FontWeight.bold),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Wikipedia info subpage with modern styling
+              Visibility(
+                visible: selectedWidgetMarker == WidgetMarker.info,
+                child: Container(
+                  margin: EdgeInsets.symmetric(horizontal: 16),
+                  child: textBox(widget.breed.name, BreedDescription),
+                ),
+              ),
             ],
           ),
         ),
@@ -493,28 +759,76 @@ class _BreedDetailState extends State<BreedDetail>
   }
 
   Widget textBox(String title, String textBlock) {
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
-            border: Border.all(color: const Color.fromARGB(184, 111, 97, 97)),
-            color: const Color.fromARGB(255, 225, 215, 215),
-            borderRadius: const BorderRadius.all(Radius.circular(20))),
-        padding: const EdgeInsets.all(20),
-        child: Column(
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Color(0xFF2196F3).withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.grey),
-              textAlign: TextAlign.left,
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(0xFF2196F3).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.info_outline,
+                color: Color(0xFF2196F3),
+                size: 24,
+              ),
             ),
-            Divider(
-              thickness: 1,
-              color: Colors.grey[100],
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2196F3),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  LinkifyText(
+                    textBlock.isEmpty
+                        ? "Loading breed information..."
+                        : textBlock,
+                    textAlign: TextAlign.left,
+                    textStyle: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
+                      height: 1.5,
+                    ),
+                    linkTypes: const [LinkType.email, LinkType.url],
+                    linkStyle: TextStyle(
+                      color: Color(0xFF2196F3),
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                    ),
+                    onTap: (link) => _onOpen(link.value!),
+                  ),
+                ],
+              ),
             ),
-            Text(textBlock),
           ],
         ),
       ),

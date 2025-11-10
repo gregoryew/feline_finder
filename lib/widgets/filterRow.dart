@@ -162,7 +162,7 @@ class _FilterRow extends State<FilterRow> {
                                       child: TextButton(
                                         style: ButtonStyle(
                                             padding: WidgetStateProperty.all<EdgeInsets>(const EdgeInsets.all(0))),
-                                        child: Align(
+                                        child: const Align(
                                           alignment: Alignment(0.5, 0.0),
                                           child: Text(
                                             "🗑️",

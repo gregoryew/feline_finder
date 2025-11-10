@@ -51,7 +51,7 @@ List<filterOption> persistentFilteringOptions = [];
 
 List<filterOption> filteringOptions = [
   filterOption("Save", "Save", "Save", true, false, CatClassification.saves, 1,
-      [listOption("New...", "New", 0)], [], false, FilterType.simple),
+      [], [], false, FilterType.simple),
   filterOption(
       "Breed",
       "",

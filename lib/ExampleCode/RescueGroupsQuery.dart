@@ -10,7 +10,7 @@ class RescueGroupsQuery {
 
   Map<dynamic, dynamic> toJson() {
     final data = <dynamic, dynamic>{};
-    data['data'] = data.toJson();
+    data['data'] = this.data.toJson();
     return data;
   }
 }

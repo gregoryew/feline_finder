@@ -2,6 +2,7 @@ import 'dart:async';
 
 import "package:firebase_auth/firebase_auth.dart";
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
@@ -66,11 +67,42 @@ class _SplashPageState extends State<SplashPage> {
       return;
     }
 
+    // Check for persistent anonymous user ID
+    final prefs = await SharedPreferences.getInstance();
+    var storedAnonymousUID = prefs.getString('anonymous_user_uid');
+
+    // Clear any fallback UIDs on startup
+    if (storedAnonymousUID != null &&
+        storedAnonymousUID.startsWith('fallback-')) {
+      print('⚠️ Found invalid fallback UID in storage, clearing it');
+      await prefs.remove('anonymous_user_uid');
+      storedAnonymousUID = null;
+    }
+
     final user = auth!.currentUser;
 
-    // Always sign in anonymously if no user (for UUID system compatibility)
+    // If we have a stored UID but no current user, try to restore
     if (user == null) {
-      await signinAnon();
+      if (storedAnonymousUID != null && storedAnonymousUID.isNotEmpty) {
+        print("Found stored anonymous UID: $storedAnonymousUID");
+        // Firebase anonymous auth should persist, but if it doesn't, create new
+        // The stored UID will be used for data operations
+        await signinAnon();
+      } else {
+        // First time user - sign in anonymously and store the UID
+        await signinAnon();
+        final newUser = auth!.currentUser;
+        if (newUser != null) {
+          await prefs.setString('anonymous_user_uid', newUser.uid);
+          print("Stored new anonymous UID: ${newUser.uid}");
+        }
+      }
+    } else {
+      // User exists - ensure UID is stored for persistence
+      if (storedAnonymousUID != user.uid) {
+        await prefs.setString('anonymous_user_uid', user.uid);
+        print("Updated stored anonymous UID: ${user.uid}");
+      }
     }
 
     // Proceed to home (UUID system will handle user creation)
@@ -90,9 +122,20 @@ class _SplashPageState extends State<SplashPage> {
         case "operation-not-allowed":
           print("Anonymous auth hasn't been enabled for this project.");
           break;
+        case "keychain-error":
+          print("⚠️ iOS Keychain error - this is often a simulator issue.");
+          print("   The app will continue but authentication may not persist.");
+          print("   On a real device, check keychain access permissions.");
+          // Continue anyway - the app can still work with fallback UID
+          break;
         default:
-          print("Unknown error.");
+          print("Firebase Auth error: ${e.code} - ${e.message}");
+          print("Stack trace: ${e.stackTrace}");
       }
+    } catch (e, stackTrace) {
+      print("Unexpected error during anonymous sign-in: $e");
+      print("Error type: ${e.runtimeType}");
+      print("Stack trace: $stackTrace");
     }
   }
 
@@ -211,7 +254,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     const AdoptGrid(), // Index 0 - Adopt a cat (first tab)
     const Fit(), // Index 1 - Fit (second tab)
     BreedList(title: "Breed List"), // Index 2 - Breed info (third tab)
-    ConversationListScreen() // Index 3 - Chat (fourth tab)
+    const ConversationListScreen() // Index 3 - Chat (fourth tab)
   ];
 
 // 9
@@ -236,10 +279,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(width: 10, height: 30),
         GestureDetector(
             onTap: () {
-              var favoritesSelected = (favoritesSelected) ? false : true;
+              favoritesSelected = !favoritesSelected;
               AdoptionGridKey.currentState!.setFavorites(favoritesSelected);
               setState(() {
-                favoritesSelected = favoritesSelected;
+                // favoritesSelected is a global variable, update it
               });
 
               // Trigger sparkle animation when favorited
@@ -340,7 +383,8 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               // Custom App Bar with gradient
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

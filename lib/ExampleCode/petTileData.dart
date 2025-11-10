@@ -72,7 +72,7 @@ class PetTileData {
         ? "https://via.placeholder.com/200x90.png?text=Cat+Image+Not+Available"
         : picturesList[0].attributes!.original!.url;
     smallPictureResolutionY = picturesList.isEmpty
-        ? 0
+        ? 0.0
         : picturesList[0].attributes!.small!.resolutionY?.toDouble();
     var videoList =
         findAllOfACertainType(pet, included, "videos", IncludedType.VIDEOS);

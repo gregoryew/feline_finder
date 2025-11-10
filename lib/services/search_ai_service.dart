@@ -19,20 +19,28 @@ class SearchAIService {
       const apiKey = AppConfig.geminiApiKey;
       if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY_HERE') {
         print('⚠️ Warning: Gemini API key not configured in config.dart');
+        print('⚠️ Search AI features will not work without a valid API key');
         return;
       }
 
-      // Using gemini-2.5-flash - the latest stable model available
-      // Other options: gemini-2.5-pro (more capable), gemini-flash-latest (always latest)
-      _model = GenerativeModel(
-        model: 'gemini-2.5-flash', // Latest stable flash model
-        apiKey: apiKey,
-      );
-      _initialized = true;
-      print('✅ SearchAIService initialized with model: gemini-2.5-flash');
+      try {
+        // Try gemini-2.0-flash-exp first (latest), fallback to gemini-1.5-flash if not available
+        // Other options: gemini-1.5-pro (more capable), gemini-1.5-flash (stable)
+        _model = GenerativeModel(
+          model:
+              'gemini-2.0-flash-exp', // Using 2.0 as it fixed issues previously
+          apiKey: apiKey,
+        );
+        _initialized = true;
+        print('✅ SearchAIService initialized with model: gemini-2.0-flash-exp');
 
-      // List available models on initialization
-      _listAvailableModels(apiKey);
+        // List available models on initialization (async, don't wait)
+        _listAvailableModels(apiKey);
+      } catch (e) {
+        print('❌ Failed to initialize SearchAIService: $e');
+        print('⚠️ Try using a different model name or check your API key');
+        _initialized = false;
+      }
     }
   }
 
@@ -421,6 +429,24 @@ class SearchAIService {
         "positive": ["new","new cats","new listings","recently added","just posted","fresh","recent"],
         "negative": ["all","any","no preference"]
       }
+    },
+    "obedienceTraining": {
+      "field": "animals.obedienceTraining",
+      "description": "Level of obedience training the cat has received.",
+      "options": ["Needs","Basic","Well","Any"],
+      "keywords": {
+        "positive": ["needs training","basic training","well trained","trained"],
+        "negative": ["no training preference"]
+      }
+    },
+    "earType": {
+      "field": "animals.earType",
+      "description": "Shape or condition of the cat's ears.",
+      "options": ["Cropped","Droopy","Erect","Long","Missing","Notched","Rose","Semi-erect","Tipped","Natural/Uncropped","Any"],
+      "keywords": {
+        "positive": ["cropped ears","droopy ears","erect ears","folded ears","straight ears"],
+        "negative": ["no ear preference"]
+      }
     }
   }
 }
@@ -469,10 +495,10 @@ IMPORTANT - Handling OR conditions:
   * colorDetails (e.g., ["Black", "White", "Gray"])
   * eyeColor (e.g., ["Blue", "Green", "Gold"])
   * tailType (e.g., ["Long", "Short", "Bob"])
-  * groomingNeeds (e.g., ["Low", "Medium", "High"])
-  * sheddingLevel (e.g., ["None", "Some", "High"])
-  * obedienceTraining (e.g., ["None", "Low", "Medium"])
-  * earType (e.g., ["Straight", "Folded"])
+    * groomingNeeds (e.g., ["Low", "Medium", "High"])
+    * sheddingLevel (e.g., ["None", "Some", "High"])
+    * obedienceTraining (e.g., ["Needs", "Basic", "Well"])
+    * earType (e.g., ["Erect", "Droopy", "Cropped"])
 - Examples:
   * "black or white cat" → {"colorDetails": ["Black", "White"]}
   * "small or medium cat" → {"sizeGroup": ["Small", "Medium"]}
@@ -561,7 +587,8 @@ IMPORTANT - Handling OR conditions:
             '3. Ensure Generative Language API is enabled in Google Cloud Console');
         print(
             '4. Try changing the model name in search_ai_service.dart line 33');
-        print('   Try: gemini-1.5-pro, gemini-pro, or gemini-1.5-flash');
+        print(
+            '   Try: gemini-2.0-flash-exp, gemini-1.5-pro, or gemini-1.5-flash');
         print('');
       }
 

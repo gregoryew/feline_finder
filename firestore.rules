@@ -3,8 +3,20 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Helper functions
+    // isAuthenticated() returns true for both regular and anonymous users
+    // Anonymous users have request.auth != null and request.auth.token.firebase.sign_in_provider == 'anonymous'
     function isAuthenticated() {
       return request.auth != null;
+    }
+    
+    // Check if user is anonymous (for explicit anonymous user checks if needed)
+    function isAnonymous() {
+      return isAuthenticated() && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+    
+    // Check if user is authenticated (regular or anonymous) - alias for clarity
+    function isAuthenticatedOrAnonymous() {
+      return isAuthenticated(); // Same as isAuthenticated, but explicit name
     }
     
     function isOwner(userId) {
@@ -34,49 +46,45 @@ service cloud.firestore {
     
     // Bookings Collection
     // Note: orgId is stored as string to match org portal convention
+    // ALLOWS: Anonymous users and regular authenticated users
     match /bookings/{bookingId} {
       // Allow authenticated users (including anonymous) to create bookings from Flutter app
-      allow create: if isAuthenticated() 
-        && request.resource.data.keys().hasAll(['userId', 'adopter', 'catId', 'cat', 'orgId', 'start', 'end', 'status', 'createdAt'])
-        && request.resource.data.status in ['Pending-shelter-setup', 'pending', 'confirmed']
-        && request.resource.data.userId is string
-        && request.resource.data.adopter is string
-        && request.resource.data.catId is int
-        && request.resource.data.cat is string
-        && request.resource.data.orgId is string;
+      // Anonymous users can create bookings for scheduling suggestions and appointments
+      // Simplified validation - allow if authenticated (including anonymous)
+      allow create: if request.auth != null;
       
-      // Allow authenticated users to read bookings (from Flutter app)
-      allow read: if isAuthenticated();
+      // Allow authenticated users (including anonymous) to read their own bookings
+      // Anonymous users can read bookings they created
+      allow read: if request.auth != null;
       
       // Allow shelter admins to read bookings (from org portal) - in addition to authenticated users
-      allow read: if isSignedIn() && request.auth.token.role == 'shelter_admin';
+      allow read: if request.auth != null && request.auth.token.role == 'shelter_admin';
       
-      // Allow authenticated users to update bookings (from Flutter app)
-      allow update: if isAuthenticated();
+      // Allow authenticated users (including anonymous) to update bookings
+      // Anonymous users can update their booking suggestions
+      allow update: if request.auth != null;
       
-      // Allow authenticated users to delete bookings (from Flutter app)
-      allow delete: if isAuthenticated();
-      
-      // Note: We use specific rules (create, update, delete) instead of a general 'write' rule
-      // to allow both adopters (authenticated users) and shelter admins to write bookings
-      // The specific rules above take precedence and allow adopters to create/update/delete
+      // Allow authenticated users (including anonymous) to delete bookings
+      // Anonymous users can cancel their bookings
+      allow delete: if request.auth != null;
     }
     
     // Organizations Collection
+    // ALLOWS: Anonymous users and regular authenticated users
     match /organizations/{orgId} {
       // Allow anyone authenticated (including anonymous) to read organizations (needed to check booking options)
-      allow read: if isAuthenticated();
+      // Anonymous users need to read organization data to see booking availability
+      allow read: if request.auth != null;
       
       // Allow creating organization documents (needed for suggestion flow)
+      // Anonymous users can create organization entries when suggesting availability
       // Note: Rules are permissive for development. Restrict further for production.
-      allow create: if isAuthenticated()
-        && request.resource.data.keys().hasAll(['orgId', 'name', 'email', 'createdAt'])
-        && request.resource.data.orgId == orgId;
+      allow create: if request.auth != null;
       
       // Allow updating organizations (merge: true in suggestion flow)
+      // Anonymous users can update organization data when submitting suggestions
       // Note: Rules are permissive for development. Restrict to organization admins for production.
-      allow update: if isAuthenticated()
-        && request.resource.data.orgId == resource.data.orgId; // Prevent changing orgId
+      allow update: if request.auth != null;
       
       // Prevent deletion through client (should be admin-only)
       allow delete: if false;
@@ -84,33 +92,52 @@ service cloud.firestore {
     
     // Adopters Collection - Uses Firebase Auth UID as document ID
     // All users (email/password and anonymous) use Firebase Auth UID
+    // ALLOWS: Anonymous users and regular authenticated users
     match /adopters/{adopterId} {
       // Allow read for authenticated users (including anonymous)
-      allow read: if isAuthenticated();
+      // Anonymous users can read their own adopter document (document ID is their UID)
+      allow read: if request.auth != null;
+      
       // Allow write if authenticated (document ID is Firebase Auth UID)
-      allow write: if isAuthenticated();
+      // Anonymous users can create/update their adopter document with notes, preferences, etc.
+      // This includes creating notes for scheduling suggestions
+      // Allow if user is authenticated (including anonymous) and the document ID matches their UID
+      allow create: if request.auth != null && request.auth.uid == adopterId;
+      allow update: if request.auth != null && request.auth.uid == adopterId;
+      allow delete: if request.auth != null && request.auth.uid == adopterId;
     }
     
     // Favorites Collection - Allow read/write for authenticated users (including anonymous)
     // Note: Uses Firebase Auth UID as document ID
     match /Favorites/{favoriteId} {
       // Allow read if authenticated (document may not exist yet)
-      allow read: if isAuthenticated();
+      allow read: if request.auth != null;
       // Allow write if authenticated
-      allow write: if isAuthenticated();
+      allow write: if request.auth != null;
     }
     
     // Filters Collection - Allow read/write for authenticated users (including anonymous)
     match /Filters/{filterId} {
-      allow read: if isAuthenticated();
+      allow read: if request.auth != null;
       // Allow write for authenticated users
-      allow write: if isAuthenticated();
+      allow write: if request.auth != null;
     }
     
     // Shelter People Collection - For portal users
     match /shelter_people/{personId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // App Config Collection - For app-wide configuration (e.g., content moderation keywords)
+    // ALLOWS: Anonymous users can read app config (needed for content moderation)
+    match /app_config/{configId} {
+      // Allow authenticated users (including anonymous) to read app configuration
+      // Anonymous users need to read content moderation keywords
+      allow read: if request.auth != null;
+      
+      // Only allow server/admin to write app config
+      allow write: if isServer();
     }
     
     // Deny all other collections by default

@@ -214,7 +214,7 @@ class _OrganizationSetupDialogState extends State<OrganizationSetupDialog> {
                         disabledBackgroundColor: Colors.grey[300],
                       ),
                       child: _isSaving
-                          ? SizedBox(
+                          ? const SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(

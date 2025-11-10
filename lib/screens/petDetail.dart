@@ -28,8 +28,9 @@ class petDetail extends StatefulWidget {
   final server = globals.FelineFinderServer.instance;
 
   petDetail(
-    this.petID, {Key? key},
-  ) : super(key: key);
+    this.petID, {
+    Key? key,
+  }) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -83,8 +84,7 @@ class petDetailState extends State<petDetail>
     onCancelled: () => print('cancelled'),
     onSubmitted: (response) async {
       print('rating: ${response.rating}, comment: ${response.comment}');
-      Future<SharedPreferences> prefs = SharedPreferences.getInstance();
-      final SharedPreferences prefs = await prefs;
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
       if (!prefs.containsKey("RatedApp")) {
         await prefs.setString("RatedApp", "True");
       }
@@ -243,7 +243,8 @@ class petDetailState extends State<petDetail>
       lines.add(petDetailInstance.street ?? "");
     }
 
-    var thirdLine = "${petDetailInstance.cityState ?? " "} ${petDetailInstance.postalCode ?? ""}";
+    var thirdLine =
+        "${petDetailInstance.cityState ?? " "} ${petDetailInstance.postalCode ?? ""}";
     if (thirdLine.trim() != "") {
       lines.add(thirdLine);
     }
@@ -571,7 +572,8 @@ class petDetailState extends State<petDetail>
                                   activeColor: Colors.white,
                                   size: const Size(8, 8),
                                   activeSize: const Size(12, 8),
-                                  spacing: const EdgeInsets.symmetric(horizontal: 4),
+                                  spacing:
+                                      const EdgeInsets.symmetric(horizontal: 4),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(4),
                                   ),

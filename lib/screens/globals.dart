@@ -13,6 +13,7 @@ import '../ExampleCode/RescueGroupsQuery.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const serverName = "stingray-app-uadxu.ondigitalocean.app";
 const double petDetailImageHeight = 300;
@@ -78,31 +79,71 @@ class FelineFinderServer {
   var loggedIn = false;
 
   Future<String> getUser() async {
-    // Use Firebase Auth UID instead of UUID
+    // Use Firebase Auth UID with persistent storage
     try {
+      // First, check for stored persistent UID
+      final prefs = await SharedPreferences.getInstance();
+      var storedUID = prefs.getString('anonymous_user_uid');
+
       final authUser = FirebaseAuth.instance.currentUser;
+
+      // Clear any fallback UIDs from storage
+      if (storedUID != null && storedUID.startsWith('fallback-')) {
+        print('⚠️ Found invalid fallback UID in storage, clearing it');
+        await prefs.remove('anonymous_user_uid');
+        storedUID = null;
+      }
+
       if (authUser == null) {
-        // Sign in anonymously if no user
+        // No current user - try to sign in anonymously
+        print("No auth user, signing in anonymously");
         try {
           final userCredential =
               await FirebaseAuth.instance.signInAnonymously();
           _userID = userCredential.user!.uid;
-          print("Signed in anonymously with UID: $_userID");
+          await prefs.setString('anonymous_user_uid', _userID);
+          print(
+              "Signed in anonymously with UID: $_userID (stored for persistence)");
         } catch (e) {
           print("Error signing in anonymously: $e");
-          // Return a fallback UID if anonymous sign-in fails
-          _userID = "fallback-${DateTime.now().millisecondsSinceEpoch}";
-          print("Using fallback UID: $_userID");
+          // If stored UID exists and is valid (not fallback), use it temporarily
+          if (storedUID != null && !storedUID.startsWith('fallback-')) {
+            print("⚠️ Using stored UID temporarily: $storedUID");
+            _userID = storedUID;
+          } else {
+            throw Exception(
+                'Unable to authenticate. Please restart the app. Error: $e');
+          }
         }
       } else {
+        // User exists - use their UID and ensure it's stored
         _userID = authUser.uid;
-        print("Using existing auth user UID: $_userID");
+        if (storedUID != _userID) {
+          await prefs.setString('anonymous_user_uid', _userID);
+          print("Updated stored UID to match current auth: $_userID");
+        } else {
+          print("Using existing auth user UID: $_userID (already stored)");
+        }
       }
     } catch (e) {
       print("Error in getUser(): $e");
-      // Return a fallback UID if everything fails
-      _userID = "fallback-${DateTime.now().millisecondsSinceEpoch}";
-      print("Using fallback UID after error: $_userID");
+      // Try to use stored UID if it's valid (not fallback)
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final storedUID = prefs.getString('anonymous_user_uid');
+        if (storedUID != null &&
+            storedUID.isNotEmpty &&
+            !storedUID.startsWith('fallback-')) {
+          _userID = storedUID;
+          print("Using stored UID after error: $_userID");
+          return _userID;
+        }
+      } catch (prefsError) {
+        print("Error accessing SharedPreferences: $prefsError");
+      }
+      // If we can't get a valid UID, throw an error
+      throw Exception(
+          'Unable to get authenticated user ID. Please restart the app. Error: $e');
     }
 
     final docRef =

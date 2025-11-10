@@ -8,6 +8,11 @@ import 'package:catapp/models/breed.dart';
 import 'package:catapp/screens/breedSelection.dart';
 import 'package:catapp/services/search_ai_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SearchScreen extends StatefulWidget {
   final Map<CatClassification, List<filterOption>> categories;
@@ -30,6 +35,7 @@ class SearchScreenState extends State<SearchScreen> {
   late TextEditingController _zipCodeController;
   late ScrollController _scrollController;
   late FocusNode _zipCodeFocusNode;
+  late FocusNode _searchFocusNode;
 
   // Track which filters are currently being animated
   final Map<String, bool> _animatingFilters = {};
@@ -44,6 +50,12 @@ class SearchScreenState extends State<SearchScreen> {
   // Track ZIP code validation state
   bool _zipCodeValidated = false;
   bool? _zipCodeIsValid;
+  // Animation toggle for filter selection (default: ON)
+  bool _animateFilters = true;
+  // Saved searches list
+  List<String> _savedSearchNames = [];
+  String? _selectedSavedSearch;
+  String? _lastLoadedSearchName; // Track which search is currently loaded
 
   @override
   void initState() {
@@ -51,19 +63,31 @@ class SearchScreenState extends State<SearchScreen> {
     controller2 = TextEditingController();
     _zipCodeController = TextEditingController();
     _zipCodeFocusNode = FocusNode();
+    _searchFocusNode = FocusNode();
     _scrollController = ScrollController();
 
     // Listen to focus changes for ZIP code validation
     _zipCodeFocusNode.addListener(_onZipCodeFocusChange);
 
+    // Listen to search field focus changes to show/hide keyboard toolbar
+    _searchFocusNode.addListener(() {
+      setState(() {}); // Update UI when focus changes
+    });
+
     // Load saved zip code if available
     _loadZipCode();
+
+    // Load animation preference
+    _loadAnimationPreference();
 
     // Initialize filter values to prevent type errors
     _initializeFilterValues();
 
     // Load saved search state after initialization
     _loadSearchState();
+
+    // Load saved searches from Firestore
+    _loadSavedSearches();
 
     // Initialize keys for all filters and categories
     for (var filter in widget.filteringOptions) {
@@ -84,6 +108,7 @@ class SearchScreenState extends State<SearchScreen> {
     _zipCodeController.dispose();
     _zipCodeFocusNode.removeListener(_onZipCodeFocusChange);
     _zipCodeFocusNode.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -150,7 +175,20 @@ class SearchScreenState extends State<SearchScreen> {
           // Find and update the filter
           final zipFilter = widget.filteringOptions.firstWhere(
             (f) => f.fieldName == 'zipCode',
-            orElse: () => widget.filteringOptions.first,
+            orElse: () => widget.filteringOptions.isNotEmpty
+                ? widget.filteringOptions.first
+                : filterOption(
+                    '',
+                    '',
+                    '',
+                    false,
+                    false,
+                    CatClassification.basic,
+                    0,
+                    [],
+                    [],
+                    false,
+                    FilterType.simple),
           );
           if (zipFilter.fieldName == 'zipCode') {
             zipFilter.choosenValue = zip;
@@ -217,6 +255,40 @@ class SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  /// Load animation preference from SharedPreferences
+  Future<void> _loadAnimationPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedValue = prefs.getBool('animate_filters');
+      if (savedValue != null) {
+        setState(() {
+          _animateFilters = savedValue;
+        });
+      } else {
+        // First time - default to true and save it
+        setState(() {
+          _animateFilters = true;
+        });
+        await _saveAnimationPreference();
+      }
+    } catch (e) {
+      print('Error loading animation preference: $e');
+      setState(() {
+        _animateFilters = true; // Default to true on error
+      });
+    }
+  }
+
+  /// Save animation preference to SharedPreferences
+  Future<void> _saveAnimationPreference() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('animate_filters', _animateFilters);
+    } catch (e) {
+      print('Error saving animation preference: $e');
+    }
+  }
+
   /// Load saved zip code from SharedPreferences and server
   Future<void> _loadZipCode() async {
     try {
@@ -232,7 +304,10 @@ class SearchScreenState extends State<SearchScreen> {
         // Also update the filter's choosenValue if it exists
         final zipFilter = widget.filteringOptions.firstWhere(
           (f) => f.fieldName == 'zipCode',
-          orElse: () => widget.filteringOptions.first,
+          orElse: () => widget.filteringOptions.isNotEmpty
+              ? widget.filteringOptions.first
+              : filterOption('', '', '', false, false, CatClassification.basic,
+                  0, [], [], false, FilterType.simple),
         );
         if (zipFilter.fieldName == 'zipCode') {
           zipFilter.choosenValue = zipCode;
@@ -426,6 +501,7 @@ class SearchScreenState extends State<SearchScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
+          // Text input field
           Row(
             children: [
               const Icon(Icons.search, color: Color(0xFF2196F3), size: 28),
@@ -433,58 +509,68 @@ class SearchScreenState extends State<SearchScreen> {
               Expanded(
                 child: TextField(
                   controller: controller2,
+                  focusNode: _searchFocusNode,
                   maxLines: 5,
                   minLines: 1,
-                  textInputAction: TextInputAction.search,
+                  textInputAction: _animateFilters
+                      ? TextInputAction.done // Toggle ON = "Done" button
+                      : TextInputAction.search, // Toggle OFF = "Search" button
                   keyboardType: TextInputType.text,
-                  onSubmitted: (_) => _performQuickSearchDirect(),
+                  onSubmitted: (_) {
+                    // If animate is ON: show "Done" and animate filters (don't navigate)
+                    // If animate is OFF: show "Search" and navigate directly to results
+                    if (_animateFilters) {
+                      _performQuickSearch(); // Animate filters, stay on screen
+                    } else {
+                      _performSearchAndNavigate(); // Navigate directly to results
+                    }
+                  },
+                  onChanged: (_) =>
+                      setState(() {}), // Update UI to show/hide clear button
                   decoration: InputDecoration(
                     hintText: "What Do You Want In A Cat",
+                    hintStyle: TextStyle(color: Colors.grey[400]),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: const Color(0xFF2196F3).withOpacity(0.3)),
+                      borderSide: BorderSide(
+                          color: const Color(0xFF2196F3).withOpacity(0.3)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
                           const BorderSide(color: Color(0xFF2196F3), width: 2),
                     ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _performQuickSearch(),
-                  icon: const Icon(Icons.search, color: Colors.white),
-                  label: const Text("Show Me", style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    suffixIcon: IconButton(
+                      icon: Builder(
+                        builder: (context) {
+                          try {
+                            return SvgPicture.asset(
+                              'assets/icons/eraser.svg',
+                              width: 24,
+                              height: 24,
+                              colorFilter: ColorFilter.mode(
+                                Colors.grey[600]!,
+                                BlendMode.srcIn,
+                              ),
+                              placeholderBuilder: (context) => const Icon(
+                                Icons.cleaning_services,
+                                size: 24,
+                                color: Colors.grey,
+                              ),
+                            );
+                          } catch (e) {
+                            // Fallback to Material icon if SVG fails
+                            return const Icon(
+                              Icons.cleaning_services,
+                              size: 24,
+                              color: Colors.grey,
+                            );
+                          }
+                        },
+                      ),
+                      tooltip: 'Reset all filters and search',
+                      onPressed: () => _resetAllFiltersAndSearch(),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _clearAllFilters(),
-                  icon: const Icon(Icons.clear, color: Color(0xFF2196F3)),
-                  label:
-                      const Text("Clear", style: TextStyle(color: Color(0xFF2196F3))),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    side: const BorderSide(color: Color(0xFF2196F3)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
@@ -608,7 +694,9 @@ class SearchScreenState extends State<SearchScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: isAnimating ? const Color(0xFF2196F3) : Colors.grey[800],
+                      color: isAnimating
+                          ? const Color(0xFF2196F3)
+                          : Colors.grey[800],
                     ),
                   ),
                 ),
@@ -631,7 +719,9 @@ class SearchScreenState extends State<SearchScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            if (filter.fieldName == "zipCode")
+            if (filter.classification == CatClassification.saves)
+              _buildSavedSearchesSection(filter)
+            else if (filter.fieldName == "zipCode")
               _buildZipCodeInput(filter)
             else if (filter.classification == CatClassification.breed)
               _buildBreedSelector(filter)
@@ -664,7 +754,8 @@ class SearchScreenState extends State<SearchScreen> {
       final zipLength = _zipCodeController.text.length;
       if (_zipCodeIsValid == true && zipLength == 5) {
         // Show green check mark for valid ZIP
-        suffixIcon = const Icon(Icons.check_circle, color: Colors.green, size: 24);
+        suffixIcon =
+            const Icon(Icons.check_circle, color: Colors.green, size: 24);
       } else if (_zipCodeIsValid == false) {
         // Show red error circle for invalid ZIP (either invalid format or invalid code)
         suffixIcon = const Icon(Icons.cancel, color: Colors.red, size: 24);
@@ -857,7 +948,8 @@ class SearchScreenState extends State<SearchScreen> {
                   (isSelected || isHighlighted) ? (isHighlighted ? 3 : 2) : 1,
             ),
             avatar: isHighlighted
-                ? const Icon(Icons.check_circle, color: Color(0xFF2196F3), size: 18)
+                ? const Icon(Icons.check_circle,
+                    color: Color(0xFF2196F3), size: 18)
                 : null,
           ),
         );
@@ -946,7 +1038,9 @@ class SearchScreenState extends State<SearchScreen> {
                       child: Text(
                         option.displayName,
                         style: TextStyle(
-                          color: isOptionHighlighted ? const Color(0xFF2196F3) : null,
+                          color: isOptionHighlighted
+                              ? const Color(0xFF2196F3)
+                              : null,
                           fontWeight: isOptionHighlighted
                               ? FontWeight.bold
                               : FontWeight.normal,
@@ -1008,55 +1102,133 @@ class SearchScreenState extends State<SearchScreen> {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => saveSearch(),
-              icon: const Icon(Icons.bookmark_outline, color: Color(0xFF2196F3)),
-              label: const Text("Save Search",
-                  style: TextStyle(color: Color(0xFF2196F3))),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                side: const BorderSide(color: Color(0xFF2196F3)),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () async {
+            try {
+              print("=== FIND CATS BUTTON PRESSED ===");
+              // Save search state before navigating
+              await _saveSearchState();
+              var filters = generateFilters();
+              print("Generated ${filters.length} filters");
+              Navigator.pop(context, filters);
+            } catch (e) {
+              print("Error in Find Cats button: $e");
+              Navigator.pop(context, []);
+            }
+          },
+          icon: const Icon(Icons.search, color: Colors.white),
+          label: const Text("Find Cats",
+              style: TextStyle(color: Colors.white, fontSize: 16)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2196F3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
+            padding: const EdgeInsets.symmetric(vertical: 16),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                try {
-                  print("=== FIND CATS BUTTON PRESSED ===");
-                  // Save search state before navigating
-                  await _saveSearchState();
-                  var filters = generateFilters();
-                  print("Generated ${filters.length} filters");
-                  Navigator.pop(context, filters);
-                } catch (e) {
-                  print("Error in Find Cats button: $e");
-                  Navigator.pop(context, []);
-                }
-              },
-              icon: const Icon(Icons.search, color: Colors.white),
-              label: const Text("Find Cats",
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
+  }
+
+  /// Perform search and navigate to results (used by keyboard button)
+  Future<void> _performSearchAndNavigate() async {
+    final query = controller2.text.trim();
+
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a search query'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Analyzing your search...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Check if AI service is initialized
+      final aiService = SearchAIService();
+      // Try to initialize if not already initialized
+      aiService.initialize();
+
+      // Parse query with AI
+      final filterData = await aiService.parseSearchQuery(query);
+
+      // DEBUG: Check what AI returned
+      print('🔍 AI Response received:');
+      print('🔍 Full response: $filterData');
+      print('🔍 Has filters key: ${filterData.containsKey('filters')}');
+      print('🔍 Has location key: ${filterData.containsKey('location')}');
+      if (filterData.containsKey('filters')) {
+        print('🔍 Filters data: ${filterData['filters']}');
+        print(
+            '🔍 Filters count: ${(filterData['filters'] as Map?)?.length ?? 0}');
+      }
+      if (filterData.containsKey('location')) {
+        print('🔍 Location data: ${filterData['location']}');
+      }
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Check if response is empty
+      final hasFilters = filterData.containsKey('filters') &&
+          filterData['filters'] is Map &&
+          (filterData['filters'] as Map).isNotEmpty;
+      final hasLocation = filterData.containsKey('location') &&
+          filterData['location'] is Map &&
+          (filterData['location'] as Map).isNotEmpty;
+
+      if (!hasFilters && !hasLocation) {
+        _showError(
+            'I couldn\'t understand your search. Try being more specific, like:\n'
+            '• "black cat near me"\n'
+            '• "Persian kitten in 90210"\n'
+            '• "friendly adult cat good with kids"');
+        return;
+      }
+
+      // Apply filters with animation (controlled by toggle) and navigate directly to results
+      await _applyAIFilters(filterData,
+          animate: _animateFilters, navigateDirect: true);
+    } catch (e) {
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      final errorMsg = e.toString();
+      if (errorMsg.contains('not initialized')) {
+        _showError(
+            'Search AI service is not available. Please check your internet connection and try again.');
+      } else if (errorMsg.contains('timeout')) {
+        _showError(
+            'Search request timed out. Please try again with a shorter query.');
+      } else {
+        _showError('Failed to process search: ${e.toString()}');
+      }
+    }
   }
 
   Future<void> _performQuickSearch() async {
@@ -1094,8 +1266,13 @@ class SearchScreenState extends State<SearchScreen> {
     );
 
     try {
+      // Check if AI service is initialized
+      final aiService = SearchAIService();
+      // Try to initialize if not already initialized
+      aiService.initialize();
+
       // Parse query with AI
-      final filterData = await SearchAIService().parseSearchQuery(query);
+      final filterData = await aiService.parseSearchQuery(query);
 
       // DEBUG: Check what AI returned
       print('🔍 AI Response received:');
@@ -1114,136 +1291,260 @@ class SearchScreenState extends State<SearchScreen> {
       // Close loading dialog
       Navigator.of(context).pop();
 
-      // Apply filters with animation
-      await _applyAIFilters(filterData, animate: true);
+      // Check if response is empty
+      final hasFilters = filterData.containsKey('filters') &&
+          filterData['filters'] is Map &&
+          (filterData['filters'] as Map).isNotEmpty;
+      final hasLocation = filterData.containsKey('location') &&
+          filterData['location'] is Map &&
+          (filterData['location'] as Map).isNotEmpty;
+
+      if (!hasFilters && !hasLocation) {
+        _showError(
+            'I couldn\'t understand your search. Try being more specific, like:\n'
+            '• "black cat near me"\n'
+            '• "Persian kitten in 90210"\n'
+            '• "friendly adult cat good with kids"');
+        return;
+      }
+
+      // Apply filters with animation (controlled by toggle)
+      await _applyAIFilters(filterData, animate: _animateFilters);
     } catch (e) {
       // Close loading dialog
       Navigator.of(context).pop();
 
-      _showError('Failed to process search: ${e.toString()}');
-    }
-  }
-
-  /// Perform quick search and navigate directly to results (no animation)
-  Future<void> _performQuickSearchDirect() async {
-    final query = controller2.text.trim();
-
-    if (query.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a search query'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Analyzing your search...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    try {
-      // Parse query with AI
-      final filterData = await SearchAIService().parseSearchQuery(query);
-
-      // Close loading dialog
-      Navigator.of(context).pop();
-
-      // Apply filters without animation and navigate directly
-      await _applyAIFilters(filterData, animate: false, navigateDirect: true);
-    } catch (e) {
-      // Close loading dialog
-      Navigator.of(context).pop();
-
-      _showError('Failed to process search: ${e.toString()}');
-    }
-  }
-
-  void _clearAllFilters() {
-    // Reset all filters to their default "Any" values
-    for (var filter in widget.filteringOptions) {
-      // Skip saved searches category
-      if (filter.classification == CatClassification.saves) {
-        continue;
-      }
-
-      // Special handling for zipCode (text input field)
-      if (filter.fieldName == 'zipCode') {
-        filter.choosenValue = "";
-        _zipCodeController.clear();
-        _zipCodeValidated = false;
-        _zipCodeIsValid = null;
-        continue;
-      }
-
-      // Special handling for breed filters (use value 0 for "Any")
-      if (filter.list && filter.classification == CatClassification.breed) {
-        filter.choosenListValues = [0]; // 0 is the "Any" value for breeds
-        continue;
-      }
-
-      // Handle other list filters
-      if (filter.list) {
-        // Find and select "Any" option
-        var anyOption = filter.options.firstWhere(
-          (opt) => opt.search == "Any" || opt.search == "Any Type",
-          orElse: () => filter.options.isNotEmpty
-              ? filter.options.last
-              : filter.options.first,
-        );
-        filter.choosenListValues = [anyOption.value];
+      final errorMsg = e.toString();
+      if (errorMsg.contains('not initialized')) {
+        _showError(
+            'Search AI service is not available. Please check your internet connection and try again.');
+      } else if (errorMsg.contains('timeout')) {
+        _showError(
+            'Search request timed out. Please try again with a shorter query.');
       } else {
-        // For single-select filters, find and select "Any" option
-        if (filter.options.isNotEmpty) {
-          var anyOption = filter.options.firstWhere(
-            (opt) => opt.search == "Any" || opt.search == "Any Type",
+        _showError('Failed to process search: ${e.toString()}');
+      }
+    }
+  }
+
+  /// Reset all filters and search to defaults: clear text, set all to "Any",
+  /// set sortBy to "Most Recent", set zip code to current location,
+  /// set distance and updatedSince to "Any"
+  Future<void> _resetAllFiltersAndSearch() async {
+    try {
+      // Clear the AI search text field
+      controller2.clear();
+
+      // Reset all filters to their default "Any" values
+      for (var filter in widget.filteringOptions) {
+        // Skip saved searches category
+        if (filter.classification == CatClassification.saves) {
+          continue;
+        }
+
+        // Special handling for sortBy - set to "Most Recent" (value: "date")
+        if (filter.fieldName == 'sortBy') {
+          final mostRecentOption = filter.options.firstWhere(
+            (opt) => opt.search == "date",
             orElse: () => filter.options.first,
           );
+          filter.choosenValue = mostRecentOption.search;
+          continue;
+        }
+
+        // Special handling for distance - set to "Any"
+        if (filter.fieldName == 'distance') {
+          final anyOption = filter.options.firstWhere(
+            (opt) => opt.search == "Any",
+            orElse: () => filter.options.last,
+          );
           filter.choosenValue = anyOption.search;
+          continue;
+        }
+
+        // Special handling for updatedDate - set to "Any"
+        if (filter.fieldName == 'animals.updatedDate') {
+          final anyOption = filter.options.firstWhere(
+            (opt) => opt.search == "Any",
+            orElse: () => filter.options.last,
+          );
+          filter.choosenValue = anyOption.search;
+          continue;
+        }
+
+        // Special handling for zipCode - get current location
+        if (filter.fieldName == 'zipCode') {
+          try {
+            // Get current location
+            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+            if (!serviceEnabled) {
+              // Location services not enabled, use server's current zip if available
+              final serverZip = FelineFinderServer.instance.zip;
+              if (serverZip != "?" && serverZip.isNotEmpty) {
+                filter.choosenValue = serverZip;
+                _zipCodeController.text = serverZip;
+                _zipCodeValidated = true;
+                _zipCodeIsValid = true;
+              } else {
+                filter.choosenValue = "";
+                _zipCodeController.clear();
+                _zipCodeValidated = false;
+                _zipCodeIsValid = null;
+              }
+            } else {
+              LocationPermission permission =
+                  await Geolocator.checkPermission();
+              if (permission == LocationPermission.denied) {
+                permission = await Geolocator.requestPermission();
+              }
+
+              if (permission == LocationPermission.deniedForever ||
+                  permission == LocationPermission.denied) {
+                // Permission denied, use server's current zip if available
+                final serverZip = FelineFinderServer.instance.zip;
+                if (serverZip != "?" && serverZip.isNotEmpty) {
+                  filter.choosenValue = serverZip;
+                  _zipCodeController.text = serverZip;
+                  _zipCodeValidated = true;
+                  _zipCodeIsValid = true;
+                } else {
+                  filter.choosenValue = "";
+                  _zipCodeController.clear();
+                  _zipCodeValidated = false;
+                  _zipCodeIsValid = null;
+                }
+              } else {
+                // Get current position
+                Position position = await Geolocator.getCurrentPosition(
+                  locationSettings: const LocationSettings(
+                    accuracy: LocationAccuracy.high,
+                  ),
+                );
+
+                // Get placemark from coordinates
+                List<Placemark> placemarks = await placemarkFromCoordinates(
+                  position.latitude,
+                  position.longitude,
+                );
+
+                if (placemarks.isNotEmpty &&
+                    placemarks.first.postalCode != null) {
+                  final currentZip = placemarks.first.postalCode!;
+                  filter.choosenValue = currentZip;
+                  _zipCodeController.text = currentZip;
+
+                  // Validate and save zip code
+                  final isValid = await FelineFinderServer.instance
+                      .isZipCodeValid(currentZip);
+                  _zipCodeValidated = true;
+                  _zipCodeIsValid = isValid;
+
+                  if (isValid == true) {
+                    FelineFinderServer.instance.zip = currentZip;
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('zipCode', currentZip);
+                  }
+                } else {
+                  // No postal code found, use server's current zip if available
+                  final serverZip = FelineFinderServer.instance.zip;
+                  if (serverZip != "?" && serverZip.isNotEmpty) {
+                    filter.choosenValue = serverZip;
+                    _zipCodeController.text = serverZip;
+                    _zipCodeValidated = true;
+                    _zipCodeIsValid = true;
+                  } else {
+                    filter.choosenValue = "";
+                    _zipCodeController.clear();
+                    _zipCodeValidated = false;
+                    _zipCodeIsValid = null;
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            print('Error getting current location: $e');
+            // Fallback to server's current zip if available
+            final serverZip = FelineFinderServer.instance.zip;
+            if (serverZip != "?" && serverZip.isNotEmpty) {
+              filter.choosenValue = serverZip;
+              _zipCodeController.text = serverZip;
+              _zipCodeValidated = true;
+              _zipCodeIsValid = true;
+            } else {
+              filter.choosenValue = "";
+              _zipCodeController.clear();
+              _zipCodeValidated = false;
+              _zipCodeIsValid = null;
+            }
+          }
+          continue;
+        }
+
+        // Special handling for breed filters (use value 0 for "Any")
+        if (filter.list && filter.classification == CatClassification.breed) {
+          filter.choosenListValues = [0]; // 0 is the "Any" value for breeds
+          continue;
+        }
+
+        // Handle other list filters - set to "Any"
+        if (filter.list) {
+          // Find and select "Any" option
+          var anyOption = filter.options.isNotEmpty
+              ? filter.options.firstWhere(
+                  (opt) => opt.search == "Any" || opt.search == "Any Type",
+                  orElse: () => filter.options.last,
+                )
+              : filter.options
+                  .first; // Fallback - should not happen due to earlier checks
+          filter.choosenListValues = [anyOption.value];
         } else {
-          // If no options, set to empty
-          filter.choosenValue = "";
+          // For single-select filters, find and select "Any" option
+          if (filter.options.isNotEmpty) {
+            var anyOption = filter.options.firstWhere(
+              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              orElse: () => filter.options.first,
+            );
+            filter.choosenValue = anyOption.search;
+          } else {
+            // If no options, set to empty
+            filter.choosenValue = "";
+          }
         }
       }
-    }
 
-    // Clear the AI search text field
-    controller2.clear();
+      // Update UI
+      setState(() {});
 
-    // Update UI
-    setState(() {});
-
-    // Show confirmation message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.white),
-            SizedBox(width: 8),
-            Text('All filters cleared'),
-          ],
+      // Show confirmation message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.white),
+              SizedBox(width: 8),
+              Text('All filters reset to defaults'),
+            ],
+          ),
+          backgroundColor: Color(0xFF2196F3),
+          duration: Duration(seconds: 2),
         ),
-        backgroundColor: Color(0xFF2196F3),
-        duration: Duration(seconds: 2),
-      ),
-    );
+      );
+    } catch (e) {
+      print('Error resetting filters: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('Error resetting filters: $e'),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   // Add method to apply filters from AI response
@@ -1277,7 +1578,10 @@ class SearchScreenState extends State<SearchScreen> {
         (location == null || location.isEmpty)) {
       print('❌ Both filters and location are empty/null');
       _showError(
-          'Could not understand your search. Please try being more specific.');
+          'I couldn\'t find any matching filters in your search. Try examples like:\n'
+          '• "black cat" or "Persian cat"\n'
+          '• "kitten near 90210"\n'
+          '• "friendly cat good with dogs"');
       return;
     }
 
@@ -2325,6 +2629,8 @@ class SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Find Your Perfect Cat"),
@@ -2332,54 +2638,914 @@ class SearchScreenState extends State<SearchScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF2196F3).withOpacity(0.1),
-              Colors.white,
-            ],
-          ),
-        ),
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Quick Search Section
-              _buildQuickSearchCard(),
-              const SizedBox(height: 20),
+      resizeToAvoidBottomInset:
+          false, // We'll handle keyboard positioning manually
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF2196F3).withOpacity(0.1),
+                  Colors.white,
+                ],
+              ),
+            ),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 16 + keyboardHeight, // Add padding for keyboard
+              ),
+              child: Column(
+                children: [
+                  // Quick Search Section
+                  _buildQuickSearchCard(),
+                  const SizedBox(height: 20),
 
-              // Filter Categories
-              _buildFilterCategory(
-                  "Basic Info", Icons.info_outline, CatClassification.basic),
-              _buildFilterCategory(
-                  "Breed & Appearance", Icons.pets, CatClassification.breed),
-              _buildFilterCategory(
-                  "Personality", Icons.face, CatClassification.personality),
-              _buildFilterCategory("Compatibility", Icons.favorite,
-                  CatClassification.compatibility),
-              _buildFilterCategory(
-                  "Physical Traits", Icons.scale, CatClassification.physical),
-              _buildFilterCategory(
-                  "Sort Options", Icons.sort, CatClassification.sort),
-              _buildFilterCategory(
-                  "Saved Searches", Icons.save_alt, CatClassification.saves),
+                  // Filter Categories
+                  _buildFilterCategory("Basic Info", Icons.info_outline,
+                      CatClassification.basic),
+                  _buildFilterCategory("Breed & Appearance", Icons.pets,
+                      CatClassification.breed),
+                  _buildFilterCategory(
+                      "Personality", Icons.face, CatClassification.personality),
+                  _buildFilterCategory("Compatibility", Icons.favorite,
+                      CatClassification.compatibility),
+                  _buildFilterCategory("Physical Traits", Icons.scale,
+                      CatClassification.physical),
+                  _buildFilterCategory(
+                      "Sort Options", Icons.sort, CatClassification.sort),
+                  _buildFilterCategory("Saved Searches", Icons.save_alt,
+                      CatClassification.saves),
 
-              const SizedBox(height: 100), // Space for bottom buttons
-            ],
+                  const SizedBox(height: 100), // Space for bottom buttons
+                ],
+              ),
+            ),
           ),
-        ),
+          // Keyboard toolbar - appears above keyboard when visible
+          // Only show when search field is focused AND keyboard is actually visible
+          // Position at keyboardHeight - 80 from bottom (moved down 20 pixels from previous position)
+          if (_searchFocusNode.hasFocus && keyboardHeight > 100)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: keyboardHeight - 80,
+              child: _buildKeyboardToolbar(),
+            ),
+        ],
       ),
       bottomNavigationBar: _buildBottomButtons(),
     );
   }
 
+  /// Build keyboard toolbar that appears above the keyboard, flush with keyboard top
+  Widget _buildKeyboardToolbar() {
+    return Material(
+      elevation: 4,
+      child: Container(
+        height: 44, // Standard iOS input accessory height
+        decoration: BoxDecoration(
+          color: Colors.grey[200], // Match keyboard gray background
+          border: Border(
+            top: BorderSide(
+              color: Colors.grey[300]!,
+              width: 0.5,
+            ),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Animate filter selection',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Switch(
+              value: _animateFilters,
+              onChanged: (value) {
+                final wasFocused = _searchFocusNode.hasFocus;
+                setState(() {
+                  _animateFilters = value;
+                });
+                _saveAnimationPreference();
+                // Update keyboard button dynamically without hiding keyboard
+                // Use a very brief unfocus/refocus that's too fast to see
+                if (wasFocused && mounted) {
+                  // Temporarily unfocus and immediately refocus to refresh keyboard button
+                  // This happens so fast the keyboard doesn't visually hide
+                  _searchFocusNode.unfocus();
+                  // Use microtask to ensure it happens in the same frame
+                  Future.microtask(() {
+                    if (mounted) {
+                      _searchFocusNode.requestFocus();
+                    }
+                  });
+                }
+              },
+              activeColor: const Color(0xFF2196F3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build saved searches section with dropdown and action buttons
+  Widget _buildSavedSearchesSection(filterOption filter) {
+    // Update filter options to exclude "New..." and use saved search names
+    final savedSearchOptions = _savedSearchNames
+        .map((name) => listOption(name, name, _savedSearchNames.indexOf(name)))
+        .toList();
+
+    // If no saved searches, add a placeholder
+    if (savedSearchOptions.isEmpty) {
+      savedSearchOptions.add(listOption("No saved searches", "", -1));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Dropdown for selecting saved search
+        _buildDropdownSelectorForSavedSearches(filter, savedSearchOptions),
+        const SizedBox(height: 12),
+        // Action buttons row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _showSaveSearchDialog(),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text("New", style: TextStyle(fontSize: 14)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _savedSearchNames.isNotEmpty &&
+                        _selectedSavedSearch != null &&
+                        _selectedSavedSearch!.isNotEmpty
+                    ? () => _updateSavedSearch(_selectedSavedSearch!)
+                    : null,
+                icon: const Icon(Icons.save, size: 18),
+                label: const Text("Save", style: TextStyle(fontSize: 14)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _savedSearchNames.isNotEmpty &&
+                        _selectedSavedSearch != null &&
+                        _selectedSavedSearch!.isNotEmpty
+                    ? () => _confirmAndDeleteSavedSearch(_selectedSavedSearch!)
+                    : null,
+                icon: const Icon(Icons.delete, size: 18),
+                label: const Text("Delete", style: TextStyle(fontSize: 14)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Build dropdown selector specifically for saved searches
+  Widget _buildDropdownSelectorForSavedSearches(
+      filterOption filter, List<listOption> options) {
+    String? currentValue = _selectedSavedSearch;
+
+    if (currentValue == null &&
+        options.isNotEmpty &&
+        options.first.search.toString().isNotEmpty) {
+      currentValue = options.first.search.toString();
+      _selectedSavedSearch = currentValue;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: const Color(0xFF2196F3).withOpacity(0.3),
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButton<String>(
+        value: currentValue,
+        isExpanded: true,
+        underline: const SizedBox.shrink(),
+        items: options.map((option) {
+          return DropdownMenuItem<String>(
+            value: option.search.toString(),
+            child: Text(
+              option.displayName,
+              style: TextStyle(
+                color: option.search.toString().isEmpty
+                    ? Colors.grey
+                    : Colors.black87,
+              ),
+            ),
+          );
+        }).toList(),
+        onChanged: (String? newValue) async {
+          if (newValue != null && newValue.isNotEmpty) {
+            // Check if there are unsaved changes before loading
+            if (_lastLoadedSearchName != null) {
+              final hasChanges =
+                  await _hasUnsavedChanges(_lastLoadedSearchName!);
+              if (hasChanges) {
+                final shouldProceed = await _showUnsavedChangesDialog();
+                if (shouldProceed == null) {
+                  // User cancelled, don't change selection
+                  return;
+                } else if (shouldProceed == true) {
+                  // User wants to save, save current search first
+                  await _updateSavedSearch(_lastLoadedSearchName!);
+                }
+                // If shouldProceed == false, user wants to discard changes, proceed with load
+              }
+            }
+
+            setState(() {
+              _selectedSavedSearch = newValue;
+              filter.choosenValue = newValue;
+            });
+            // Automatically load the selected search
+            await _loadSavedSearch(newValue);
+          }
+        },
+        hint: const Text("Select a saved search"),
+      ),
+    );
+  }
+
+  /// Load saved searches from Firestore
+  Future<void> _loadSavedSearches() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('No authenticated user for loading saved searches');
+        return;
+      }
+
+      final adopterDoc = await FirebaseFirestore.instance
+          .collection('adopters')
+          .doc(user.uid)
+          .get();
+
+      if (adopterDoc.exists) {
+        final data = adopterDoc.data();
+        if (data != null && data.containsKey('savedSearches')) {
+          final savedSearches = data['savedSearches'] as Map<String, dynamic>?;
+          if (savedSearches != null) {
+            setState(() {
+              _savedSearchNames = savedSearches.keys.toList();
+            });
+            print('Loaded ${_savedSearchNames.length} saved searches');
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading saved searches: $e');
+    }
+  }
+
+  /// Show dialog to save current search
+  Future<void> _showSaveSearchDialog() async {
+    final nameController = TextEditingController();
+    String? errorMessage;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Save Search'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Search Name',
+                    hintText: 'Enter a name for this search',
+                    errorText: errorMessage,
+                    border: const OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                  onChanged: (_) {
+                    if (errorMessage != null) {
+                      setDialogState(() {
+                        errorMessage = null;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final name = nameController.text.trim();
+
+                  if (name.isEmpty) {
+                    setDialogState(() {
+                      errorMessage = 'Please enter a name';
+                    });
+                    return;
+                  }
+
+                  if (_savedSearchNames.contains(name)) {
+                    setDialogState(() {
+                      errorMessage = 'A search with this name already exists';
+                    });
+                    return;
+                  }
+
+                  Navigator.pop(context);
+                  await _saveSearchToFirestore(name);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                ),
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Save current search to Firestore (creates new search)
+  Future<void> _saveSearchToFirestore(String name) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be logged in to save searches'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Get current search state
+      final query = controller2.text.trim();
+      final Map<String, dynamic> searchData = {
+        'query': query,
+        'filters': {},
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      // Save all filter values
+      for (var filter in widget.filteringOptions) {
+        if (filter.classification == CatClassification.saves) {
+          continue;
+        }
+
+        final fieldName = filter.fieldName;
+
+        if (filter.list) {
+          if (filter.choosenListValues.isNotEmpty) {
+            searchData['filters']['$fieldName:list'] = filter.choosenListValues;
+          }
+        } else {
+          if (filter.choosenValue != null &&
+              filter.choosenValue != "" &&
+              filter.choosenValue != "Any" &&
+              filter.choosenValue != "Any Type") {
+            if (filter.choosenValue is bool) {
+              searchData['filters'][fieldName] = filter.choosenValue;
+            } else if (filter.choosenValue is int) {
+              searchData['filters'][fieldName] = filter.choosenValue;
+            } else {
+              searchData['filters'][fieldName] = filter.choosenValue.toString();
+            }
+          }
+        }
+      }
+
+      // Save to Firestore
+      await FirebaseFirestore.instance
+          .collection('adopters')
+          .doc(user.uid)
+          .set({
+        'savedSearches.$name': searchData,
+      }, SetOptions(merge: true));
+
+      // Update local list
+      setState(() {
+        if (!_savedSearchNames.contains(name)) {
+          _savedSearchNames.add(name);
+        }
+        _selectedSavedSearch = name;
+        _lastLoadedSearchName = name; // Track that this search is now loaded
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Search "$name" saved successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error saving search: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving search: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Update existing saved search in Firestore
+  Future<void> _updateSavedSearch(String name) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be logged in to save searches'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Get current search state
+      final query = controller2.text.trim();
+      final Map<String, dynamic> searchData = {
+        'query': query,
+        'filters': {},
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      // Save all filter values
+      for (var filter in widget.filteringOptions) {
+        if (filter.classification == CatClassification.saves) {
+          continue;
+        }
+
+        final fieldName = filter.fieldName;
+
+        if (filter.list) {
+          if (filter.choosenListValues.isNotEmpty) {
+            searchData['filters']['$fieldName:list'] = filter.choosenListValues;
+          }
+        } else {
+          if (filter.choosenValue != null &&
+              filter.choosenValue != "" &&
+              filter.choosenValue != "Any" &&
+              filter.choosenValue != "Any Type") {
+            if (filter.choosenValue is bool) {
+              searchData['filters'][fieldName] = filter.choosenValue;
+            } else if (filter.choosenValue is int) {
+              searchData['filters'][fieldName] = filter.choosenValue;
+            } else {
+              searchData['filters'][fieldName] = filter.choosenValue.toString();
+            }
+          }
+        }
+      }
+
+      // Update in Firestore
+      await FirebaseFirestore.instance
+          .collection('adopters')
+          .doc(user.uid)
+          .set({
+        'savedSearches.$name': searchData,
+      }, SetOptions(merge: true));
+
+      setState(() {
+        _lastLoadedSearchName = name; // Update tracking after save
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Search "$name" updated successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error updating search: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating search: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Load a saved search from Firestore
+  Future<void> _loadSavedSearch(String name) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be logged in to load searches'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final adopterDoc = await FirebaseFirestore.instance
+          .collection('adopters')
+          .doc(user.uid)
+          .get();
+
+      if (!adopterDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Saved search not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final data = adopterDoc.data();
+      if (data == null || !data.containsKey('savedSearches')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No saved searches found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final savedSearches = data['savedSearches'] as Map<String, dynamic>;
+      if (!savedSearches.containsKey(name)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Saved search not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final searchData = savedSearches[name] as Map<String, dynamic>;
+
+      // First, reset all filters to their default "Any" values
+      // This ensures filters not in the saved search don't retain old values
+      for (var filter in widget.filteringOptions) {
+        if (filter.classification == CatClassification.saves) {
+          continue;
+        }
+
+        final fieldName = filter.fieldName;
+
+        // Special handling for sortBy - set to "Most Recent"
+        if (fieldName == 'sortBy') {
+          final mostRecentOption = filter.options.firstWhere(
+            (opt) => opt.search == "date",
+            orElse: () => filter.options.first,
+          );
+          filter.choosenValue = mostRecentOption.search;
+          continue;
+        }
+
+        // Special handling for zipCode - clear it (will be set from saved data if present)
+        if (fieldName == 'zipCode') {
+          filter.choosenValue = "";
+          _zipCodeController.clear();
+          _zipCodeValidated = false;
+          _zipCodeIsValid = null;
+          continue;
+        }
+
+        // Special handling for breed filters - set to "Any" (value 0)
+        if (filter.list && filter.classification == CatClassification.breed) {
+          filter.choosenListValues = [0]; // 0 is the "Any" value for breeds
+          continue;
+        }
+
+        // Handle other list filters - set to "Any"
+        if (filter.list) {
+          var anyOption = filter.options.isNotEmpty
+              ? filter.options.firstWhere(
+                  (opt) => opt.search == "Any" || opt.search == "Any Type",
+                  orElse: () => filter.options.last,
+                )
+              : filter.options.first;
+          filter.choosenListValues = [anyOption.value];
+        } else {
+          // For single-select filters, set to "Any"
+          if (filter.options.isNotEmpty) {
+            var anyOption = filter.options.firstWhere(
+              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              orElse: () => filter.options.first,
+            );
+            filter.choosenValue = anyOption.search;
+          } else {
+            filter.choosenValue = "";
+          }
+        }
+      }
+
+      // Load query
+      if (searchData.containsKey('query')) {
+        controller2.text = searchData['query'] as String;
+      }
+
+      // Load filters from saved data (overriding the defaults we just set)
+      if (searchData.containsKey('filters')) {
+        final filters = searchData['filters'] as Map<String, dynamic>;
+
+        for (var filter in widget.filteringOptions) {
+          if (filter.classification == CatClassification.saves) {
+            continue;
+          }
+
+          final fieldName = filter.fieldName;
+
+          if (filter.list) {
+            if (filters.containsKey('$fieldName:list')) {
+              final List<dynamic> savedValues = filters['$fieldName:list'];
+              filter.choosenListValues =
+                  savedValues.map((v) => v as int).toList();
+            }
+          } else {
+            if (filters.containsKey(fieldName)) {
+              final savedValue = filters[fieldName];
+              if (savedValue is String) {
+                filter.choosenValue = savedValue;
+                if (fieldName == 'zipCode' && savedValue.isNotEmpty) {
+                  _zipCodeController.text = savedValue;
+                }
+              } else if (savedValue is bool) {
+                filter.choosenValue = savedValue;
+              } else if (savedValue is int) {
+                filter.choosenValue = savedValue;
+              }
+            }
+          }
+        }
+      }
+
+      setState(() {
+        _lastLoadedSearchName = name; // Track which search is now loaded
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Search "$name" loaded successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error loading saved search: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading search: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Get current search state as a Map (for comparison)
+  Map<String, dynamic> _getCurrentSearchState() {
+    final query = controller2.text.trim();
+    final Map<String, dynamic> currentState = {
+      'query': query,
+      'filters': {},
+    };
+
+    for (var filter in widget.filteringOptions) {
+      if (filter.classification == CatClassification.saves) {
+        continue;
+      }
+
+      final fieldName = filter.fieldName;
+
+      if (filter.list) {
+        if (filter.choosenListValues.isNotEmpty) {
+          currentState['filters']['$fieldName:list'] = filter.choosenListValues;
+        }
+      } else {
+        if (filter.choosenValue != null &&
+            filter.choosenValue != "" &&
+            filter.choosenValue != "Any" &&
+            filter.choosenValue != "Any Type") {
+          if (filter.choosenValue is bool) {
+            currentState['filters'][fieldName] = filter.choosenValue;
+          } else if (filter.choosenValue is int) {
+            currentState['filters'][fieldName] = filter.choosenValue;
+          } else {
+            currentState['filters'][fieldName] = filter.choosenValue.toString();
+          }
+        }
+      }
+    }
+
+    return currentState;
+  }
+
+  /// Check if current search has unsaved changes compared to a saved search
+  Future<bool> _hasUnsavedChanges(String savedSearchName) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return false;
+
+      final adopterDoc = await FirebaseFirestore.instance
+          .collection('adopters')
+          .doc(user.uid)
+          .get();
+
+      if (!adopterDoc.exists) return false;
+
+      final data = adopterDoc.data();
+      if (data == null || !data.containsKey('savedSearches')) return false;
+
+      final savedSearches = data['savedSearches'] as Map<String, dynamic>;
+      if (!savedSearches.containsKey(savedSearchName)) return false;
+
+      final savedSearchData =
+          savedSearches[savedSearchName] as Map<String, dynamic>;
+      final currentState = _getCurrentSearchState();
+
+      // Compare query
+      final savedQuery = savedSearchData['query'] as String? ?? '';
+      if (currentState['query'] != savedQuery) {
+        return true;
+      }
+
+      // Compare filters
+      final savedFilters =
+          savedSearchData['filters'] as Map<String, dynamic>? ?? {};
+      final currentFilters = currentState['filters'] as Map<String, dynamic>;
+
+      // Convert to JSON strings for comparison (handles nested structures)
+      final savedFiltersJson = jsonEncode(savedFilters);
+      final currentFiltersJson = jsonEncode(currentFilters);
+
+      return savedFiltersJson != currentFiltersJson;
+    } catch (e) {
+      print('Error checking for unsaved changes: $e');
+      return false; // On error, assume no changes to be safe
+    }
+  }
+
+  /// Show dialog asking user what to do with unsaved changes
+  Future<bool?> _showUnsavedChangesDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unsaved Changes'),
+        content: const Text(
+          'You have unsaved changes to your current search. What would you like to do?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), // Discard
+            child: const Text('Discard'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, null), // Cancel
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true), // Save
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Confirm and delete a saved search
+  Future<void> _confirmAndDeleteSavedSearch(String name) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Saved Search'),
+        content: Text('Are you sure you want to delete "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteSavedSearch(name);
+    }
+  }
+
+  /// Delete a saved search from Firestore
+  Future<void> _deleteSavedSearch(String name) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be logged in to delete searches'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Delete from Firestore
+      await FirebaseFirestore.instance
+          .collection('adopters')
+          .doc(user.uid)
+          .update({
+        'savedSearches.$name': FieldValue.delete(),
+      });
+
+      // Update local list
+      setState(() {
+        _savedSearchNames.remove(name);
+        if (_selectedSavedSearch == name) {
+          _selectedSavedSearch = null;
+        }
+        // If no searches left, ensure selection is cleared
+        if (_savedSearchNames.isEmpty) {
+          _selectedSavedSearch = null;
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Search "$name" deleted successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error deleting saved search: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting search: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void saveSearch() {
-    // Implement save search functionality
-    print("Save search functionality");
+    // This method is kept for compatibility but functionality moved to _showSaveSearchDialog
+    _showSaveSearchDialog();
   }
 
   List<Filters> generateFilters() {
@@ -2460,10 +3626,13 @@ class SearchScreenState extends State<SearchScreen> {
           }
         } else {
           // Check if "Any" option is selected (skip if so)
-          var anyOption = item.options.firstWhere(
-            (opt) => opt.search == "Any" || opt.search == "Any Type",
-            orElse: () => item.options.last,
-          );
+          var anyOption = item.options.isNotEmpty
+              ? item.options.firstWhere(
+                  (opt) => opt.search == "Any" || opt.search == "Any Type",
+                  orElse: () => item.options.last,
+                )
+              : item.options
+                  .first; // Fallback - should not happen due to earlier checks
 
           if (!item.choosenListValues.contains(anyOption.value)) {
             List<String> OptionsList = [];

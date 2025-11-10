@@ -210,7 +210,7 @@ class AdoptGridState extends State<AdoptGrid> {
   }
 
   void recommendations() async {
-    await Get.to(() => CatRecommendationScreen(),
+    await Get.to(() => const CatRecommendationScreen(),
         transition: Transition.fadeIn, duration: const Duration(seconds: 1));
   }
 
@@ -568,7 +568,8 @@ class AdoptGridState extends State<AdoptGrid> {
       BuildContext context, int index) async {
     final countOfFavorites = globals.listOfFavorites.length;
     await Get.to(() => petDetail(tiles[index].id!),
-        transition: Transition.circularReveal, duration: const Duration(seconds: 1));
+        transition: Transition.circularReveal,
+        duration: const Duration(seconds: 1));
 
     if (userID != null) {
       favorites = await server.getFavorites(userID!);
@@ -615,18 +616,7 @@ class AdoptGridState extends State<AdoptGrid> {
                           10,
                         ),
                       ),
-                      child:
-                          /*
-                      FadeInImage.memoryNetwork(
-                          placeholder: kTransparentImage,
-                          image: tile.picture ?? "",
-                          fit: BoxFit.fitWidth,
-                          imageErrorBuilder: (context, error, stackTrace) {
-                            return Image.asset("assets/Icons/No_Cat_Image.png",
-                                width: 200, height: 500);
-                          }),
-                      */
-                          Container(
+                      child: Container(
                         decoration: BoxDecoration(
                             image: DecorationImage(
                                 image: NetworkImage(tile.smallPicture ??
@@ -649,7 +639,6 @@ class AdoptGridState extends State<AdoptGrid> {
                                         "assets/Icons/video_icon_resized.png"))),
                           ],
                         ),
-                        //(tile == null || tile.picture == null || tile.picture == "") ? Image(image: AssetImage("assets/Icons/No_Cat_Image.png"), width: 200, fit: BoxFit.fitWidth) : Image(image: NetworkImage(tile.picture ?? ""), width: 200, fit: BoxFit.fitWidth),
                       ),
                     ),
                   ),

@@ -62,12 +62,13 @@ dependencies:
   firebase_auth: ^6.1.0
   cloud_firestore: ^6.0.2
   google_generative_ai: ^0.4.7
+  flutter_svg: ^2.0.9
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.1.11
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
 
 # Override transitive dependencies to use latest versions
 dependency_overrides:
@@ -150,6 +151,7 @@ flutter:
     - assets/Full/
     - assets/Animation/
     - assets/Icons/
+    - assets/icons/
     - assets/icon/
     - assets/Fit_Examples/Body/
     - assets/Fit_Examples/Hair/

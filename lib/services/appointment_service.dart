@@ -399,6 +399,9 @@ class AppointmentService {
   /// Create email body for user
   static String _createUserEmailBody(Appointment appointment) {
     final dateStr = appointment.appointmentDate.toString().split(' ')[0];
+    final notesText = appointment.notes != null && appointment.notes!.isNotEmpty
+        ? '<p><strong>Your Message:</strong> ${appointment.notes}</p>'
+        : '';
 
     return '''
     <!DOCTYPE html>
@@ -428,6 +431,7 @@ class AppointmentService {
                 <p><strong>Organization:</strong> ${appointment.organizationName}</p>
                 <p><strong>Date:</strong> $dateStr</p>
                 <p><strong>Time:</strong> ${appointment.timeSlot}</p>
+                $notesText
             </div>
             
             <p>The organization will review your request and contact you at ${appointment.userEmail} to confirm the appointment.</p>

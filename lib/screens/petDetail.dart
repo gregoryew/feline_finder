@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/toolbar.dart';
 import '../widgets/playIndicator.dart';
+import '../widgets/youtube-video-row.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petDetailData.dart';
 import '/models/shelter.dart';
@@ -21,6 +22,8 @@ import '/models/rescuegroups_v5.dart';
 import '../config.dart';
 import 'globals.dart' as globals;
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:get/get.dart';
+import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
@@ -400,197 +403,122 @@ class petDetailState extends State<petDetail>
           padding: const EdgeInsets.all(10),
           child: Column(
             children: [
-              // Modern Photo Carousel
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9, // Standard widescreen ratio
-                    child: Stack(
+              // Horizontal Scrolling Photo Gallery
+              if (petDetailInstance == null || petDetailInstance!.media.isEmpty)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Main carousel
-                        PageView.builder(
-                          controller: _pageController,
-                          onPageChanged: (index) {
-                            setState(() {
-                              currentIndexPage = index;
-                            });
-                          },
-                          itemCount: petDetailInstance?.media.length ?? 0,
-                          itemBuilder: (context, index) {
-                            if (petDetailInstance == null ||
-                                petDetailInstance!.media.isEmpty) {
-                              return Container(
-                                color: Colors.grey[200],
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.pets,
-                                        size: 64,
-                                        color: Colors.grey[400],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'No photos available',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }
-
-                            final media = petDetailInstance!.media[index];
-                            return SizedBox(
-                              width: double.infinity,
-                              child: media is YouTubeVideo
-                                  ? Container(
-                                      decoration: BoxDecoration(
-                                        image: DecorationImage(
-                                          image: NetworkImage(media.photo),
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                      child: Container(
-                                        color: Colors.black.withOpacity(0.3),
-                                        child: const Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.play_circle_filled,
-                                                size: 80,
-                                                color: Colors.white,
-                                              ),
-                                              SizedBox(height: 16),
-                                              Text(
-                                                'Video Available',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : CachedNetworkImage(
-                                      imageUrl: (media as SmallPhoto).photo,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Container(
-                                        color: Colors.grey[200],
-                                        child: const Center(
-                                          child: CircularProgressIndicator(
-                                            color: Color(0xFF2196F3),
-                                          ),
-                                        ),
-                                      ),
-                                      errorWidget: (context, url, error) =>
-                                          Container(
-                                        color: Colors.grey[200],
-                                        child: Center(
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.error_outline,
-                                                size: 64,
-                                                color: Colors.grey[400],
-                                              ),
-                                              const SizedBox(height: 16),
-                                              Text(
-                                                'Failed to load image',
-                                                style: TextStyle(
-                                                  color: Colors.grey[600],
-                                                  fontSize: 16,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                            );
-                          },
+                        Icon(
+                          Icons.pets,
+                          size: 64,
+                          color: Colors.grey[400],
                         ),
-
-                        // Photo counter overlay
-                        if (petDetailInstance != null &&
-                            petDetailInstance!.media.length > 1)
-                          Positioned(
-                            top: 16,
-                            right: 16,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                '${currentIndexPage + 1} / ${petDetailInstance!.media.length}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No photos available',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
                           ),
-
-                        // Dots indicator at bottom
-                        if (petDetailInstance != null &&
-                            petDetailInstance!.media.length > 1)
-                          Positioned(
-                            bottom: 16,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: DotsIndicator(
-                                decorator: DotsDecorator(
-                                  color: Colors.white.withOpacity(0.5),
-                                  activeColor: Colors.white,
-                                  size: const Size(8, 8),
-                                  activeSize: const Size(12, 8),
-                                  spacing:
-                                      const EdgeInsets.symmetric(horizontal: 4),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  activeShape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                                dotsCount: petDetailInstance!.media.length,
-                                position: currentIndexPage.toDouble(),
-                              ),
-                            ),
-                          ),
+                        ),
                       ],
                     ),
                   ),
+                )
+              else
+                Builder(
+                  builder: (context) {
+                    final fixedHeight = 200.0;
+                    final screenWidth = MediaQuery.of(context).size.width;
+                    final horizontalMargin = 32.0; // 16 on each side
+                    final availableWidth = screenWidth - horizontalMargin;
+                    
+                    // Calculate total width of all images
+                    double totalWidth = 0.0;
+                    List<double> imageWidths = [];
+                    
+                    for (var media in petDetailInstance!.media) {
+                      double imageWidth = fixedHeight;
+                      
+                      // Calculate proportional width based on image aspect ratio
+                      if (media is SmallPhoto && petDetailInstance!.mainPictures.isNotEmpty) {
+                        // Find matching picture in mainPictures by comparing URLs
+                        final photoUrl = media.photo;
+                        final matchingPicture = petDetailInstance!.mainPictures.firstWhere(
+                          (pic) => pic.url.toString() == photoUrl,
+                          orElse: () => petDetailInstance!.mainPictures[0],
+                        );
+                        
+                        // Calculate width based on actual image dimensions
+                        if (matchingPicture.resolutionX != null && 
+                            matchingPicture.resolutionY != null &&
+                            matchingPicture.resolutionX! > 0) {
+                          final aspectRatio = matchingPicture.resolutionX! / matchingPicture.resolutionY!;
+                          imageWidth = fixedHeight * aspectRatio;
+                        } else {
+                          // Default aspect ratio for photos (4:3)
+                          imageWidth = fixedHeight * 4 / 3;
+                        }
+                      } else if (media is YouTubeVideo) {
+                        // Standard video aspect ratio (16:9)
+                        imageWidth = fixedHeight * 16 / 9;
+                      } else {
+                        // Default aspect ratio for photos (4:3)
+                        imageWidth = fixedHeight * 4 / 3;
+                      }
+                      
+                      imageWidths.add(imageWidth);
+                      totalWidth += imageWidth;
+                      // Add margin between images (8px between each, except last)
+                      if (imageWidths.length < petDetailInstance!.media.length) {
+                        totalWidth += 8.0;
+                      }
+                    }
+                    
+                    // If total width is less than available width, center and disable scrolling
+                    final shouldCenter = totalWidth < availableWidth;
+                    
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      height: 200,
+                      child: shouldCenter
+                          ? Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  petDetailInstance!.media.length,
+                                  (index) => _buildMediaItem(
+                                    petDetailInstance!.media[index],
+                                    imageWidths[index],
+                                    fixedHeight,
+                                    index,
+                                    petDetailInstance!.media.length,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: petDetailInstance!.media.length,
+                              itemBuilder: (context, index) => _buildMediaItem(
+                                petDetailInstance!.media[index],
+                                imageWidths[index],
+                                fixedHeight,
+                                index,
+                                petDetailInstance!.media.length,
+                              ),
+                            ),
+                    );
+                  },
                 ),
-              ),
               const SizedBox(
                 height: 5,
               ),
@@ -786,6 +714,152 @@ class petDetailState extends State<petDetail>
                   "PLEASE READ: Information regarding adoptable pets is provided by the adopting organization and is neither checked for accuracy or completeness nor guaranteed to be accurate or complete.  The health status and behavior of any pet found, adopted through, or listed on the Feline Finder app are sole responsibility of the adoption organization listing the same and/or the adopting party and by using this service, the adopting party releases Feline Finder and Gregory Edward Williams from any and all liability arising out of or in any way connected with the adoption of a pet listed on the Feline Finder app.")
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMediaItem(dynamic media, double imageWidth, double fixedHeight, int index, int totalCount) {
+    final isLast = index == totalCount - 1;
+    
+    return Container(
+      margin: EdgeInsets.only(
+        right: isLast ? 0 : 8.0,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: fixedHeight,
+          width: imageWidth,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: media is YouTubeVideo
+              ? GestureDetector(
+                  onTap: () async {
+                    final video = media as YouTubeVideo;
+                    final flutterNetworkConnectivity =
+                        FlutterNetworkConnectivity(
+                      isContinousLookUp: false,
+                      lookUpDuration: const Duration(seconds: 5),
+                      lookUpUrl: 'www.google.com',
+                    );
+                    if (await flutterNetworkConnectivity
+                        .isInternetConnectionAvailable()) {
+                      Get.to(
+                        () => YouTubeVideoRow(
+                          playlist: null,
+                          title: video.title,
+                          videoid: video.videoID,
+                          fullScreen: false,
+                        ),
+                      );
+                    } else {
+                      await Get.defaultDialog(
+                        title: "Internet Not Available",
+                        middleText:
+                            "Viewing videos requires you to be connected to the internet. Please connect to the internet and try again.",
+                        backgroundColor: Colors.red,
+                        titleStyle: const TextStyle(color: Colors.white),
+                        middleTextStyle:
+                            const TextStyle(color: Colors.white),
+                        textConfirm: "OK",
+                        confirmTextColor: Colors.white,
+                        onConfirm: () {
+                          Get.back();
+                        },
+                        buttonColor: Colors.black,
+                        barrierDismissible: false,
+                        radius: 30,
+                      );
+                    }
+                  },
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: media.photo,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF2196F3),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) =>
+                            Container(
+                          color: Colors.grey[200],
+                          child: const Icon(
+                            Icons.error_outline,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        color: Colors.black.withOpacity(0.3),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment:
+                                MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.play_circle_filled,
+                                size: 60,
+                                color: Colors.white,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Video',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : CachedNetworkImage(
+                  imageUrl: (media as SmallPhoto).photo,
+                  fit: BoxFit.cover,
+                  width: imageWidth,
+                  height: fixedHeight,
+                  placeholder: (context, url) => Container(
+                    width: imageWidth,
+                    height: fixedHeight,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF2196F3),
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) =>
+                      Container(
+                    width: imageWidth,
+                    height: fixedHeight,
+                    color: Colors.grey[200],
+                    child: const Center(
+                      child: Icon(
+                        Icons.error_outline,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
         ),
       ),
     );

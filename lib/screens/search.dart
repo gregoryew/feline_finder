@@ -43,8 +43,8 @@ class SearchScreenState extends State<SearchScreen> {
   final Map<String, GlobalKey> _filterKeys = {};
   // Keys for each filter category (ExpansionTile) to enable scrolling
   final Map<CatClassification, GlobalKey> _categoryKeys = {};
-  // Track which categories are expanded
-  final Map<CatClassification, bool> _expandedCategories = {};
+  // Track which categories are expanded (supports both CatClassification and string keys)
+  final Map<dynamic, bool> _expandedCategories = {};
   // Track which specific option values are being highlighted
   final Map<String, dynamic> _highlightedOptions = {}; // Key: "fieldName:value"
   // Track ZIP code validation state
@@ -97,8 +97,20 @@ class SearchScreenState extends State<SearchScreen> {
     // Initialize keys and expansion state for all categories
     for (var classification in CatClassification.values) {
       _categoryKeys[classification] = GlobalKey();
-      _expandedCategories[classification] = false; // Start collapsed
+      // Set initial expansion state for classification-based categories
+      if (classification == CatClassification.breed) {
+        _expandedCategories[classification] = false; // Breeds collapsed
+      } else if (classification == CatClassification.sort) {
+        _expandedCategories[classification] = false; // Sort collapsed
+      } else if (classification == CatClassification.saves) {
+        _expandedCategories[classification] = false; // Saved searches collapsed
+      } else {
+        _expandedCategories[classification] = false; // Others collapsed (handled by type-based categories)
+      }
     }
+    // Initialize expansion state for type-based categories
+    _expandedCategories['${FilterType.simple}_category'] = true; // Core expanded
+    _expandedCategories['${FilterType.advanced}_category'] = false; // Advanced collapsed
   }
 
   @override
@@ -210,6 +222,30 @@ class SearchScreenState extends State<SearchScreen> {
               duration: const Duration(seconds: 2),
             ),
           );
+        } else if (isValid == null) {
+          // Network error - show different message
+          setState(() {
+            _zipCodeValidated = false; // Don't mark as validated on network error
+            _zipCodeIsValid = null;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.wifi_off, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Network error. Please check your internet connection and try again.',
+                      maxLines: 2,
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
         } else {
           // Show error message for invalid ZIP
           ScaffoldMessenger.of(context).showSnackBar(
@@ -228,21 +264,39 @@ class SearchScreenState extends State<SearchScreen> {
         }
       } catch (e) {
         print('ZIP validation error: $e');
+        // Check if it's a network error
+        final errorString = e.toString().toLowerCase();
+        final isNetworkError = errorString.contains('socketexception') || 
+            errorString.contains('clientexception') ||
+            errorString.contains('failed host lookup') ||
+            errorString.contains('network is unreachable');
+        
         setState(() {
-          _zipCodeValidated = true;
-          _zipCodeIsValid = false;
+          _zipCodeValidated = !isNetworkError; // Don't mark as validated on network error
+          _zipCodeIsValid = isNetworkError ? null : false;
         });
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Row(
               children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Error validating ZIP code. Please try again.'),
+                Icon(
+                  isNetworkError ? Icons.wifi_off : Icons.error_outline,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isNetworkError
+                        ? 'Network error. Please check your internet connection and try again.'
+                        : 'Error validating ZIP code. Please try again.',
+                    maxLines: 2,
+                  ),
+                ),
               ],
             ),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
+            backgroundColor: isNetworkError ? Colors.orange : Colors.orange,
+            duration: Duration(seconds: isNetworkError ? 4 : 2),
           ),
         );
       }
@@ -581,6 +635,85 @@ class SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Widget _buildFilterCategoryByType(
+      String title, IconData icon, FilterType filterType, bool initiallyExpanded) {
+    // Get all filters of the specified type (excluding breed, sort, and saves)
+    List<filterOption> filters = widget.filteringOptions.where((filter) =>
+        filter.filterType == filterType &&
+        filter.classification != CatClassification.breed &&
+        filter.classification != CatClassification.sort &&
+        filter.classification != CatClassification.saves).toList();
+    
+    // For Core section, add breeds at the top
+    if (filterType == FilterType.simple) {
+      final breedFilters = widget.filteringOptions.where((filter) =>
+          filter.classification == CatClassification.breed).toList();
+      filters = [...breedFilters, ...filters];
+    }
+    
+    // Use a unique key for this category type
+    final categoryKey = '${filterType}_category';
+    final isExpanded = _expandedCategories.containsKey(categoryKey) 
+        ? _expandedCategories[categoryKey]! 
+        : initiallyExpanded;
+
+    return Container(
+      key: GlobalKey(),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF2196F3).withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: ExpansionTile(
+        key: ValueKey('$filterType-${isExpanded ? 'expanded' : 'collapsed'}'),
+        initiallyExpanded: isExpanded,
+        onExpansionChanged: (expanded) {
+          setState(() {
+            _expandedCategories[categoryKey] = expanded;
+          });
+        },
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2196F3).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: const Color(0xFF2196F3), size: 20),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2196F3),
+            fontFamily: 'Poppins',
+          ),
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: filters
+                  .map((filter) => _buildFilterRow(filter, filter.classification))
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFilterCategory(
       String title, IconData icon, CatClassification classification) {
     List<filterOption> filters = widget.categories[classification] ?? [];
@@ -854,10 +987,28 @@ class SearchScreenState extends State<SearchScreen> {
         onPressed: () async {
           var result = await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => BreedSelectionScreen(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  BreedSelectionScreen(
                 selectedBreeds: filter.choosenListValues,
               ),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                // Slide in from right (forward animation)
+                const begin = Offset(1.0, 0.0);
+                const end = Offset.zero;
+                const curve = Curves.ease;
+
+                var slideAnimation = Tween(begin: begin, end: end).animate(
+                  CurvedAnimation(parent: animation, curve: curve),
+                );
+
+                return SlideTransition(
+                  position: slideAnimation,
+                  child: child,
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 300),
+              reverseTransitionDuration: const Duration(milliseconds: 300),
             ),
           );
           if (result != null) {
@@ -868,7 +1019,7 @@ class SearchScreenState extends State<SearchScreen> {
         },
         icon: const Icon(Icons.pets, color: Colors.white),
         label: Text(
-          selectedBreedsText,
+          '$selectedBreedsText >',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
@@ -1436,13 +1587,16 @@ class SearchScreenState extends State<SearchScreen> {
                   // Validate and save zip code
                   final isValid = await FelineFinderServer.instance
                       .isZipCodeValid(currentZip);
-                  _zipCodeValidated = true;
+                  _zipCodeValidated = isValid != null; // Only mark as validated if not a network error
                   _zipCodeIsValid = isValid;
 
                   if (isValid == true) {
                     FelineFinderServer.instance.zip = currentZip;
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setString('zipCode', currentZip);
+                  } else if (isValid == null) {
+                    // Network error - don't save, but don't show error either (auto-detection)
+                    print('Network error during auto ZIP code detection');
                   }
                 } else {
                   // No postal code found, use server's current zip if available
@@ -1644,6 +1798,10 @@ class SearchScreenState extends State<SearchScreen> {
                   filtersToUpdate.add(zipFilter);
                   appliedFilters.add('ZIP Code: $zip');
                   print('✅ ZIP code applied: $zip');
+                } else if (isValid == null) {
+                  // Network error
+                  failedFilters.add('ZIP Code ($zip - network error)');
+                  print('⚠️ Network error validating ZIP code: $zip');
                 } else {
                   failedFilters.add('ZIP Code ($zip - invalid)');
                   print('❌ Invalid ZIP code: $zip');
@@ -2667,19 +2825,15 @@ class SearchScreenState extends State<SearchScreen> {
                   _buildQuickSearchCard(),
                   const SizedBox(height: 20),
 
-                  // Filter Categories
-                  _buildFilterCategory("Basic Info", Icons.info_outline,
-                      CatClassification.basic),
-                  _buildFilterCategory("Breed & Appearance", Icons.pets,
-                      CatClassification.breed),
+                  // Filter Categories - Reorganized
+                  // Core Fields (initially expanded) - includes Breeds at the top
+                  _buildFilterCategoryByType("Core", Icons.star, FilterType.simple, true),
+                  // Advanced Fields (initially collapsed)
+                  _buildFilterCategoryByType("Advanced", Icons.tune, FilterType.advanced, false),
+                  // Location & Sort (separate section)
                   _buildFilterCategory(
-                      "Personality", Icons.face, CatClassification.personality),
-                  _buildFilterCategory("Compatibility", Icons.favorite,
-                      CatClassification.compatibility),
-                  _buildFilterCategory("Physical Traits", Icons.scale,
-                      CatClassification.physical),
-                  _buildFilterCategory(
-                      "Sort Options", Icons.sort, CatClassification.sort),
+                      "Location & Sort", Icons.sort, CatClassification.sort),
+                  // Saved Searches (separate section)
                   _buildFilterCategory("Saved Searches", Icons.save_alt,
                       CatClassification.saves),
 

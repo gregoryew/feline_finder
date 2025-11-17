@@ -318,14 +318,6 @@ class ToolBar extends StatelessWidget {
         shelterDetail!.data![0].attributes != null) {
       toolsList.add(Tool(
           tool: toolType.share, detail: detail, shelterData: shelterDetail));
-      Attributes detailAttrib = shelterDetail!.data![0].attributes!;
-      if (detailAttrib.facebookUrl != null && detailAttrib.facebookUrl != "") {
-        toolsList.add(Tool(
-          tool: toolType.meet,
-          detail: detail,
-          shelterData: shelterDetail,
-        ));
-      }
     }
     return toolsList;
   }

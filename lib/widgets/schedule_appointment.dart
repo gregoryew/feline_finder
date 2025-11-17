@@ -657,6 +657,10 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
         ),
         const SizedBox(height: 24),
 
+        // Appointment Type Selection - always show in suggestion flow
+        _buildAppointmentTypeSelection(),
+        const SizedBox(height: 24),
+
         // Show previous submission if email was already sent
         if (_hasPreviousSubmission && _emailAlreadySent) ...[
           Container(
@@ -779,12 +783,27 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
           controller: _availabilityNoteController,
           maxLines: 5,
           maxLength: 500,
+          onChanged: (value) {
+            setState(() {}); // Update button state when text changes
+          },
           decoration: InputDecoration(
             hintText:
                 'e.g., "I\'m available weekdays after 3 PM or weekends anytime. Looking forward to meeting this cat!"',
             hintStyle: GoogleFonts.poppins(
               fontSize: 15,
               color: Colors.grey[400],
+            ),
+            helperText: _availabilityNoteController.text.trim().isEmpty ||
+                    _availabilityNoteController.text.trim().length < 10
+                ? 'Please enter at least 10 characters to enable the Suggest button'
+                : ' ',
+            helperMaxLines: 2,
+            helperStyle: GoogleFonts.poppins(
+              fontSize: 12,
+              color: (_availabilityNoteController.text.trim().isEmpty ||
+                      _availabilityNoteController.text.trim().length < 10)
+                  ? Colors.orange[700]
+                  : Colors.transparent,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -1477,18 +1496,22 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
 
     // Determine appointment type text - always show the adopter's preference
     String appointmentTypeText = '';
-    final selectedType = _appointmentType == 'video' ? 'Video' : 'In Person';
+    // Default to 'video' if not set
+    final appointmentType = _appointmentType ?? 'video';
+    final displayType = appointmentType == 'video' ? 'Video' : 'In Person';
 
     if (_isPendingSetup || (_inPerson == true && _webMeeting == true)) {
       appointmentTypeText = '''
-                <p><strong>Preferred Appointment Type:</strong> $selectedType</p>
+                <p><strong>Preferred Appointment Type:</strong> $displayType</p>
                 <p><strong>Available Options:</strong> This adopter can choose between Video meetings or In Person appointments. When you set up your account, you can configure which types of appointments you'd like to offer.</p>
             ''';
     } else if (_webMeeting == true) {
-      appointmentTypeText = '<p><strong>Appointment Type:</strong> Video</p>';
+      appointmentTypeText = '<p><strong>Appointment Type:</strong> $displayType</p>';
     } else if (_inPerson == true) {
-      appointmentTypeText =
-          '<p><strong>Appointment Type:</strong> In Person</p>';
+      appointmentTypeText = '<p><strong>Appointment Type:</strong> $displayType</p>';
+    } else {
+      // For suggestion flow or when organization state is unknown, always show the selected type
+      appointmentTypeText = '<p><strong>Preferred Appointment Type:</strong> $displayType</p>';
     }
 
     return '''
@@ -1513,9 +1536,10 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
     </head>
     <body>
         <div class="header">
-            <h1>🐱 Someone Wants to Meet ${widget.catName}</h1>
+            <h1>🐱 ${_nameController.text.trim()} Wants to Meet ${widget.catName}</h1>
         </div>
         <div class="content">
+            <p>Hello <strong>${widget.organizationName}</strong>,</p>
             <p><strong>${_nameController.text.trim()}</strong> is interested in meeting <strong>${widget.catName}</strong> from your shelter.</p>
             
             $updateMessage
@@ -1550,7 +1574,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
             <p>All you need to do is click the button above and complete a quick onboarding process. Once you're set up, adopters like ${_nameController.text.trim()} will be able to book appointments directly, and you'll receive notifications that integrate with your existing workflow.</p>
 
             <div class="footer">
-                <p>This email was sent because someone expressed interest in meeting one of your cats through Feline Finder Live. If you have questions, please contact us.</p>
+                <p>This email was sent because <strong>${_nameController.text.trim()}</strong> expressed interest in meeting <strong>${widget.catName}</strong> from <strong>${widget.organizationName}</strong> through Feline Finder Live. If you have questions, please contact us.</p>
                 <p><strong>Feline Finder Live Team</strong></p>
             </div>
         </div>
@@ -2059,6 +2083,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
 
                       // Action Buttons
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
                             child: OutlinedButton(
@@ -2187,8 +2212,65 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                backgroundColor: Theme.of(context).primaryColor,
+                                backgroundColor: ((_organizationState ==
+                                            OrganizationState.notFound ||
+                                        _isPendingSetup)
+                                    ? (_availabilityNoteController.text
+                                            .trim()
+                                            .isEmpty ||
+                                        _availabilityNoteController.text
+                                                .trim()
+                                                .length <
+                                            10 ||
+                                        _isSubmitting)
+                                    : (_organizationState !=
+                                            OrganizationState.found ||
+                                        (_inPerson != true &&
+                                            _webMeeting != true) ||
+                                        selectedTimeSlot == null ||
+                                        _isSubmitting))
+                                    ? Colors.grey[300]
+                                    : Theme.of(context).primaryColor,
                                 disabledBackgroundColor: Colors.grey[300],
+                                foregroundColor: ((_organizationState ==
+                                            OrganizationState.notFound ||
+                                        _isPendingSetup)
+                                    ? (_availabilityNoteController.text
+                                            .trim()
+                                            .isEmpty ||
+                                        _availabilityNoteController.text
+                                                .trim()
+                                                .length <
+                                            10 ||
+                                        _isSubmitting)
+                                    : (_organizationState !=
+                                            OrganizationState.found ||
+                                        (_inPerson != true &&
+                                            _webMeeting != true) ||
+                                        selectedTimeSlot == null ||
+                                        _isSubmitting))
+                                    ? Colors.white
+                                    : Colors.black,
+                                disabledForegroundColor: Colors.white,
+                                elevation: ((_organizationState ==
+                                            OrganizationState.notFound ||
+                                        _isPendingSetup)
+                                    ? (_availabilityNoteController.text
+                                            .trim()
+                                            .isEmpty ||
+                                        _availabilityNoteController.text
+                                                .trim()
+                                                .length <
+                                            10 ||
+                                        _isSubmitting)
+                                    : (_organizationState !=
+                                            OrganizationState.found ||
+                                        (_inPerson != true &&
+                                            _webMeeting != true) ||
+                                        selectedTimeSlot == null ||
+                                        _isSubmitting))
+                                    ? 0
+                                    : 2,
                               ),
                               child: _isSubmitting
                                   ? const SizedBox(
@@ -2210,7 +2292,25 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
                                       style: GoogleFonts.poppins(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.white,
+                                        color: ((_organizationState ==
+                                                    OrganizationState.notFound ||
+                                                _isPendingSetup)
+                                            ? (_availabilityNoteController.text
+                                                    .trim()
+                                                    .isEmpty ||
+                                                _availabilityNoteController.text
+                                                        .trim()
+                                                        .length <
+                                                    10 ||
+                                                _isSubmitting)
+                                            : (_organizationState !=
+                                                    OrganizationState.found ||
+                                                (_inPerson != true &&
+                                                    _webMeeting != true) ||
+                                                selectedTimeSlot == null ||
+                                                _isSubmitting))
+                                            ? Colors.white
+                                            : Colors.black,
                                       ),
                                     ),
                             ),

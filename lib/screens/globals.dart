@@ -314,6 +314,21 @@ class FelineFinderServer {
       }
     } catch (e) {
       print("Exception during ZIP validation: $e");
+      
+      // Check if it's a network connectivity error
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('socketexception') || 
+          errorString.contains('clientexception') ||
+          errorString.contains('failed host lookup') ||
+          errorString.contains('network is unreachable') ||
+          errorString.contains('connection refused') ||
+          errorString.contains('connection timed out')) {
+        print("Network error detected during ZIP validation");
+        // Return null to indicate network error (vs false for invalid zip)
+        return null;
+      }
+      
+      // For other errors, assume invalid zip code
       return false;
     }
   }

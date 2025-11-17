@@ -16,6 +16,9 @@ class BreedSelectionScreen extends StatefulWidget {
 class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
   late List<int> selectedBreeds;
   bool anySelected = true;
+  late TextEditingController _searchController;
+  List<Breed> _filteredBreeds = [];
+  bool _hasSearchText = false;
 
   @override
   void initState() {
@@ -25,6 +28,27 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
     // If specific breeds are selected (not just "Any"), set anySelected to false
     anySelected = selectedBreeds.isEmpty ||
         (selectedBreeds.length == 1 && selectedBreeds.contains(0));
+    
+    _searchController = TextEditingController();
+    _filteredBreeds = List.from(breeds);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterBreeds(String query) {
+    setState(() {
+      _hasSearchText = query.isNotEmpty;
+      if (query.isEmpty) {
+        _filteredBreeds = List.from(breeds);
+      } else {
+        _filteredBreeds = breeds.where((breed) =>
+            breed.name.toLowerCase().contains(query.toLowerCase())).toList();
+      }
+    });
   }
 
   void _toggleBreed(int breedId) {
@@ -138,18 +162,66 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
               ),
             ),
 
+            // Search box for filtering breeds
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _filterBreeds,
+                decoration: InputDecoration(
+                  hintText: 'Search breeds...',
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF2196F3)),
+                  suffixIcon: _hasSearchText
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.grey),
+                          onPressed: () {
+                            _searchController.clear();
+                            _filterBreeds('');
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ),
+
             // Breeds list
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: breeds.length + 1, // +1 for "Any" option
+                itemCount: _filteredBreeds.length + 1, // +1 for "Any" option
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     // "Any" option
                     return _buildAnyOption();
                   } else {
                     // Breed option
-                    final breed = breeds[index - 1];
+                    final breed = _filteredBreeds[index - 1];
                     return _buildBreedOption(breed);
                   }
                 },

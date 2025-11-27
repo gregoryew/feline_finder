@@ -43,7 +43,7 @@ class GoldFramedPanel extends StatelessWidget {
 
         if (isUnboundedHeight) {
           // Unbounded height case (ListView, etc.)
-          // Use Column-based layout with BoxDecoration for frame
+          // Use Column-based layout with frame decoration
           return SizedBox(
             width: constraints.maxWidth,
             child: Container(
@@ -58,29 +58,25 @@ class GoldFramedPanel extends StatelessWidget {
                 left: borderThickness.left,
                 top: borderThickness.top,
                 right: borderThickness.right,
-                bottom: borderThickness.bottom + (plaqueHeight > 0 ? plaqueHeight + 6 : 0), // Reduced spacing from 12 to 6
+                bottom: borderThickness.bottom,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Child content - constrained to prevent overflow
-                  // Use ClipRect to ensure content doesn't overflow and cover borders
                   ClipRect(
                     child: SizedBox(
                       width: double.infinity,
                       child: child,
                     ),
                   ),
-                  // Plaque if provided
+                  // Plaque positioned directly below image (no spacing)
                   if (plaqueLines != null && plaqueLines!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6), // Reduced from 12 to 6 to minimize height
-                      child: GoldPlaque(
-                        lines: plaqueLines!,
-                        // Increase maxWidth to reduce left/right margins (add 20px total, 10px each side)
-                        maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right) + 20,
-                      ),
+                    GoldPlaque(
+                      lines: plaqueLines!,
+                      // Increase maxWidth to reduce left/right margins (add 20px total, 10px each side)
+                      maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right) + 20,
                     ),
                 ],
               ),
@@ -108,7 +104,7 @@ class GoldFramedPanel extends StatelessWidget {
                 left: borderThickness.left,
                 top: borderThickness.top,
                 right: borderThickness.right,
-                bottom: borderThickness.bottom + (plaqueHeight > 0 ? plaqueHeight + 12 : 0),
+                bottom: borderThickness.bottom + (plaqueHeight > 0 ? plaqueHeight : 0), // Removed extra spacing
                 child: SizedBox(
                   width: double.infinity,
                   height: double.infinity,
@@ -120,7 +116,7 @@ class GoldFramedPanel extends StatelessWidget {
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: borderThickness.bottom,
+                  bottom: 0, // Position at the very bottom of the frame
                   child: Center(
                     child: GoldPlaque(
                       lines: plaqueLines!,

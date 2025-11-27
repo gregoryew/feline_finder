@@ -76,6 +76,7 @@ class FitState extends State<Fit> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         Expanded(child: buildQuestions()),
+        const SizedBox(width: 10), // 10px margin between trait cards and breed cards
         SizedBox(width: 120, child: buildMatches()),
       ],
     );
@@ -402,9 +403,11 @@ class FitState extends State<Fit> {
     const double availableWidth = 200;
     
     return Container(
-      margin: EdgeInsets.symmetric(
-        horizontal: 0.0, // Reduced left/right margins
-        vertical: 12.0, // Increased spacing between breed cards
+      margin: EdgeInsets.only(
+        left: 0.0,
+        right: 5.0, // 5px margin between right edge of card and right edge of screen
+        top: 12.0,
+        bottom: 12.0,
       ),
       // Constrain the frame to fit within the column
       width: availableWidth,
@@ -422,14 +425,14 @@ class FitState extends State<Fit> {
             LayoutBuilder(
               builder: (context, constraints) {
                 // Get the exact width available after frame borders
-                // Reduce width by 15px total (5px on top, 5px on left, 5px on right)
-                final double imageWidth = constraints.maxWidth - 10;
+                // Reduce width by 16px total (8px on left, 8px on right)
+                final double imageWidth = constraints.maxWidth - 16;
                 return Padding(
-                  // Add padding on top, left, and right by 10px each (top is 15px to move image down)
+                  // Add padding on top, left, and right (reduced top padding to decrease margin)
                   padding: const EdgeInsets.only(
-                    top: 15.0,
-                    left: 10.0,
-                    right: 10.0,
+                    top: 5.0, // Reduced from 15.0 to decrease margin between image and top border
+                    left: 8.0,
+                    right: 8.0,
                   ),
                   child: Container(
                     width: imageWidth,

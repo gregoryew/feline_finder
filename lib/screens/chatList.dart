@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'chatScreen.dart';
+import '../theme.dart';
+import '../widgets/design_system.dart';
 
 class ConversationListScreen extends StatelessWidget {
   const ConversationListScreen({Key? key}) : super(key: key);
@@ -9,7 +11,11 @@ class ConversationListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Conversations')),
+      appBar: AppBar(
+        title: const Text('Conversations'),
+        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
+      ),
       body: ListView.builder(
         itemCount: 10, // Replace with actual number of conversations
         itemBuilder: (context, index) {
@@ -115,12 +121,12 @@ class ConversationCard extends StatelessWidget {
                         left: 12), // Add margin around the "Your Turn" badge
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
                       'Your Turn',
-                      style: TextStyle(color: Colors.white, fontSize: 11),
+                      style: TextStyle(color: AppTheme.offWhite, fontSize: 11),
                     ),
                   ),
               ],

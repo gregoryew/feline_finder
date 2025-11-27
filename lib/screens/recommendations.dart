@@ -63,6 +63,8 @@ class _CatRecommendationScreenState extends State<CatRecommendationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cat Recommendations'),
+        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: Icon(

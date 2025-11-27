@@ -193,6 +193,8 @@ class _OrganizationJWTVerificationScreenState
       return Scaffold(
         appBar: AppBar(
           title: const Text('Verification Failed'),
+          iconTheme: const IconThemeData(color: Colors.white),
+          foregroundColor: Colors.white,
         ),
         body: Center(
           child: Padding(
@@ -234,6 +236,8 @@ class _OrganizationJWTVerificationScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Complete Verification'),
+        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

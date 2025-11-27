@@ -142,6 +142,8 @@ class _OrganizationVerificationScreenState
       return Scaffold(
         appBar: AppBar(
           title: const Text('Organization Verification'),
+          iconTheme: const IconThemeData(color: Colors.white),
+          foregroundColor: Colors.white,
         ),
         body: Center(
           child: Padding(

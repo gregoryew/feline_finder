@@ -120,7 +120,11 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                       color: Colors.white,
                     ),
                     onPressed: () {
-                      Get.off(const HomeScreen(title: 'Feline Finder'));
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        Get.back();
+                      }
                     },
                   ),
                 ),
@@ -139,7 +143,11 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                       player: YoutubePlayer(
                         controller: _controller,
                         onEnded: (_) {
-                          Get.off(const HomeScreen(title: 'Feline Finder'));
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Get.back();
+                          }
                         },
                       ),
                       builder: (context, player) {
@@ -158,7 +166,11 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                         size: 32,
                       ),
                       onPressed: () {
-                        Get.off(const HomeScreen(title: 'Feline Finder'));
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          Get.back();
+                        }
                       },
                     ),
                   ),
@@ -192,8 +204,11 @@ class _YouTubeVideoRowState extends State<YouTubeVideoRow> {
                                 const SizedBox(height: 16),
                                 ElevatedButton(
                                   onPressed: () {
-                                    Get.off(
-                                        const HomeScreen(title: 'Feline Finder'));
+                                    if (Navigator.canPop(context)) {
+                                      Navigator.pop(context);
+                                    } else {
+                                      Get.back();
+                                    }
                                   },
                                   child: const Text('Continue to App'),
                                 ),

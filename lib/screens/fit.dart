@@ -11,6 +11,9 @@ import 'package:catapp/Models/question.dart';
 import '/models/breed.dart';
 import '/screens/breedDetail.dart';
 import 'globals.dart' as globals;
+import '../theme.dart';
+import '../widgets/design_system.dart';
+import '../gold_frame/gold_frame_panel.dart';
 
 class Fit extends StatefulWidget {
   const Fit({Key? key}) : super(key: key);
@@ -108,17 +111,63 @@ class FitState extends State<Fit> {
           ? Curves.fastLinearToSlowEaseIn
           : Curves.fastLinearToSlowEaseIn,
       duration: const Duration(milliseconds: 1000),
-      child: Card(
-        margin: const EdgeInsets.all(8.0),
-        elevation: 5,
-        child: Padding(
-          // Even Padding On All Sides
-          padding: const EdgeInsets.all(10.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: Container(
+        margin: EdgeInsets.only(
+          left: (AppTheme.spacingS - 10).clamp(0.0, double.infinity),
+          right: (AppTheme.spacingS - 10).clamp(0.0, double.infinity),
+          top: (AppTheme.spacingS - 10).clamp(0.0, double.infinity),
+          bottom: 16.0, // Increased spacing between cards
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.0), // Rounded corners for a polished look
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12.0),
+          child: Stack(
             children: [
-              Row(
+              // Background animated gif - embedded effect
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.2, // Semi-transparent for embedded look
+                  child: Image(
+                    image: getExampleImage(question),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+              ),
+              // Gradient overlay on top of gif
+              IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.goldShadow,   // Deep gold (start)
+                        const Color(0xFF6B4E0A), // Deep dark gold (end)
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Content on top
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                 children: [
                   Expanded(
                       child: Text(
@@ -135,15 +184,15 @@ class FitState extends State<Fit> {
                         child: const Icon(Icons.expand_less)),
                     onPressed: () => {showDescription(question.id)},
                   )
-                ],
-              ),
-              const Divider(
+                    ],
+                  ),
+                    const Divider(
                 color: Colors.grey,
                 thickness: 1,
                 indent: 5,
                 endIndent: 5,
-              ),
-              SfSliderTheme(
+                    ),
+                    SfSliderTheme(
                 data: const SfSliderThemeData(
                   inactiveTrackColor: Color.fromARGB(255, 193, 186, 186),
                   activeTrackColor: Color.fromARGB(255, 193, 186, 186),
@@ -187,43 +236,57 @@ class FitState extends State<Fit> {
                       globals.FelineFinderServer.instance
                           .sliderValue[question.id] = newValue.round();
 
-                      final desired = <StatValue>[];
-                      for (var i = 0; i < Question.questions.length; i++) {
-                        if (globals.FelineFinderServer.instance.sliderValue[i] >
-                            0) {
-                          desired.add(StatValue(
-                              Question.questions[i].name,
-                              true,
-                              globals.FelineFinderServer.instance.sliderValue[i]
-                                  .toDouble()));
-                        }
-                      }
-
-                      for (var i = 0; i < breeds.length; i++) {
-                        double sum = 0;
-                        for (var j = 0; j < desired.length; j++) {
-                          StatValue stat = breeds[i].stats.firstWhere(
-                              (element) => element.name == desired[j].name);
-                          Question q = Question.questions.firstWhere(
-                              (element) => element.name == desired[j].name);
-                          if (stat.isPercent) {
-                            sum += 1.0 -
-                                (desired[j].value - stat.value).abs() /
-                                    q.choices.length;
-                          } else {
-                            if (desired[j].value == stat.value) {
-                              sum += 1;
+                            // Store question ID and value pairs (stats are ordered by question ID)
+                            final desired = <Map<String, dynamic>>[];
+                            for (var i = 0; i < Question.questions.length; i++) {
+                              if (globals.FelineFinderServer.instance.sliderValue[i] >
+                                  0) {
+                                desired.add({
+                                  'questionId': i,
+                                  'name': Question.questions[i].name,
+                                  'value': globals.FelineFinderServer.instance.sliderValue[i]
+                                      .toDouble(),
+                                });
+                              }
                             }
-                          }
-                        }
-                        if (desired.isEmpty) {
-                          breeds[i].percentMatch = 1.0;
-                        } else {
-                          breeds[i].percentMatch =
-                              ((sum / desired.length) * 100).floorToDouble() /
-                                  100;
-                        }
-                      }
+
+                            for (var i = 0; i < breeds.length; i++) {
+                              double sum = 0;
+                              for (var j = 0; j < desired.length; j++) {
+                                try {
+                                  final questionId = desired[j]['questionId'] as int;
+                                  final desiredValue = desired[j]['value'] as double;
+                                  
+                                  // Stats are in the same order as questions, so use questionId as index
+                                  if (questionId >= breeds[i].stats.length) {
+                                    continue; // Skip if stat index is out of bounds
+                                  }
+                                  
+                                  StatValue stat = breeds[i].stats[questionId];
+                                  Question q = Question.questions[questionId];
+                                  
+                                  if (stat.isPercent) {
+                                    sum += 1.0 -
+                                        (desiredValue - stat.value).abs() /
+                                            q.choices.length;
+                                  } else {
+                                    if (desiredValue == stat.value) {
+                                      sum += 1;
+                                    }
+                                  }
+                                } catch (e) {
+                                  // Skip this stat if there's any error
+                                  continue;
+                                }
+                              }
+                              if (desired.isEmpty) {
+                                breeds[i].percentMatch = 1.0;
+                              } else {
+                                breeds[i].percentMatch =
+                                    ((sum / desired.length) * 100).floorToDouble() /
+                                        100;
+                              }
+                            }
 
                       breeds.sort((a, b) {
                         if (a.percentMatch.compareTo(b.percentMatch) == -1) {
@@ -241,8 +304,8 @@ class FitState extends State<Fit> {
                   },
                   // 14
                 ),
-              ),
-              Visibility(
+                    ),
+                    Visibility(
                 visible: _descriptionVisible[question.id],
                 child: Container(
                   margin: const EdgeInsets.all(10.0),
@@ -263,6 +326,9 @@ class FitState extends State<Fit> {
                           child: Image(image: getExampleImage(question))),
                     ],
                   ),
+                ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -331,66 +397,127 @@ class FitState extends State<Fit> {
   }
 
   Widget buildBreedCard(Breed breed) {
-    return Card(
-      // 1
-      elevation: 5.0,
-      // 2
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.0)),
-      shadowColor: Colors.grey,
-      margin: const EdgeInsets.all(5),
-      clipBehavior: Clip.hardEdge,
-      child: Column(
-        children: <Widget>[
-          Image(
-              image: AssetImage(
-                  'assets/Cartoon/${breed.pictureHeadShotName.replaceAll(' ', '_')}.png')),
-          // 5
-          const SizedBox(
-            height: 5.0,
-          ),
-          // 6
-          Text(
-            breed.name,
-            style: const TextStyle(
-              fontSize: 13.0,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'Poppins',
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(
-            height: 5.0,
-          ),
-          SizedBox(
-            height: 30,
-            width: 200,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(
-                  5,
-                ),
-                bottomRight: Radius.circular(
-                  5,
-                ),
-              ),
-              child: Container(
-                color: const Color.fromARGB(255, 210, 198, 198),
-                child: Align(
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${(breed.percentMatch * 100)..toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                        fontSize: 13.0,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'Poppins',
-                        color: Colors.blue),
-                    textAlign: TextAlign.center,
+    // Calculate available width: column width (200) minus margins
+    // With reduced margins, use full column width minus minimal margins
+    const double availableWidth = 200;
+    
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: 0.0, // Reduced left/right margins
+        vertical: 12.0, // Increased spacing between breed cards
+      ),
+      // Constrain the frame to fit within the column
+      width: availableWidth,
+      child: GoldFramedPanel(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Top Section: Full-width image (reduced height by 15px)
+            // Use LayoutBuilder to get the exact available width inside the frame
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Get the exact width available after frame borders
+                final double imageWidth = constraints.maxWidth;
+                return Container(
+                  // No top margin - let frame padding handle spacing
+                  width: imageWidth,
+                  height: AppTheme.breedCardImageHeight - 15, // Increased by 15px from -30
+                  decoration: const BoxDecoration(
+                    gradient: AppTheme.purpleGradient,
                   ),
+                  child: Image.asset(
+                    'assets/Cartoon/${breed.pictureHeadShotName.replaceAll(' ', '_')}.png',
+                    fit: BoxFit.fill, // Use fill to fill entire width inside frame
+                    width: imageWidth,
+                    height: AppTheme.breedCardImageHeight - 15, // Increased by 15px from -30
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppTheme.purpleGradient,
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.pets, color: AppTheme.offWhite, size: 48),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+            // Bottom Section: Breed name and match percentage with gold gradient matching frame
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.goldShadow,   // Deep gold (start)
+                    const Color(0xFF6B4E0A), // Deep dark gold (end)rr
+                  ],
                 ),
               ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Separator: Thin solid gold line
+                  Container(
+                    height: AppTheme.separatorHeight,
+                    color: AppTheme.goldBase,
+                  ),
+                  // Breed name and match percentage
+                  Padding(
+                    padding: EdgeInsets.zero, // No padding - content fills the frame's inner area
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Breed name on first line with white text and transparent background
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent, // Transparent background
+                            borderRadius: BorderRadius.circular(8.0), // Slightly rounded edges
+                          ),
+                          child: Text(
+                            breed.name,
+                            style: const TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: AppTheme.fontSizeS,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white, // White text
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingXS),
+                        // Match percentage on second line with white text and transparent background
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent, // Transparent background
+                            borderRadius: BorderRadius.circular(8.0), // Slightly rounded edges
+                          ),
+                          child: Text(
+                            '${(breed.percentMatch * 100).toStringAsFixed(1)}%',
+                            style: const TextStyle(
+                              fontFamily: AppTheme.fontFamily,
+                              fontSize: AppTheme.fontSizeS,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white, // White text
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

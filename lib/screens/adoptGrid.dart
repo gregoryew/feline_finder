@@ -21,6 +21,8 @@ import '../config.dart';
 import 'globals.dart' as globals;
 import 'package:get/get.dart';
 import 'package:catapp/models/searchPageConfig.dart';
+import '../theme.dart';
+import '../widgets/design_system.dart';
 
 class AdoptGrid extends StatefulWidget {
   // This widget is the home page of your application. It is stateful, meaning
@@ -513,53 +515,71 @@ class AdoptGridState extends State<AdoptGrid> {
       status += count;
     }
     return Scaffold(
-      body: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(130, 25),
-                      maximumSize: const Size(130, 25)),
-                  onPressed: () => {askForZip()},
-                  child: Text("Zip: ${server.zip}")),
-              Text(status),
-            ],
-          ),
-          Row(
-            children: [
-              Center(
-                child: Text((count != "Processing" && tiles.isEmpty)
-                    ? (main.favoritesSelected
-                        ? "     You have not chosen any favorites yet."
-                        : "     No cats to see.  Please change your search.")
-                    : ""),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.purpleGradient,
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GoldenButton(
+                    text: "Zip: ${server.zip}",
+                    onPressed: () => {askForZip()},
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingM,
+                      vertical: AppTheme.spacingS,
+                    )),
+                Text(
+                status,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: AppTheme.fontFamily,
+                ),
               ),
-            ],
-          ),
-          Expanded(
-            child: MasonryGridView.count(
-              controller: controller,
-              itemCount: tiles.isNotEmpty ? tiles.length : 0,
-              padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 10),
-              // the number of columns
-              crossAxisCount: 2,
-              // vertical gap between two items
-              mainAxisSpacing: 10,
-              // horizontal gap between two items
-              crossAxisSpacing: 10,
-              itemBuilder: (context, index) {
-                // display each item with a card
-                return GestureDetector(
-                    onTap: () {
-                      _navigateAndDisplaySelection(context, index);
-                    },
-                    child: petCard(tiles[index]));
-              },
+              ],
             ),
-          ),
-        ],
+            Row(
+              children: [
+                Center(
+                  child: Text(
+                    (count != "Processing" && tiles.isEmpty)
+                        ? (main.favoritesSelected
+                            ? "     You have not chosen any favorites yet."
+                            : "     No cats to see.  Please change your search.")
+                        : "",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontFamily: AppTheme.fontFamily,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Expanded(
+              child: MasonryGridView.count(
+                controller: controller,
+                itemCount: tiles.isNotEmpty ? tiles.length : 0,
+                padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 10),
+                // the number of columns
+                crossAxisCount: 2,
+                // vertical gap between two items
+                mainAxisSpacing: 10,
+                // horizontal gap between two items
+                crossAxisSpacing: 10,
+                itemBuilder: (context, index) {
+                  // display each item with a card
+                  return GestureDetector(
+                      onTap: () {
+                        _navigateAndDisplaySelection(context, index);
+                      },
+                      child: petCard(tiles[index]));
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -584,15 +604,10 @@ class AdoptGridState extends State<AdoptGrid> {
   }
 
   Widget petCard(PetTileData tile) {
-    return Card(
-        elevation: 5,
-        shadowColor: Colors.grey,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            20,
-          ),
-        ),
+    return GoldenCard(
         margin: const EdgeInsets.all(5),
+        padding: EdgeInsets.zero,
+        backgroundColor: Colors.transparent,
         child: MediaQuery.removePadding(
             context: context,
             removeTop: true,
@@ -608,12 +623,12 @@ class AdoptGridState extends State<AdoptGrid> {
                 children: [
                   Expanded(
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(
-                          10,
+                          AppTheme.cardBorderRadius,
                         ),
                         topRight: Radius.circular(
-                          10,
+                          AppTheme.cardBorderRadius,
                         ),
                       ),
                       child: Container(
@@ -644,16 +659,16 @@ class AdoptGridState extends State<AdoptGrid> {
                   ),
                   Container(
                     height: 2,
-                    color: Colors.black,
+                    color: AppTheme.goldBase,
                   ),
                   Container(
                     //height: 130,
                     padding: const EdgeInsets.all(8.0),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
+                    decoration: BoxDecoration(
+                      color: AppTheme.traitCardBackground,
                       borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(20.0),
-                        bottomRight: Radius.circular(20.0),
+                        bottomLeft: Radius.circular(AppTheme.cardBorderRadius),
+                        bottomRight: Radius.circular(AppTheme.cardBorderRadius),
                       ),
                     ),
                     child: Column(
@@ -664,9 +679,10 @@ class AdoptGridState extends State<AdoptGrid> {
                             tile.name ?? "No Name",
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              color: Colors.black,
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                              fontSize: AppTheme.fontSizeS,
+                              fontFamily: AppTheme.fontFamily,
                             ),
                           ),
                         ),
@@ -678,9 +694,10 @@ class AdoptGridState extends State<AdoptGrid> {
                             tile.primaryBreed ?? "",
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              color: Colors.black,
+                              color: AppTheme.textSecondary,
                               fontWeight: FontWeight.w500,
-                              fontSize: 12,
+                              fontSize: AppTheme.fontSizeXS,
+                              fontFamily: AppTheme.fontFamily,
                             ),
                           ),
                         ),

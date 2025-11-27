@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:catapp/models/breed.dart';
+import '../theme.dart';
+import '../widgets/design_system.dart';
 
 class BreedSelectionScreen extends StatefulWidget {
   final List<int> selectedBreeds;
@@ -79,11 +81,8 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Select Breeds"),
-        backgroundColor: const Color(0xFF2196F3),
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: GradientAppBar(
+        title: "Select Breeds",
         actions: [
           TextButton(
             onPressed: () {
@@ -92,7 +91,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
             child: const Text(
               "Done",
               style: TextStyle(
-                color: Colors.white,
+                color: AppTheme.offWhite,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -106,8 +105,8 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFF2196F3).withValues(alpha: 0.1),
-              Colors.white,
+              AppTheme.deepPurple.withOpacity(0.1),
+              AppTheme.offWhite,
             ],
           ),
         ),
@@ -118,11 +117,11 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                gradient: AppTheme.purpleGradient,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: Colors.white.withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 2),
                   ),
@@ -132,7 +131,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                 children: [
                   const Icon(
                     Icons.pets,
-                    color: Color(0xFF2196F3),
+                    color: AppTheme.deepPurple,
                     size: 24,
                   ),
                   const SizedBox(width: 12),
@@ -144,7 +143,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF2196F3),
+                        color: AppTheme.deepPurple,
                       ),
                     ),
                   ),
@@ -166,8 +165,8 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                gradient: AppTheme.purpleGradient,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
@@ -181,7 +180,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                 onChanged: _filterBreeds,
                 decoration: InputDecoration(
                   hintText: 'Search breeds...',
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF2196F3)),
+                  prefixIcon: Icon(Icons.search, color: AppTheme.deepPurple),
                   suffixIcon: _hasSearchText
                       ? IconButton(
                           icon: const Icon(Icons.clear, color: Colors.grey),
@@ -192,19 +191,19 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                         )
                       : null,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                     borderSide: BorderSide.none,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2),
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                    borderSide: BorderSide(color: AppTheme.goldBase, width: AppTheme.borderWidth),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: AppTheme.offWhite,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
@@ -244,13 +243,14 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: anySelected ? const Color(0xFF2196F3) : Colors.white,
+              gradient: anySelected ? null : AppTheme.purpleGradient,
+              color: anySelected ? AppTheme.deepPurple : null,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: anySelected ? const Color(0xFF2196F3) : Colors.grey[300]!,
-                width: anySelected ? 2 : 1,
+                color: anySelected ? AppTheme.goldBase : Colors.grey[300]!,
+                width: anySelected ? AppTheme.borderWidth : 1,
               ),
-              boxShadow: [
+              boxShadow: anySelected ? AppTheme.goldenGlow : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
@@ -265,9 +265,8 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: anySelected
-                        ? Colors.white
-                        : const Color(0xFF2196F3).withValues(alpha: 0.1),
+                    gradient: anySelected ? null : AppTheme.purpleGradient,
+                    color: anySelected ? AppTheme.offWhite : null,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -304,7 +303,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                 if (anySelected)
                   const Icon(
                     Icons.check_circle,
-                    color: Colors.white,
+                    color: AppTheme.offWhite,
                     size: 24,
                   ),
               ],
@@ -362,7 +361,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                       errorBuilder: (context, error, stackTrace) {
                         return Icon(
                           Icons.pets,
-                          color: Colors.grey[600],
+                          color: Colors.white,
                           size: 24,
                         );
                       },
@@ -389,7 +388,7 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                 if (isSelected)
                   const Icon(
                     Icons.check_circle,
-                    color: Color(0xFF2196F3),
+                    color: AppTheme.deepPurple,
                     size: 20,
                   ),
               ],

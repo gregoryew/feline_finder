@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'schedule_appointment.dart';
+import '../theme.dart';
 
 enum toolType { schedule, phone, map, email, share, meet }
 
@@ -63,7 +64,7 @@ class Tool extends StatelessWidget {
         return InkWell(
             child: Center(
                 child: _buildCircularIcon(
-                    context, Icons.calendar_today, Theme.of(context).primaryColor)),
+                    context, Icons.calendar_today, AppTheme.traitCardBackground)),
             onTap: () {
               schedule(context);
             });
@@ -71,7 +72,7 @@ class Tool extends StatelessWidget {
         return InkWell(
             child: Center(
                 child: _buildCircularIcon(
-                    context, Icons.phone, Colors.green[700]!)),
+                    context, Icons.phone, AppTheme.traitCardBackground)),
             onTap: () {
               call(context);
             });
@@ -79,7 +80,7 @@ class Tool extends StatelessWidget {
         return InkWell(
             child: Center(
                 child: _buildCircularIcon(
-                    context, Icons.map, Colors.indigo[600]!)),
+                    context, Icons.map, AppTheme.traitCardBackground)),
             onTap: () {
               map(context);
             });
@@ -87,7 +88,7 @@ class Tool extends StatelessWidget {
         return InkWell(
             child: Center(
                 child: _buildCircularIcon(
-                    context, Icons.email, Colors.deepOrange[600]!)),
+                    context, Icons.email, AppTheme.traitCardBackground)),
             onTap: () {
               email(context);
             });
@@ -95,7 +96,7 @@ class Tool extends StatelessWidget {
         return InkWell(
             child: Center(
                 child: _buildCircularIcon(
-                    context, Icons.share, Colors.deepPurple[600]!)),
+                    context, Icons.share, AppTheme.traitCardBackground)),
             onTap: () {
               share(context);
             });
@@ -103,7 +104,7 @@ class Tool extends StatelessWidget {
         return InkWell(
             child: Center(
                 child: _buildCircularIcon(
-                    context, Icons.video_call, Colors.teal[600]!)),
+                    context, Icons.video_call, AppTheme.traitCardBackground)),
             onTap: () {
               meet(context);
             });

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'services/search_ai_service.dart';
+import 'theme.dart';
 
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
@@ -192,7 +193,7 @@ class _SplashPageState extends State<SplashPage> {
       navigatorObservers: [routeObserver],
       home: Scaffold(
         body: Container(
-          decoration: const BoxDecoration(color: Colors.white),
+          decoration: const BoxDecoration(gradient: AppTheme.purpleGradient),
           child: Center(
             child: Image.asset("assets/Full/Launch.png",
                 fit: BoxFit.cover,
@@ -270,15 +271,6 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       return <Widget>[
         GestureDetector(
             onTap: () {
-              AdoptionGridKey.currentState!.recommendations();
-            },
-            child: const Icon(
-              Icons.thumb_up_alt_rounded,
-              size: 40,
-            )),
-        const SizedBox(width: 10, height: 30),
-        GestureDetector(
-            onTap: () {
               favoritesSelected = !favoritesSelected;
               AdoptionGridKey.currentState!.setFavorites(favoritesSelected);
               setState(() {
@@ -332,8 +324,11 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
           onTap: () {
             AdoptionGridKey.currentState!.search();
           },
-          child:
-              const ImageIcon(AssetImage("assets/Icons/search.png"), size: 30),
+          child: ImageIcon(
+            const AssetImage("assets/Icons/search.png"),
+            size: 30,
+            color: AppTheme.goldBase,
+          ),
         ),
         const SizedBox(width: 15, height: 30)
       ];
@@ -368,15 +363,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF2196F3),
-              Color(0xFF21CBF3),
-              Color(0xFF64B5F6),
-            ],
-          ),
+          gradient: AppTheme.purpleGradient,
         ),
         child: SafeArea(
           child: Column(
@@ -388,13 +375,13 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       "Feline Finder",
                       style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 28,
+                        fontFamily: AppTheme.fontFamily,
+                        fontSize: AppTheme.fontSizeXXL,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: (_selectedIndex == 0) ? AppTheme.goldBase : Colors.white,
                         shadows: [
                           Shadow(
                             offset: Offset(0, 2),
@@ -413,11 +400,11 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
               // Main content
               Expanded(
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.purpleGradient,
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(24),
-                      topRight: Radius.circular(24),
+                      topLeft: Radius.circular(AppTheme.cardBorderRadius),
+                      topRight: Radius.circular(AppTheme.cardBorderRadius),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -444,12 +431,13 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
+          gradient: AppTheme.purpleGradient,
           boxShadow: [
             BoxShadow(
               color: Colors.black12,
               blurRadius: 20,
-              offset: Offset(0, -5),
+              offset: const Offset(0, -5),
             ),
           ],
         ),
@@ -459,11 +447,11 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
             topRight: Radius.circular(24),
           ),
           child: BottomNavigationBar(
-            unselectedItemColor: Colors.grey[400],
+            unselectedItemColor: Colors.white.withOpacity(0.7),
             showUnselectedLabels: true,
             showSelectedLabels: true,
-            selectedItemColor: const Color(0xFF2196F3),
-            backgroundColor: Colors.white,
+            selectedItemColor: AppTheme.goldBase,
+            backgroundColor: Colors.transparent, // Gradient applied via Container
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
             type: BottomNavigationBarType.fixed,
@@ -475,17 +463,17 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _selectedIndex == 0
-                        ? const Color(0xFF2196F3).withValues(alpha: 0.1)
+                        ? AppTheme.deepPurple.withValues(alpha: 0.1)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
                   child: ImageIcon(
                     AssetImage(_selectedIndex == 0
                         ? "assets/Icons/adopt_selected.png"
                         : "assets/Icons/adopt_unselected.png"),
                     color: (_selectedIndex == 0
-                        ? const Color(0xFF2196F3)
-                        : Colors.grey[400]),
+                        ? AppTheme.goldBase
+                        : AppTheme.textSecondary),
                     size: 24,
                   ),
                 ),
@@ -497,17 +485,17 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _selectedIndex == 1
-                        ? const Color(0xFF2196F3).withValues(alpha: 0.1)
+                        ? AppTheme.deepPurple.withValues(alpha: 0.1)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
                   child: ImageIcon(
                     AssetImage(_selectedIndex == 1
                         ? "assets/Icons/fit_selected.png"
                         : "assets/Icons/fit_unselected.png"),
                     color: (_selectedIndex == 1
-                        ? const Color(0xFF2196F3)
-                        : Colors.grey[400]),
+                        ? AppTheme.goldBase
+                        : AppTheme.textSecondary),
                     size: 24,
                   ),
                 ),
@@ -519,17 +507,17 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _selectedIndex == 2
-                        ? const Color(0xFF2196F3).withValues(alpha: 0.1)
+                        ? AppTheme.deepPurple.withValues(alpha: 0.1)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
                   child: ImageIcon(
                     AssetImage(_selectedIndex == 2
                         ? "assets/Icons/breeds_selected.png"
                         : "assets/Icons/breeds_unselected.png"),
                     color: (_selectedIndex == 2
-                        ? const Color(0xFF2196F3)
-                        : Colors.grey[400]),
+                        ? AppTheme.goldBase
+                        : AppTheme.textSecondary),
                     size: 24,
                   ),
                 ),
@@ -541,17 +529,17 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: _selectedIndex == 3
-                        ? const Color(0xFF2196F3).withValues(alpha: 0.1)
+                        ? AppTheme.deepPurple.withValues(alpha: 0.1)
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
                   child: ImageIcon(
                     AssetImage(_selectedIndex == 3
                         ? "assets/Icons/talk_selected.png"
                         : "assets/Icons/talk_unselected.png"),
                     color: (_selectedIndex == 3
-                        ? const Color(0xFF2196F3)
-                        : Colors.grey[400]),
+                        ? AppTheme.goldBase
+                        : AppTheme.textSecondary),
                     size: 24,
                   ),
                 ),

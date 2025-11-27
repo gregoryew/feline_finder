@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../models/breed.dart';
+import '../theme.dart';
+import '../widgets/design_system.dart';
 
 class FilterBreedSelection extends StatefulWidget {
   // This widget is the home page of your application. It is stateful, meaning
@@ -71,10 +73,10 @@ class FilterBreedSelectionState extends State<FilterBreedSelection> {
                   ),
                 ),
                 onPressed: () => {Get.back(result: _selected)},
-                icon: const Icon(Icons.save_alt, color: Colors.white),
+                icon: const Icon(Icons.save_alt, color: AppTheme.offWhite),
                 label: const Text('Return Breeds',
                     style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
+                        color: AppTheme.offWhite, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -111,8 +113,8 @@ class FilterBreedSelectionState extends State<FilterBreedSelection> {
               child: Image.asset(
                   'assets/Cartoon/${breeds[index].pictureHeadShotName.replaceAll(' ', '_')}.png',
                   color: _selected[index]
-                      ? Colors.white
-                      : Colors.white.withOpacity(0.4),
+                      ? AppTheme.offWhite
+                      : AppTheme.offWhite.withOpacity(0.4),
                   colorBlendMode: BlendMode.modulate,
                   height: 70,
                   width: 70),

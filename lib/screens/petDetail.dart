@@ -24,6 +24,8 @@ import 'globals.dart' as globals;
 import 'package:dots_indicator/dots_indicator.dart';
 import 'package:get/get.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
+import '../theme.dart';
+import '../widgets/design_system.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
@@ -326,10 +328,12 @@ class petDetailState extends State<petDetail>
           : "Not Available.";
     }
     return Scaffold(
+      backgroundColor: AppTheme.deepPurple,
       appBar: AppBar(
         title: Text(petDetailInstance?.name ?? ""),
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: AppTheme.deepPurple,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: <Widget>[
           Padding(
             padding: const EdgeInsets.only(right: 10.0),
@@ -398,19 +402,23 @@ class petDetailState extends State<petDetail>
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.purpleGradient,
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.zero,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Horizontal Scrolling Photo Gallery
+              // Horizontal Scrolling Photo Gallery (full width, no padding)
               if (petDetailInstance == null || petDetailInstance!.media.isEmpty)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  width: double.infinity,
+                  margin: EdgeInsets.zero,
                   height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(20),
+                  decoration: const BoxDecoration(
+                    gradient: AppTheme.purpleGradient,
                   ),
                   child: Center(
                     child: Column(
@@ -419,14 +427,15 @@ class petDetailState extends State<petDetail>
                         Icon(
                           Icons.pets,
                           size: 64,
-                          color: Colors.grey[400],
+                          color: Colors.white,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: AppTheme.spacingM),
                         Text(
                           'No photos available',
                           style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
+                            color: Colors.white,
+                            fontSize: AppTheme.fontSizeM,
+                            fontFamily: AppTheme.fontFamily,
                           ),
                         ),
                       ],
@@ -438,8 +447,7 @@ class petDetailState extends State<petDetail>
                   builder: (context) {
                     final fixedHeight = 200.0;
                     final screenWidth = MediaQuery.of(context).size.width;
-                    final horizontalMargin = 32.0; // 16 on each side
-                    final availableWidth = screenWidth - horizontalMargin;
+                    final availableWidth = screenWidth;
                     
                     // Calculate total width of all images
                     double totalWidth = 0.0;
@@ -460,7 +468,8 @@ class petDetailState extends State<petDetail>
                         // Calculate width based on actual image dimensions
                         if (matchingPicture.resolutionX != null && 
                             matchingPicture.resolutionY != null &&
-                            matchingPicture.resolutionX! > 0) {
+                            matchingPicture.resolutionX! > 0 &&
+                            matchingPicture.resolutionY! > 0) {
                           final aspectRatio = matchingPicture.resolutionX! / matchingPicture.resolutionY!;
                           imageWidth = fixedHeight * aspectRatio;
                         } else {
@@ -475,6 +484,11 @@ class petDetailState extends State<petDetail>
                         imageWidth = fixedHeight * 4 / 3;
                       }
                       
+                      // Ensure imageWidth is always positive
+                      if (imageWidth <= 0) {
+                        imageWidth = fixedHeight * 4 / 3;
+                      }
+                      
                       imageWidths.add(imageWidth);
                       totalWidth += imageWidth;
                       // Add margin between images (8px between each, except last)
@@ -486,60 +500,67 @@ class petDetailState extends State<petDetail>
                     // If total width is less than available width, center and disable scrolling
                     final shouldCenter = totalWidth < availableWidth;
                     
+                    // Safety check: ensure imageWidths matches media length
+                    if (imageWidths.length != petDetailInstance!.media.length) {
+                      // If mismatch, use default widths
+                      imageWidths = List.generate(
+                        petDetailInstance!.media.length,
+                        (index) => fixedHeight * 4 / 3,
+                      );
+                    }
+                    
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      width: double.infinity,
+                      margin: EdgeInsets.zero,
                       height: 200,
-                      child: shouldCenter
-                          ? Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: List.generate(
-                                  petDetailInstance!.media.length,
-                                  (index) => _buildMediaItem(
+                      decoration: const BoxDecoration(
+                        gradient: AppTheme.purpleGradient,
+                      ),
+                      child: petDetailInstance!.media.isEmpty
+                          ? const SizedBox.shrink()
+                          : (shouldCenter
+                              ? Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      petDetailInstance!.media.length,
+                                      (index) => _buildMediaItem(
+                                        petDetailInstance!.media[index],
+                                        imageWidths[index],
+                                        fixedHeight,
+                                        index,
+                                        petDetailInstance!.media.length,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: EdgeInsets.zero,
+                                  itemCount: petDetailInstance!.media.length,
+                                  itemBuilder: (context, index) => _buildMediaItem(
                                     petDetailInstance!.media[index],
                                     imageWidths[index],
                                     fixedHeight,
                                     index,
                                     petDetailInstance!.media.length,
                                   ),
-                                ),
-                              ),
-                            )
-                          : ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: petDetailInstance!.media.length,
-                              itemBuilder: (context, index) => _buildMediaItem(
-                                petDetailInstance!.media[index],
-                                imageWidths[index],
-                                fixedHeight,
-                                index,
-                                petDetailInstance!.media.length,
-                              ),
-                            ),
+                                )),
                     );
                   },
                 ),
-              const SizedBox(
-                height: 5,
-              ),
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
+              // Rest of content with padding
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      height: 5,
                     ),
-                  ],
-                  border: Border.all(
-                    color: const Color(0xFF2196F3).withOpacity(0.1),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(20),
+                    GoldenCard(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 11), // Reduced from 16 to 11 for wider content
+                padding: EdgeInsets.all(AppTheme.spacingL),
+                backgroundColor: AppTheme.traitCardBackground,
                 child: Column(
                   children: [
                     Row(
@@ -547,12 +568,12 @@ class petDetailState extends State<petDetail>
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2196F3).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                           ),
                           child: const Icon(
                             Icons.pets,
-                            color: Color(0xFF2196F3),
+                            color: Colors.white,
                             size: 24,
                           ),
                         ),
@@ -568,7 +589,7 @@ class petDetailState extends State<petDetail>
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2196F3),
+                                  color: Colors.white,
                                   fontFamily: 'Poppins',
                                 ),
                                 textAlign: TextAlign.left,
@@ -581,7 +602,7 @@ class petDetailState extends State<petDetail>
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.grey[700],
+                                  color: Colors.white,
                                 ),
                                 textAlign: TextAlign.left,
                               ),
@@ -612,24 +633,19 @@ class petDetailState extends State<petDetail>
                 height: 20,
               ),
               const Text("General Information",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  )),
               const SizedBox(height: 20),
               Container(
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 11), // Reduced from 16 to 11 for wider content
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.traitCardBackground,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: const Color(0xFF2196F3).withOpacity(0.1),
-                    width: 1,
-                  ),
+                  border: AppTheme.goldenBorder,
+                  boxShadow: AppTheme.goldenGlow,
                 ),
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -638,12 +654,12 @@ class petDetailState extends State<petDetail>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2196F3).withOpacity(0.1),
+                        color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.location_on_outlined,
-                        color: Color(0xFF2196F3),
+                        color: Colors.white,
                         size: 24,
                       ),
                     ),
@@ -657,7 +673,7 @@ class petDetailState extends State<petDetail>
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF2196F3),
+                              color: Colors.white,
                               fontFamily: 'Poppins',
                             ),
                           ),
@@ -667,7 +683,7 @@ class petDetailState extends State<petDetail>
                               const Icon(
                                 Icons.location_on_outlined,
                                 size: 20,
-                                color: Color(0xFF2196F3),
+                                color: Colors.white,
                               ),
                               const SizedBox(width: 10),
                               Flexible(
@@ -676,7 +692,7 @@ class petDetailState extends State<petDetail>
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.grey[700],
+                                    color: Colors.white,
                                     height: 1.5,
                                   ),
                                 ),
@@ -712,6 +728,9 @@ class petDetailState extends State<petDetail>
               const SizedBox(height: 20),
               textBox("DISCLAIMER",
                   "PLEASE READ: Information regarding adoptable pets is provided by the adopting organization and is neither checked for accuracy or completeness nor guaranteed to be accurate or complete.  The health status and behavior of any pet found, adopted through, or listed on the Feline Finder app are sole responsibility of the adoption organization listing the same and/or the adopting party and by using this service, the adopting party releases Feline Finder and Gregory Edward Williams from any and all liability arising out of or in any way connected with the adoption of a pet listed on the Feline Finder app.")
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -722,6 +741,9 @@ class petDetailState extends State<petDetail>
   Widget _buildMediaItem(dynamic media, double imageWidth, double fixedHeight, int index, int totalCount) {
     final isLast = index == totalCount - 1;
     
+    // Ensure imageWidth is positive
+    final safeWidth = imageWidth > 0 ? imageWidth : fixedHeight * 4 / 3;
+    
     return Container(
       margin: EdgeInsets.only(
         right: isLast ? 0 : 8.0,
@@ -730,7 +752,7 @@ class petDetailState extends State<petDetail>
         borderRadius: BorderRadius.circular(12),
         child: Container(
           height: fixedHeight,
-          width: imageWidth,
+          width: safeWidth,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
@@ -835,10 +857,10 @@ class petDetailState extends State<petDetail>
               : CachedNetworkImage(
                   imageUrl: (media as SmallPhoto).photo,
                   fit: BoxFit.cover,
-                  width: imageWidth,
+                  width: safeWidth,
                   height: fixedHeight,
                   placeholder: (context, url) => Container(
-                    width: imageWidth,
+                    width: safeWidth,
                     height: fixedHeight,
                     color: Colors.grey[200],
                     child: const Center(
@@ -849,7 +871,7 @@ class petDetailState extends State<petDetail>
                   ),
                   errorWidget: (context, url, error) =>
                       Container(
-                    width: imageWidth,
+                    width: safeWidth,
                     height: fixedHeight,
                     color: Colors.grey[200],
                     child: const Center(
@@ -902,21 +924,12 @@ class petDetailState extends State<petDetail>
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 11), // Reduced from 16 to 11 for wider content
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.traitCardBackground,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: const Color(0xFF2196F3).withOpacity(0.1),
-          width: 1,
-        ),
+        border: AppTheme.goldenBorder,
+        boxShadow: AppTheme.goldenGlow,
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -926,12 +939,12 @@ class petDetailState extends State<petDetail>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF2196F3).withOpacity(0.1),
+                color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 getIconForTitle(title),
-                color: const Color(0xFF2196F3),
+                color: Colors.white,
                 size: 24,
               ),
             ),
@@ -945,7 +958,7 @@ class petDetailState extends State<petDetail>
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
+                      color: Colors.white,
                       fontFamily: 'Poppins',
                     ),
                   ),
@@ -954,12 +967,12 @@ class petDetailState extends State<petDetail>
                     textString,
                     textAlign: TextAlign.left,
                     textStyle: textStyle.copyWith(
-                      color: Colors.grey[700],
+                      color: Colors.white,
                       height: 1.5,
                     ),
                     linkTypes: const [LinkType.email, LinkType.url],
                     linkStyle: const TextStyle(
-                      color: Color(0xFF2196F3),
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       decoration: TextDecoration.underline,
                     ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../theme.dart';
+import '../widgets/design_system.dart';
 
 class ChatScreen extends StatefulWidget {
   final String currentUser;
@@ -102,11 +104,13 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
@@ -192,7 +196,7 @@ class MessageBubble extends StatelessWidget {
         child: Text(
           message,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppTheme.offWhite,
             fontSize: 16,
           ),
         ),

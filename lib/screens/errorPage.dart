@@ -16,6 +16,8 @@ class ErrorPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title ?? 'Error'),
+        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
       ),
       body: Center(
         child: Padding(

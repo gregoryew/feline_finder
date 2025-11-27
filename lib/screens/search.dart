@@ -13,6 +13,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../theme.dart';
+import '../widgets/design_system.dart';
 
 class SearchScreen extends StatefulWidget {
   final Map<CatClassification, List<filterOption>> categories;
@@ -540,25 +542,15 @@ class SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildQuickSearchCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
+    return GoldenCard(
+      margin: EdgeInsets.all(AppTheme.spacingM),
+      padding: EdgeInsets.all(AppTheme.spacingL),
       child: Column(
         children: [
           // Text input field
           Row(
             children: [
-              const Icon(Icons.search, color: Color(0xFF2196F3), size: 28),
+              Icon(Icons.search, color: AppTheme.deepPurple, size: 28),
               const SizedBox(width: 12),
               Expanded(
                 child: TextField(
@@ -583,14 +575,14 @@ class SearchScreenState extends State<SearchScreen> {
                       setState(() {}), // Update UI to show/hide clear button
                   decoration: InputDecoration(
                     hintText: "What Do You Want In A Cat",
-                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                       borderSide: BorderSide(
                           color: const Color(0xFF2196F3).withOpacity(0.3)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                       borderSide:
                           const BorderSide(color: Color(0xFF2196F3), width: 2),
                     ),
@@ -1242,20 +1234,16 @@ class SearchScreenState extends State<SearchScreen> {
 
   Widget _buildBottomButtons() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(AppTheme.spacingM),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
+        gradient: AppTheme.purpleGradient,
+        boxShadow: AppTheme.goldenGlow,
       ),
       child: SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        child: GoldenButton(
+          text: "Find Cats",
+          icon: Icons.search,
           onPressed: () async {
             try {
               print("=== FIND CATS BUTTON PRESSED ===");
@@ -1269,16 +1257,6 @@ class SearchScreenState extends State<SearchScreen> {
               Navigator.pop(context, []);
             }
           },
-          icon: const Icon(Icons.search, color: Colors.white),
-          label: const Text("Find Cats",
-              style: TextStyle(color: Colors.white, fontSize: 16)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2196F3),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
         ),
       ),
     );
@@ -2794,6 +2772,7 @@ class SearchScreenState extends State<SearchScreen> {
         title: const Text("Find Your Perfect Cat"),
         backgroundColor: const Color(0xFF2196F3),
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       resizeToAvoidBottomInset:
@@ -2801,15 +2780,8 @@ class SearchScreenState extends State<SearchScreen> {
       body: Stack(
         children: [
           Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFF2196F3).withOpacity(0.1),
-                  Colors.white,
-                ],
-              ),
+            decoration: const BoxDecoration(
+              gradient: AppTheme.purpleGradient,
             ),
             child: SingleChildScrollView(
               controller: _scrollController,

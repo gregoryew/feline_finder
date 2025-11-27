@@ -36,8 +36,9 @@ class GoldFramedPanel extends StatelessWidget {
         // Calculate plaque height if needed
         double plaqueHeight = 0;
         if (plaqueLines != null && plaqueLines!.isNotEmpty) {
-          // Estimate plaque height based on number of lines
-          plaqueHeight = (plaqueLines!.length * 24.0) + 20.0; // ~24px per line + padding
+          // Estimate plaque height based on number of lines (increased to ensure full visibility)
+          // Using 20px per line + 20px for padding to ensure the plaque is fully visible
+          plaqueHeight = (plaqueLines!.length * 20.0) + 20.0;
         }
 
         if (isUnboundedHeight) {
@@ -57,7 +58,7 @@ class GoldFramedPanel extends StatelessWidget {
                 left: borderThickness.left,
                 top: borderThickness.top,
                 right: borderThickness.right,
-                bottom: borderThickness.bottom + (plaqueHeight > 0 ? plaqueHeight + 12 : 0),
+                bottom: borderThickness.bottom + (plaqueHeight > 0 ? plaqueHeight + 6 : 0), // Reduced spacing from 12 to 6
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -74,10 +75,11 @@ class GoldFramedPanel extends StatelessWidget {
                   // Plaque if provided
                   if (plaqueLines != null && plaqueLines!.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 12),
+                      padding: const EdgeInsets.only(top: 6), // Reduced from 12 to 6 to minimize height
                       child: GoldPlaque(
                         lines: plaqueLines!,
-                        maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right),
+                        // Increase maxWidth to reduce left/right margins (add 20px total, 10px each side)
+                        maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right) + 20,
                       ),
                     ),
                 ],
@@ -122,7 +124,8 @@ class GoldFramedPanel extends StatelessWidget {
                   child: Center(
                     child: GoldPlaque(
                       lines: plaqueLines!,
-                      maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right),
+                      // Increase maxWidth to reduce left/right margins (add 20px total, 10px each side)
+                      maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right) + 20,
                     ),
                   ),
                 ),

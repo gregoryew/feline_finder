@@ -409,6 +409,10 @@ class FitState extends State<Fit> {
       // Constrain the frame to fit within the column
       width: availableWidth,
       child: GoldFramedPanel(
+        plaqueLines: [
+          breed.name,
+          '${(breed.percentMatch * 100).toStringAsFixed(1)}%',
+        ],
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -418,103 +422,40 @@ class FitState extends State<Fit> {
             LayoutBuilder(
               builder: (context, constraints) {
                 // Get the exact width available after frame borders
-                final double imageWidth = constraints.maxWidth;
-                return Container(
-                  // No top margin - let frame padding handle spacing
-                  width: imageWidth,
-                  height: AppTheme.breedCardImageHeight - 15, // Increased by 15px from -30
-                  decoration: const BoxDecoration(
-                    gradient: AppTheme.purpleGradient,
+                // Reduce width by 15px total (5px on top, 5px on left, 5px on right)
+                final double imageWidth = constraints.maxWidth - 10;
+                return Padding(
+                  // Add padding on top, left, and right by 10px each (top is 15px to move image down)
+                  padding: const EdgeInsets.only(
+                    top: 15.0,
+                    left: 10.0,
+                    right: 10.0,
                   ),
-                  child: Image.asset(
-                    'assets/Cartoon/${breed.pictureHeadShotName.replaceAll(' ', '_')}.png',
-                    fit: BoxFit.fill, // Use fill to fill entire width inside frame
+                  child: Container(
                     width: imageWidth,
                     height: AppTheme.breedCardImageHeight - 15, // Increased by 15px from -30
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        decoration: const BoxDecoration(
-                          gradient: AppTheme.purpleGradient,
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.pets, color: AppTheme.offWhite, size: 48),
-                        ),
-                      );
-                    },
+                    decoration: const BoxDecoration(
+                      gradient: AppTheme.purpleGradient,
+                    ),
+                    child: Image.asset(
+                      'assets/Cartoon/${breed.pictureHeadShotName.replaceAll(' ', '_')}.png',
+                      fit: BoxFit.fill, // Use fill to fill entire width inside frame
+                      width: imageWidth,
+                      height: AppTheme.breedCardImageHeight - 15, // Increased by 15px from -30
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          decoration: const BoxDecoration(
+                            gradient: AppTheme.purpleGradient,
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.pets, color: AppTheme.offWhite, size: 48),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 );
               },
-            ),
-            // Bottom Section: Breed name and match percentage with gold gradient matching frame
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppTheme.goldShadow,   // Deep gold (start)
-                    const Color(0xFF6B4E0A), // Deep dark gold (end)rr
-                  ],
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Separator: Thin solid gold line
-                  Container(
-                    height: AppTheme.separatorHeight,
-                    color: AppTheme.goldBase,
-                  ),
-                  // Breed name and match percentage
-                  Padding(
-                    padding: EdgeInsets.zero, // No padding - content fills the frame's inner area
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Breed name on first line with white text and transparent background
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent, // Transparent background
-                            borderRadius: BorderRadius.circular(8.0), // Slightly rounded edges
-                          ),
-                          child: Text(
-                            breed.name,
-                            style: const TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: AppTheme.fontSizeS,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white, // White text
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.spacingXS),
-                        // Match percentage on second line with white text and transparent background
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent, // Transparent background
-                            borderRadius: BorderRadius.circular(8.0), // Slightly rounded edges
-                          ),
-                          child: Text(
-                            '${(breed.percentMatch * 100).toStringAsFixed(1)}%',
-                            style: const TextStyle(
-                              fontFamily: AppTheme.fontFamily,
-                              fontSize: AppTheme.fontSizeS,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white, // White text
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),

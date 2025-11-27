@@ -10,8 +10,8 @@ class GoldPlaque extends StatelessWidget {
   static const String _plaqueAsset = 'assets/frame/gold_plaque_refined.png';
   static const Rect _plaqueCenterSlice = Rect.fromLTWH(71, 93, 849, 835);
   
-  static const double _horizontalPadding = 24.0;
-  static const double _verticalPadding = 10.0;
+  static const double _horizontalPadding = 14.0; // Reduced from 24.0 to decrease left/right margins
+  static const double _verticalPadding = 10.0; // Restored to ensure text is fully visible within the plaque
   static const Color _textColor = Color(0xFF4A2C00);
 
   const GoldPlaque({
@@ -26,39 +26,33 @@ class GoldPlaque extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return IntrinsicHeight(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Container(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage(_plaqueAsset),
-                fit: BoxFit.fill,
-                centerSlice: _plaqueCenterSlice,
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: _horizontalPadding,
-              vertical: _verticalPadding,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: lines.map((line) {
-                return Text(
-                  line,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: _textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                );
-              }).toList(),
+    return Container(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage(_plaqueAsset),
+          fit: BoxFit.fill,
+          centerSlice: _plaqueCenterSlice,
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _horizontalPadding,
+        vertical: _verticalPadding,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: lines.map((line) {
+          return Text(
+            line,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _textColor,
+              fontWeight: FontWeight.w600,
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }

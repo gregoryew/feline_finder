@@ -47,7 +47,7 @@ class FitState extends State<Fit> {
       children: [
         Expanded(child: buildQuestions()),
         const SizedBox(width: 10), // 10px margin between trait cards and breed cards
-        SizedBox(width: 120, child: buildMatches()),
+        SizedBox(width: 125, child: buildMatches()), // Increased from 120 to 125 to accommodate larger breed cards
       ],
     );
   }
@@ -336,9 +336,9 @@ class FitState extends State<Fit> {
   }
 
   Widget buildBreedCard(Breed breed) {
-    // Calculate available width: column width (200) minus margins
+    // Calculate available width: column width (205) minus margins
     // With reduced margins, use full column width minus minimal margins
-    const double availableWidth = 200;
+    const double availableWidth = 205; // Increased from 200 to 205
     
     return Container(
       margin: EdgeInsets.only(

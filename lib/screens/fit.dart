@@ -1,7 +1,4 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import 'package:get/get.dart';
@@ -33,38 +30,11 @@ class Fit extends StatefulWidget {
 }
 
 class FitState extends State<Fit> {
-  Timer? timer;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-
-    timer = Timer.periodic(const Duration(milliseconds: 500), (Timer t) {
-      showDescription(0);
-      timer!.cancel();
-    });
   }
-
-  final itemController = ItemScrollController();
-  int _priorVisibleQuestion = -1;
-  final _descriptionVisible = [
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -83,36 +53,15 @@ class FitState extends State<Fit> {
   }
 
   Widget buildQuestions() {
-    return ScrollablePositionedList.builder(
+    return ListView.builder(
         itemCount: Question.questions.length,
-        itemScrollController: itemController,
         itemBuilder: (BuildContext context, int index) {
           return buildQuestionCard(Question.questions[index]);
         });
   }
 
-  showDescription(int i) {
-    setState(() {
-      if (_descriptionVisible[i]) {
-        _descriptionVisible[i] = false;
-      } else {
-        if (_priorVisibleQuestion > -1) {
-          _descriptionVisible[_priorVisibleQuestion] = false;
-        }
-        _priorVisibleQuestion = i;
-        _descriptionVisible[i] = true;
-        itemController.jumpTo(index: i);
-      }
-    });
-  }
-
   Widget buildQuestionCard(Question question) {
-    return AnimatedSize(
-      curve: _descriptionVisible[question.id]
-          ? Curves.fastLinearToSlowEaseIn
-          : Curves.fastLinearToSlowEaseIn,
-      duration: const Duration(milliseconds: 1000),
-        child: Container(
+    return Container(
         margin: EdgeInsets.only(
           left: (AppTheme.spacingS - 10).clamp(0.0, double.infinity),
           right: (AppTheme.spacingS - 10).clamp(0.0, double.infinity),
@@ -133,20 +82,7 @@ class FitState extends State<Fit> {
           borderRadius: BorderRadius.circular(12.0),
           child: Stack(
             children: [
-              // Background animated gif - embedded effect
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.2, // Semi-transparent for embedded look
-                  child: Image(
-                    image: getExampleImage(question),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-              ),
-              // Gradient overlay on top of gif
+              // Gradient background
               IgnorePointer(
                 child: Container(
                   decoration: BoxDecoration(
@@ -162,43 +98,26 @@ class FitState extends State<Fit> {
                 ),
               ),
               // Content on top
-              Container(
-                padding: const EdgeInsets.all(AppTheme.spacingM),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                children: [
-                  Expanded(
-                      child: Text(
+              Padding(
+                padding: const EdgeInsets.only(right: 100), // Space for GIF on the right
+                child: Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingM),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
                           "${question.name}: ${question
                                   .choices[globals.FelineFinderServer.instance
                                       .sliderValue[question.id]]
                                   .name}",
-                          style: const TextStyle(fontSize: 13))),
-                  IconButton(
-                    icon: AnimatedRotation(
-                        turns:
-                            _descriptionVisible[question.id] ? -1 * (1 / 2) : 0,
-                        duration: const Duration(milliseconds: 250),
-                        child: const Icon(Icons.expand_less)),
-                    onPressed: () => {showDescription(question.id)},
-                  )
-                    ],
-                  ),
-                    const Divider(
-                color: Colors.grey,
-                thickness: 1,
-                indent: 5,
-                endIndent: 5,
-                    ),
+                          style: const TextStyle(fontSize: 13, color: Colors.white)),
                     SfSliderTheme(
-                data: const SfSliderThemeData(
-                  inactiveTrackColor: Color.fromARGB(255, 193, 186, 186),
-                  activeTrackColor: Color.fromARGB(255, 193, 186, 186),
-                  inactiveDividerColor: Color(0xff2196F2),
-                  activeDividerColor: Color(0xff2196F2),
+                data: SfSliderThemeData(
+                  inactiveTrackColor: AppTheme.deepPurple, // Dark purple on the right
+                  activeTrackColor: AppTheme.goldBase, // Gold on the left
+                  inactiveDividerColor: Colors.transparent,
+                  activeDividerColor: Colors.transparent,
                   activeTrackHeight: 12,
                   inactiveTrackHeight: 12,
                   activeDividerRadius: 2,
@@ -210,7 +129,7 @@ class FitState extends State<Fit> {
                   max: question.choices.length.toDouble() - 1.0,
                   interval: 1,
                   showTicks: false,
-                  showDividers: true,
+                  showDividers: false, // Removed slider dots
                   enableTooltip: false,
                   value: globals
                       .FelineFinderServer.instance.sliderValue[question.id]
@@ -224,12 +143,39 @@ class FitState extends State<Fit> {
                       .name;
                 },*/
                   thumbIcon: Container(
-                    decoration: const BoxDecoration(
-                        color: Colors.white, shape: BoxShape.circle),
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppTheme.goldHighlight, // Bright gold at top-left
+                          AppTheme.goldBase,      // Medium gold in middle
+                          AppTheme.goldShadow,    // Dark gold at bottom-right
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.goldBase.withOpacity(0.5),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 2),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
                     child: Container(
-                      decoration: const BoxDecoration(
-                          color: Colors.blue, shape: BoxShape.circle),
                       margin: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.3), // Subtle highlight overlay
+                      ),
                     ),
                   ),
                   onChanged: (newValue) {
@@ -306,37 +252,29 @@ class FitState extends State<Fit> {
                   // 14
                 ),
                     ),
-                    Visibility(
-                visible: _descriptionVisible[question.id],
-                child: Container(
-                  margin: const EdgeInsets.all(10.0),
-                  child: Column(
-                    children: [
-                      const Divider(
-                        color: Colors.grey,
-                        thickness: 1,
-                        indent: 5,
-                        endIndent: 5,
-                      ),
-                      Text(question.description,
-                          style: const TextStyle(fontSize: 10)),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                          width: 200,
-                          height: 200,
-                          child: Image(image: getExampleImage(question))),
-                    ],
-                  ),
-                ),
-                    ),
                   ],
+                ),
+              ),
+              ),
+              // GIF on the right side - fixed width 100px, full height
+              Positioned(
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: 100,
+                child: Image(
+                  image: getExampleImage(question),
+                  fit: BoxFit.cover, // Cover to fill the 100px width and full height
+                  width: 100,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const SizedBox.shrink();
+                  },
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   AssetImage getExampleImage(Question q) {

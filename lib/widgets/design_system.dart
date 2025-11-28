@@ -10,6 +10,7 @@ class GoldenCard extends StatelessWidget {
   final LinearGradient? gradient;
   final double? width;
   final double? height;
+  final Border? border; // Allow custom border override
 
   const GoldenCard({
     Key? key,
@@ -20,6 +21,7 @@ class GoldenCard extends StatelessWidget {
     this.gradient,
     this.width,
     this.height,
+    this.border,
   }) : super(key: key);
 
   @override
@@ -33,7 +35,7 @@ class GoldenCard extends StatelessWidget {
         color: backgroundColor ?? (gradient == null ? Colors.transparent : null),
         gradient: gradient ?? (backgroundColor == null ? AppTheme.purpleGradient : null),
         borderRadius: BorderRadius.circular(AppTheme.cardBorderRadius),
-        border: AppTheme.goldenBorder,
+        border: border ?? AppTheme.goldenBorder, // Use custom border if provided, otherwise default to golden
         boxShadow: AppTheme.goldenGlow,
       ),
       child: child,

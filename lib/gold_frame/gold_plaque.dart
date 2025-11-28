@@ -26,13 +26,22 @@ class GoldPlaque extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Calculate minimum size needed for centerSlice
+    // centerSlice is Rect.fromLTWH(71, 93, 849, 835)
+    // Minimum width: 71 + 849 = 920, Minimum height: 93 + 835 = 928
+    final double minWidthForCenterSlice = _plaqueCenterSlice.left + _plaqueCenterSlice.width;
+    final double minHeightForCenterSlice = _plaqueCenterSlice.top + _plaqueCenterSlice.height;
+    
+    // Use centerSlice only if container is large enough, otherwise use regular fit
+    final bool canUseCenterSlice = maxWidth >= minWidthForCenterSlice;
+
     return Container(
       constraints: BoxConstraints(maxWidth: maxWidth),
       decoration: BoxDecoration(
         image: DecorationImage(
           image: AssetImage(_plaqueAsset),
           fit: BoxFit.fill,
-          centerSlice: _plaqueCenterSlice,
+          centerSlice: canUseCenterSlice ? _plaqueCenterSlice : null,
         ),
       ),
       padding: const EdgeInsets.symmetric(

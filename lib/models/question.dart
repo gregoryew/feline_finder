@@ -84,7 +84,7 @@ class Question {
     Question(
         4,
         '"Talkative"',
-        'How often do you want your cat to meow and/or chirp, i.e., “talk”?  Some cats like to talk very much, for example, a Bengal, and some hardly make a sound like a Rag Doll.',
+        'How often do you want your cat to meow and/or chirp, i.e., "talk"?  Some cats like to talk very much, for example, a Bengal, and some hardly make a sound like a Rag Doll.',
         6,
         9,
         'talkative.gif',
@@ -99,7 +99,7 @@ class Question {
     Question(
         5,
         'Willingness to be petted',
-        'This indicates how willing the breed is to being handled and petted.  Some cats can be picked up, petted, and cared for very easily, while some do not like to be handled.  How should the cat feel about handling and petting?',
+        'This indicates how willing the breed is to being handled and petted.  Some cats can be picked up, petted, and cared for very easily, while some do not like to be handled.  How should the cat feel about handling and petting?',
         7,
         4,
         'petting.gif',

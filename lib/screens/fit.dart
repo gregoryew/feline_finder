@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
@@ -30,10 +31,50 @@ class Fit extends StatefulWidget {
 }
 
 class FitState extends State<Fit> {
+  // Track which questions are currently showing GIF (true) or PNG (false)
+  final Map<int, bool> _showingGif = {};
+  // Track timers for switching back to PNG after 5 seconds
+  final Map<int, Timer> _gifTimers = {};
 
   @override
   void initState() {
     super.initState();
+    // Initialize all questions to show PNG (false = PNG, true = GIF)
+    for (var question in Question.questions) {
+      _showingGif[question.id] = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    // Cancel all timers
+    for (var timer in _gifTimers.values) {
+      timer.cancel();
+    }
+    _gifTimers.clear();
+    super.dispose();
+  }
+
+  void _triggerGifAnimation(int questionId) {
+    // Cancel existing timer if any
+    if (_gifTimers.containsKey(questionId)) {
+      _gifTimers[questionId]!.cancel();
+    }
+
+    // Switch to GIF
+    setState(() {
+      _showingGif[questionId] = true;
+    });
+
+    // Set timer to switch back to PNG after 5 seconds
+    _gifTimers[questionId] = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _showingGif[questionId] = false;
+        });
+        _gifTimers.remove(questionId);
+      }
+    });
   }
 
   @override
@@ -47,7 +88,7 @@ class FitState extends State<Fit> {
       children: [
         Expanded(child: buildQuestions()),
         const SizedBox(width: 10), // 10px margin between trait cards and breed cards
-        SizedBox(width: 120, child: buildMatches()),
+        SizedBox(width: 130, child: buildMatches()),
       ],
     );
   }
@@ -182,6 +223,9 @@ class FitState extends State<Fit> {
                     setState(() {
                       globals.FelineFinderServer.instance
                           .sliderValue[question.id] = newValue.round();
+                      
+                      // Trigger GIF animation when slider changes
+                      _triggerGifAnimation(question.id);
 
                             // Store question ID and value pairs (stats are ordered by question ID)
                             final desired = <Map<String, dynamic>>[];
@@ -301,7 +345,15 @@ class FitState extends State<Fit> {
         }
       default:
         {
-          return AssetImage("assets/Animation/${q.imageName}");
+          // For animation questions, show PNG by default, GIF when _showingGif is true
+          if (_showingGif[q.id] == true) {
+            // Show GIF
+            return AssetImage("assets/Animation/${q.imageName}");
+          } else {
+            // Show PNG (replace .gif with .png)
+            String pngName = q.imageName.replaceAll('.gif', '.png');
+            return AssetImage("assets/Animation/$pngName");
+          }
         }
     }
   }
@@ -336,9 +388,9 @@ class FitState extends State<Fit> {
   }
 
   Widget buildBreedCard(Breed breed) {
-    // Calculate available width: column width (200) minus margins
+    // Calculate available width: column width (130) minus margins
     // With reduced margins, use full column width minus minimal margins
-    const double availableWidth = 200;
+    const double availableWidth = 210;
     
     return Container(
       margin: EdgeInsets.only(

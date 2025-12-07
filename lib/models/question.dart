@@ -118,7 +118,7 @@ class Question {
             't care to do this.',
         8,
         5,
-        'smartcat.gif',
+        'smart_cat.gif',
         true,
         [
           Choice('Doesn' 't Matter', 0, 5, 1),

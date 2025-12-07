@@ -20,6 +20,8 @@ import 'package:get/get.dart';
 import 'package:outlined_text/outlined_text.dart';
 import 'package:linkfy_text/linkfy_text.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/youtube-video-row.dart';
+import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 
 enum WidgetMarker { adopt, videos, stats, info }
 
@@ -239,6 +241,28 @@ class _BreedDetailState extends State<BreedDetail> {
     }
   }
 
+  String _extractVideoId(String url) {
+    // Handle different YouTube URL formats
+    if (url.contains('youtube.com/watch?v=')) {
+      final videoId = url.split('v=')[1].split('&')[0];
+      print('Extracted video ID from youtube.com/watch: $videoId');
+      return videoId;
+    } else if (url.contains('youtu.be/')) {
+      final videoId = url.split('youtu.be/')[1].split('?')[0];
+      print('Extracted video ID from youtu.be: $videoId');
+      return videoId;
+    }
+    // If it's already a video ID, return as is
+    print('Using URL as video ID: $url');
+    return url;
+  }
+
+  String _getYouTubeThumbnail(String videoId) {
+    final thumbnailUrl = 'https://img.youtube.com/vi/$videoId/maxresdefault.jpg';
+    print('YouTube thumbnail URL: $thumbnailUrl');
+    return thumbnailUrl;
+  }
+
   @override
   Widget build(BuildContext context) {
     // 1
@@ -252,28 +276,182 @@ class _BreedDetailState extends State<BreedDetail> {
           padding: const EdgeInsets.all(10),
           child: Column(
             children: <Widget>[
-              // 4 - Breed Image with modern styling
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+              // 4 - YouTube Video Thumbnail with Play Button
+              Builder(
+                builder: (context) {
+                  // Only show thumbnail if cats101URL is available
+                  print('cats101URL: ${widget.breed.cats101URL}');
+                  if (widget.breed.cats101URL.isEmpty) {
+                    print('cats101URL is empty, using fallback image');
+                    // Fallback to breed image if no video URL
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Image(
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            image: AssetImage(
+                                'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  final videoId = _extractVideoId(widget.breed.cats101URL);
+                  final thumbnailUrl = _getYouTubeThumbnail(videoId);
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image(
-                    width: MediaQuery.of(context).size.width,
-                    fit: BoxFit.fitHeight,
-                    image: AssetImage(
-                        'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
-                  ),
-                ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9, // YouTube thumbnail aspect ratio
+                        child: GestureDetector(
+                          onTap: () async {
+                            // Check network connectivity
+                            final flutterNetworkConnectivity =
+                                FlutterNetworkConnectivity(
+                              isContinousLookUp: false,
+                              lookUpDuration: const Duration(seconds: 5),
+                              lookUpUrl: 'www.google.com',
+                            );
+
+                            if (await flutterNetworkConnectivity
+                                .isInternetConnectionAvailable()) {
+                              Get.to(
+                                () => YouTubeVideoRow(
+                                  playlist: null,
+                                  title: '${widget.breed.name} - Cats 101',
+                                  videoid: videoId,
+                                  fullScreen: false,
+                                ),
+                              );
+                            } else {
+                              Get.defaultDialog(
+                                title: "Internet Not Available",
+                                middleText:
+                                    "Viewing videos requires you to be connected to the internet. Please connect to the internet and try again.",
+                                backgroundColor: Colors.red,
+                                titleStyle: const TextStyle(color: Colors.white),
+                                middleTextStyle:
+                                    const TextStyle(color: Colors.white),
+                                textConfirm: "OK",
+                                confirmTextColor: Colors.white,
+                                onConfirm: () => Get.back(),
+                                buttonColor: Colors.black,
+                                barrierDismissible: false,
+                                radius: 30,
+                              );
+                            }
+                          },
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // YouTube thumbnail image
+                              Image.network(
+                                thumbnailUrl,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  // Log the error for debugging
+                                  print('Failed to load YouTube thumbnail: $error');
+                                  print('Stack trace: $stackTrace');
+                                  // Try fallback thumbnail (hqdefault.jpg) if maxresdefault fails
+                                  final fallbackUrl = 'https://img.youtube.com/vi/${_extractVideoId(widget.breed.cats101URL)}/hqdefault.jpg';
+                                  print('Trying fallback thumbnail: $fallbackUrl');
+                                  return Image.network(
+                                    fallbackUrl,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error2, stackTrace2) {
+                                      print('Fallback thumbnail also failed: $error2');
+                                      // Final fallback to breed image if both thumbnails fail
+                                      return Image(
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        image: AssetImage(
+                                            'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
+                                      );
+                                    },
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: Colors.grey[300],
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              // Dark overlay for better play button visibility
+                              Container(
+                                color: Colors.black.withOpacity(0.3),
+                              ),
+                              // Play button
+                              Center(
+                                child: Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withOpacity(0.9),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.play_arrow,
+                                    size: 50,
+                                    color: Color(0xFF2196F3),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 20),
               // Breed name with modern card styling matching petDetail

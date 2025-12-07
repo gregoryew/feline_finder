@@ -30,49 +30,125 @@ class Fit extends StatefulWidget {
   }
 }
 
-class FitState extends State<Fit> {
-  // Track which questions are currently showing GIF (true) or PNG (false)
-  final Map<int, bool> _showingGif = {};
-  // Track timers for switching back to PNG after 5 seconds
-  final Map<int, Timer> _gifTimers = {};
+enum AnimationState {
+  hidden,      // Animation is hidden (not visible)
+  slidingIn,  // PNG sliding in from right
+  showingGif, // GIF playing (fully visible)
+  slidingOut  // PNG sliding out to right
+}
+
+class FitState extends State<Fit> with TickerProviderStateMixin {
+  // Track animation state for each question
+  final Map<int, AnimationState> _animationStates = {};
+  // Debounce timers for slider changes
+  final Map<int, Timer> _debounceTimers = {};
+  // Animation controllers for slide animations
+  final Map<int, AnimationController> _slideControllers = {};
+  // Timers for GIF duration (5 seconds)
+  final Map<int, Timer> _gifCompletionTimers = {};
 
   @override
   void initState() {
     super.initState();
-    // Initialize all questions to show PNG (false = PNG, true = GIF)
+    // Initialize all questions to hidden state
     for (var question in Question.questions) {
-      _showingGif[question.id] = false;
+      _animationStates[question.id] = AnimationState.hidden;
     }
   }
 
   @override
   void dispose() {
     // Cancel all timers
-    for (var timer in _gifTimers.values) {
+    for (var timer in _debounceTimers.values) {
       timer.cancel();
     }
-    _gifTimers.clear();
+    for (var timer in _gifCompletionTimers.values) {
+      timer.cancel();
+    }
+    _debounceTimers.clear();
+    _gifCompletionTimers.clear();
+    
+    // Dispose all animation controllers
+    for (var controller in _slideControllers.values) {
+      controller.dispose();
+    }
+    _slideControllers.clear();
+    
     super.dispose();
   }
 
-  void _triggerGifAnimation(int questionId) {
-    // Cancel existing timer if any
-    if (_gifTimers.containsKey(questionId)) {
-      _gifTimers[questionId]!.cancel();
+  AnimationController _getSlideController(int questionId) {
+    if (!_slideControllers.containsKey(questionId)) {
+      _slideControllers[questionId] = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 1), // Slide animation duration (1 second)
+      );
+    }
+    return _slideControllers[questionId]!;
+  }
+
+  void _triggerAnimation(int questionId) {
+    // If animation is already playing, ignore new triggers
+    if (_animationStates[questionId] != AnimationState.hidden) {
+      return;
     }
 
-    // Switch to GIF
+    // Cancel existing debounce timer if any
+    if (_debounceTimers.containsKey(questionId)) {
+      _debounceTimers[questionId]!.cancel();
+    }
+
+    // Set debounce timer (500ms)
+    _debounceTimers[questionId] = Timer(const Duration(milliseconds: 500), () {
+      if (mounted && _animationStates[questionId] == AnimationState.hidden) {
+        _startSlideInAnimation(questionId);
+      }
+      _debounceTimers.remove(questionId);
+    });
+  }
+
+  void _startSlideInAnimation(int questionId) {
+    final controller = _getSlideController(questionId);
+    
     setState(() {
-      _showingGif[questionId] = true;
+      _animationStates[questionId] = AnimationState.slidingIn;
     });
 
-    // Set timer to switch back to PNG after 5 seconds
-    _gifTimers[questionId] = Timer(const Duration(seconds: 5), () {
+    controller.reset();
+    controller.forward().then((_) {
+      if (mounted) {
+        // Switch to GIF after slide-in completes
+        setState(() {
+          _animationStates[questionId] = AnimationState.showingGif;
+        });
+
+        // Set timer for 5 seconds, then slide out
+        _gifCompletionTimers[questionId] = Timer(const Duration(seconds: 5), () {
+          if (mounted) {
+            _startSlideOutAnimation(questionId);
+          }
+        });
+      }
+    });
+  }
+
+  void _startSlideOutAnimation(int questionId) {
+    final controller = _getSlideController(questionId);
+    
+    setState(() {
+      _animationStates[questionId] = AnimationState.slidingOut;
+    });
+
+    // Controller is already at 1.0 from slide-in, so reverse will go 1.0 -> 0.0
+    // But we want to animate from 0 (visible) to 100 (hidden), so we use a different approach
+    controller.reset();
+    // For slide-out, we animate from 0.0 to 1.0, but interpret it as going from visible to hidden
+    controller.forward().then((_) {
       if (mounted) {
         setState(() {
-          _showingGif[questionId] = false;
+          _animationStates[questionId] = AnimationState.hidden;
         });
-        _gifTimers.remove(questionId);
+        _gifCompletionTimers.remove(questionId);
       }
     });
   }
@@ -139,21 +215,24 @@ class FitState extends State<Fit> {
                 ),
               ),
               // Content on top
-              Padding(
-                padding: const EdgeInsets.only(right: 100), // Space for GIF on the right
-                child: Container(
-                  padding: const EdgeInsets.all(AppTheme.spacingM),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                          "${question.name}: ${question
-                                  .choices[globals.FelineFinderServer.instance
-                                      .sliderValue[question.id]]
-                                  .name}",
-                          style: const TextStyle(fontSize: 13, color: Colors.white)),
-                    SfSliderTheme(
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        "${question.name}: ${question
+                                .choices[globals.FelineFinderServer.instance
+                                    .sliderValue[question.id]]
+                                .name}",
+                        style: const TextStyle(fontSize: 13, color: Colors.white)),
+                    // Slider - disabled during animation
+                    Opacity(
+                      opacity: (_animationStates[question.id] != AnimationState.hidden) ? 0.5 : 1.0,
+                      child: AbsorbPointer(
+                        absorbing: _animationStates[question.id] != AnimationState.hidden,
+                        child: SfSliderTheme(
                 data: SfSliderThemeData(
                   inactiveTrackColor: AppTheme.deepPurple, // Dark purple on the right
                   activeTrackColor: AppTheme.goldBase, // Gold on the left
@@ -224,8 +303,8 @@ class FitState extends State<Fit> {
                       globals.FelineFinderServer.instance
                           .sliderValue[question.id] = newValue.round();
                       
-                      // Trigger GIF animation when slider changes
-                      _triggerGifAnimation(question.id);
+                      // Trigger animation with debounce
+                      _triggerAnimation(question.id);
 
                             // Store question ID and value pairs (stats are ordered by question ID)
                             final desired = <Map<String, dynamic>>[];
@@ -300,42 +379,86 @@ class FitState extends State<Fit> {
                   },
                   // 14
                 ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              ),
-              // GIF on the right side - fixed width 100px, full height
-              Positioned(
-                top: 0,
-                right: 0,
-                bottom: 0,
-                width: 100,
-                child: Image(
-                  image: getExampleImage(question),
-                  fit: BoxFit.cover, // Cover to fill the 100px width and full height
-                  width: 100,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ),
+              // Sliding animation - appears from right edge when triggered
+              _buildSlidingAnimation(question),
             ],
           ),
         ),
       );
   }
 
-  AssetImage getExampleImage(Question q) {
-    // For animation questions, show PNG by default, GIF when _showingGif is true
-    if (_showingGif[q.id] == true) {
-      // Show GIF
-      return AssetImage("assets/Animation/${q.imageName}");
-    } else {
-      // Show PNG (replace .gif with .png)
-      String pngName = q.imageName.replaceAll('.gif', '.png');
-      return AssetImage("assets/Animation/$pngName");
+  Widget _buildSlidingAnimation(Question question) {
+    final state = _animationStates[question.id] ?? AnimationState.hidden;
+    
+    // Don't render anything if hidden
+    if (state == AnimationState.hidden) {
+      return const SizedBox.shrink();
     }
+
+    final controller = _getSlideController(question.id);
+    
+    // Determine which image to show
+    final bool showGif = (state == AnimationState.showingGif);
+    final String imagePath = showGif
+        ? "assets/Animation/${question.imageName}"
+        : "assets/Animation/${question.imageName.replaceAll('.gif', '.png')}";
+
+    // Animation: starts at right edge of card (right: 0) and slides in
+    // The image is 100px wide, so we use clipRect to reveal it progressively
+    // Start: right: 0, clip to show 0px (hidden)
+    // End: right: 0, clip to show 100px (fully visible)
+    final animation = Tween<double>(begin: 0.0, end: 100.0).animate(
+      CurvedAnimation(
+        parent: controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        double clipWidth;
+        if (state == AnimationState.slidingIn) {
+          // Sliding in: reveal from 0px to 100px width
+          clipWidth = animation.value;
+        } else if (state == AnimationState.showingGif) {
+          // Fully visible (100px width)
+          clipWidth = 100.0;
+        } else if (state == AnimationState.slidingOut) {
+          // Sliding out: hide from 100px to 0px width
+          clipWidth = 100.0 - animation.value;
+        } else {
+          clipWidth = 0.0; // Hidden
+        }
+
+        return Positioned(
+          top: 0,
+          right: 0, // Always at right edge of trait card
+          bottom: 0,
+          width: 100,
+          child: ClipRect(
+            child: Align(
+              alignment: Alignment.centerRight,
+              widthFactor: clipWidth / 100.0, // Reveal progressively from right
+              child: Image(
+                image: AssetImage(imagePath),
+                fit: BoxFit.cover,
+                width: 100,
+                errorBuilder: (context, error, stackTrace) {
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget buildMatches() {

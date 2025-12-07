@@ -246,14 +246,19 @@ class FitState extends State<Fit> {
                               for (var j = 0; j < desired.length; j++) {
                                 try {
                                   final questionId = desired[j]['questionId'] as int;
+                                  final questionName = desired[j]['name'] as String;
                                   final desiredValue = desired[j]['value'] as double;
                                   
-                                  // Stats are in the same order as questions, so use questionId as index
-                                  if (questionId >= breeds[i].stats.length) {
-                                    continue; // Skip if stat index is out of bounds
+                                  // Find stat by matching question name (more robust than using index)
+                                  StatValue? stat;
+                                  try {
+                                    stat = breeds[i].stats.firstWhere(
+                                      (s) => s.name == questionName,
+                                    );
+                                  } catch (e) {
+                                    continue; // Skip if stat not found
                                   }
                                   
-                                  StatValue stat = breeds[i].stats[questionId];
                                   Question q = Question.questions[questionId];
                                   
                                   if (stat.isPercent) {
@@ -322,39 +327,14 @@ class FitState extends State<Fit> {
   }
 
   AssetImage getExampleImage(Question q) {
-    switch (q.id) {
-      case 11:
-        {
-          return AssetImage(
-              "assets/Fit_Examples/Body/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll("/", "-").replaceAll("'", "").replaceAll(" ", "_")}.jpg");
-        }
-      case 12:
-        {
-          return AssetImage(
-              "assets/Fit_Examples/Hair/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll(" ", "_").replaceAll("/", "-").replaceAll("'", "")}.jpg");
-        }
-      case 13:
-        {
-          return AssetImage(
-              "assets/Fit_Examples/Size/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll(" ", "_").replaceAll("/", "-").replaceAll("'", "")}.jpg");
-        }
-      case 14:
-        {
-          return AssetImage(
-              "assets/Fit_Examples/Zodicat/${q.choices[globals.FelineFinderServer.instance.sliderValue[q.id]].name.replaceAll("'", "")}.png");
-        }
-      default:
-        {
-          // For animation questions, show PNG by default, GIF when _showingGif is true
-          if (_showingGif[q.id] == true) {
-            // Show GIF
-            return AssetImage("assets/Animation/${q.imageName}");
-          } else {
-            // Show PNG (replace .gif with .png)
-            String pngName = q.imageName.replaceAll('.gif', '.png');
-            return AssetImage("assets/Animation/$pngName");
-          }
-        }
+    // For animation questions, show PNG by default, GIF when _showingGif is true
+    if (_showingGif[q.id] == true) {
+      // Show GIF
+      return AssetImage("assets/Animation/${q.imageName}");
+    } else {
+      // Show PNG (replace .gif with .png)
+      String pngName = q.imageName.replaceAll('.gif', '.png');
+      return AssetImage("assets/Animation/$pngName");
     }
   }
 

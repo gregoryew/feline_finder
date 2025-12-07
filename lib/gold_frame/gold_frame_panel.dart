@@ -41,7 +41,11 @@ class GoldFramedPanel extends StatelessWidget {
           plaqueHeight = (plaqueLines!.length * 20.0) + 20.0;
         }
 
-        if (isUnboundedHeight) {
+        // For small cards, use Column-based layout to avoid centerSlice issues
+        // centerSlice requires the image to be large enough, which small cards aren't
+        final bool shouldUseColumnLayout = isUnboundedHeight || useSmallBorders;
+
+        if (shouldUseColumnLayout) {
           // Unbounded height case (ListView, etc.)
           // Use Column-based layout with frame decoration
           return SizedBox(

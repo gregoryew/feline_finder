@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '/models/breed.dart';
 import '/screens/breedDetail.dart';
+import '/gold_frame/gold_frame_panel.dart';
 
 class BreedList extends StatefulWidget {
   BreedList({Key? key, required this.title}) : super(key: key);
@@ -68,9 +69,17 @@ class _BreedList extends State<BreedList> {
                 categorize();
               });
             },
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
               hintText: '🔎 Breed Name',
+              hintStyle: const TextStyle(color: Colors.white70),
+              enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.white70),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.white),
+              ),
             ),
           ),
         ),
@@ -89,7 +98,7 @@ class _BreedList extends State<BreedList> {
                         child: (Text(
                           widget.keys[subSubMenuIndex],
                           style: const TextStyle(
-                              color: Colors.black,
+                              color: Colors.white,
                               fontWeight: FontWeight.w500,
                               fontSize: 18),
                         )),
@@ -100,7 +109,7 @@ class _BreedList extends State<BreedList> {
                           child: Container(
                               height: 1,
                               width: MediaQuery.of(context).size.width - 45,
-                              color: Colors.grey)),
+                              color: Colors.white)),
                     ],
                   ),
                   GridView.builder(
@@ -123,31 +132,24 @@ class _BreedList extends State<BreedList> {
                                 transition: Transition.circularReveal,
                                 duration: const Duration(seconds: 1))
                           },
-                          child: Card(
-                            elevation: 5,
-                            color: const Color.fromARGB(255, 245, 244, 241),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Center(
-                                child: Column(
-                                  children: [
-                                    Image(
-                                        image: AssetImage(
-                                            "assets/Cartoon/${widget.letters[widget.keys[subSubMenuIndex]][index].pictureHeadShotName.replaceAll(' ', '_')}.png")),
-                                    const Divider(
-                                      thickness: 1,
-                                      indent: 5,
-                                      endIndent: 5,
-                                      color: Colors.grey,
-                                    ),
-                                    Text(
-                                        widget
-                                            .letters[widget
-                                                .keys[subSubMenuIndex]][index]
-                                            .name,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold))
-                                  ],
+                          child: SizedBox.expand(
+                            child: GoldFramedPanel(
+                              plaqueLines: [
+                                widget.letters[widget.keys[subSubMenuIndex]][index].name,
+                              ],
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 15.0,
+                                  left: 15.0,
+                                  right: 15.0,
+                                  bottom: 8.0, // Keep original bottom padding
+                                ),
+                                child: Center(
+                                  child: Image(
+                                    image: AssetImage(
+                                        "assets/Cartoon/${widget.letters[widget.keys[subSubMenuIndex]][index].pictureHeadShotName.replaceAll(' ', '_')}.png"),
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                               ),
                             ),

@@ -14,6 +14,7 @@ class Breed {
   int rid;
   double percentMatch;
   Color backgroundColor;
+  String breedSummary;
   List<StatValue> stats;
 
   Breed(
@@ -30,6 +31,7 @@ class Breed {
       this.rid,
       this.percentMatch,
       this.backgroundColor,
+      this.breedSummary,
       this.stats);
 }
 
@@ -48,6 +50,7 @@ List<Breed> breeds = [
     1,
     1.0,
     Colors.white,
+    'The Abyssinian is a lithe, medium-sized cat known for its distinctive "ticked" tabby coat, where individual hairs are banded with different colors, giving it a wildcat look.  These cats are active, curious, and social, often displaying dog-like affection and a desire to interact, thriving in multi-cat households but not being lap cats. Originating from Southeast Asia and the coasts of the Indian Ocean.',
     [
       StatValue('Energy Level', true, 5),
       StatValue('Fun-loving', true, 5),
@@ -74,7 +77,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fDgEz0t1pqmNHLoH3eIQFv1',
       2,
       1.0,
-      Colors.white, [
+      Colors.white, 
+    'The American Curl is a breed of cat with distinctive ears that curl backward, giving them a unique appearance.  These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -99,7 +104,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fCzanQL9esPSPTpv4XWJRM8',
       3,
       1.0,
-      Colors.white, [
+      Colors.white, 
+      'The American Shorthair is a medium-to-large sized cat breed developed from European cats brought to North America, known for its adaptable nature and variety of coat colors and patterns. Originally working cats used for pest control, they are now popular pedigreed pets. However, they may be prone to feline polycystic kidney disease (PKD).',
+      [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -124,7 +131,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fDd4Pn6p_VzceV760aakZ6s',
       4,
       1.0,
-      Colors.white, [
+      Colors.white, 
+      'The American Wirehair, originating in New York, is characterized by its distinctive wiry coat and whiskers caused by a dominant genetic mutation. These cats share the temperament of the American Shorthair, being gentle, playful, and relatively quiet companions. Despite its unique appearance, the American Wirehair is among the rarest cat breeds.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -149,7 +158,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALVoa3-3aGkcUxtba1X78P',
       6,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Applehead Siamese is a breed of cat with a distinctive appearance characterized by its large, round head and large, round eyes. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 2),
     StatValue('TLC', true, 1),
@@ -174,7 +185,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fDf5EWmIXl7uVhqSG1EOvhV',
       7,
       1.0,
-      Colors.white, [
+      Colors.white, 
+    'The Balinese is a breed of cat with a distinctive appearance characterized by its long, flowing coat and large, round eyes. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -199,7 +212,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fCkWz2CmzW_XYQePsl_s610',
       8,
       1.0,
-      Colors.white, [
+      Colors.white, 
+    'The Bengal is a hybrid breed resulting from crossing an Asian Leopard Cat with a domestic cat, known for its wild appearance and diverse coat patterns like spots, rosettes, or marbling. These active and confident cats are generally friendly, though early generations can have less predictable temperaments. Due to their wild ancestry, Bengal ownership is subject to legal restrictions in some areas.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -224,7 +239,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fA6ok4OCJf_oX7nbgQIOdQB',
       9,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Birman, also known as the "Sacred Cat of Burma," is a long-haired, color-pointed breed known for its silky coat, deep blue eyes, and distinctive white "gloves" on each paw. These cats are typically medium-sized with a rectangular body, and are known to be at risk for health concerns such as chronic kidney disease and feline audiogenic reflex seizures. While not specifically mentioned, it is generally assumed this will influence their temperament, as healthy, happy cats are often affectionate and well-tempered.',
+    [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 4),
@@ -249,7 +266,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fAnnYXn4S_KdtX5ydMNaWsf',
       10,
       1.0,
-      Colors.white, [
+      Colors.white,
+      'The Bobtail is a sturdy cat breed known for its distinctive short, "bobbed" tail resulting from a dominant genetic mutation. They are playful, adaptable cats often described as "dog-like" due to their social nature and boldness, and come in various colors and coat patterns.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -274,7 +293,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fC-UO8mU_1XRXuONoxi2RPl',
       11,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Bombay is a short-haired, all-black cat breed with distinctive copper-golden eyes, known for its sleek, panther-like appearance and muscular build. Highly social and affectionate, Bombays crave attention and are well-suited to indoor living and families with children. Two variants exist: the American Bombay, developed from Burmese and American Shorthair crosses, and the rarer British Bombay, related to the Asian Self cat.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -299,7 +320,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fDI5syVimd7nSKaYY_NHdXI',
       12,
       1.0,
-      Colors.white, [
+      Colors.white, 
+    'The British Shorthair is a stocky, robust cat known for its dense coat, broad face, and calm temperament, most famously seen in the "British Blue" variant. Originating in Britain, this ancient breed was selectively bred into a pedigreed cat and remains the most popular in its native country. They are slow to mature in comparison with most cat breeds, reaching full physical development at approximately three years of age.',
+    [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 1),
@@ -324,7 +347,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fBgmLR1MTAncZGc2eYuYQe5',
       13,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Burmese cat, originating from Burma and developed in the US and Britain, is known for its muscular build and uniquely social, playful temperament. While originally dark brown, they now come in various colors, and breed standards differ between the American and British (European Burmese) types, mainly in head and body shape. Burmese are known for their persistent vocalization.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -349,7 +374,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fDflhrkfX2d8JR31N2ydEPZ',
       14,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Burmilla is a British cat breed originating from a Chinchilla Persian and Burmese cross, known for its striking shaded or tipped coat, often silver. These medium-sized cats have a muscular build and a sweet temperament. The breed has distinctive "make up" lining the nose, lips and eyes.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -374,7 +401,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       15,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Calico is a breed of cat with a distinctive appearance characterized by its three distinct colors: white, orange, and black. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -400,7 +429,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fBM8lH7qljyrc0fHTcu5zzc',
       16,
       1.0,
-      Colors.white, [
+      Colors.white,
+      'The Canadian Hairless is a breed of cat with a distinctive appearance characterized by its lack of hair. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from Canada, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 1),
     StatValue('TLC', true, 1),
@@ -425,7 +456,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fChwIQiCTm9CkqPFqXXFRuL',
       597,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Chartreux is a rare, muscular cat breed from France known for its distinctive blue-grey, water-resistant coat and orange or copper eyes, often appearing to "smile." They are quiet, intelligent, and affectionate cats who bond strongly with one person, and are also exceptional hunters. The breed nearly went extinct after WWII and is protected by cat fanciers.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -450,7 +483,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fChUv8AS4RoT7rzc6eABnst',
       17,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Chausie is a medium-to-large domestic cat breed developed from the jungle cat, known for its athletic build and striking cheekbones. Though descended from wild cats, Chausies are fully domestic in temperament by the fourth generation, displaying a lively and outgoing personality. They come in black, black grizzled tabby, and black ticked tabby colors.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -476,7 +511,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fD6DO8G5Qd3Tdh7cQyv_GVa',
       19,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Chinchilla is a breed of cat with a distinctive appearance characterized by its long, flowing coat and large, round eyes. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 1),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -501,7 +538,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fCir0R28TVIfgpTExied6L7',
       20,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Cornish Rex is a distinctive cat breed originating from Cornwall, UK, known for its extremely fine and naturally curly coat comprised solely of down hair. Often called the "Greyhound of cats" due to its sleek appearance and galloping gait, Cornish Rexes are slender, muscular cats with large ears and a playful, affectionate temperament, though they require warm indoor environments due to their thin coat. Despite common misconceptions, they are not hypoallergenic.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -522,11 +561,13 @@ List<Breed> breeds = [
       11,
       'Cymric Full',
       'wNZcOqLthDM',
-      'https://www.youtube.com/watch?v=EOyf8yxkdOI',
+      'https://www.youtube.com/watch?v=vdP-yy4I4T4',
       'PLrrwGtN2q9fDeSM3HwO5FdPSepjmSubau',
       21,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Cymric is a Canadian semi-longhaired cat breed closely related to the Manx, known for its taillessness (or varying degrees of tail length) and sturdy build. These cats have a dense double coat with a pronounced ruff and "breeches" and come in various colors and patterns. While some registries consider the Cymric a separate breed, others classify it as a long-haired Manx.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -551,7 +592,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fC9jVGD8zKMa-9uZmE56i_c',
       22,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Devon Rex is a short-haired cat breed from England known for its distinctive "pixie-like" appearance with large ears, wavy coat, and unique head shape. Characterized by a playful and social temperament, the breed can be prone to certain health issues, including hereditary myopathy and skin conditions.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -576,7 +619,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fCKlvy1kiF_gOacs1PdTLo-',
       426,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Dilute Calico is a breed of cat with a distinctive appearance characterized by its three distinct colors: white, orange, and black. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -602,7 +647,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       23,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Dilute Tortoiseshell is a breed of cat with a distinctive appearance characterized by its three distinct colors: white, orange, and black. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -627,7 +674,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       24,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Domestic Long-hair is a breed of cat with a distinctive appearance characterized by its long, flowing coat and large, round eyes. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -652,7 +701,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       29,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Domestic Medium-hair is a breed of cat with a distinctive appearance characterized by its medium, flowing coat and large, round eyes. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -677,7 +728,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       35,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Domestic Short-hair is a breed of cat with a distinctive appearance characterized by its short, flowing coat and large, round eyes. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -702,7 +755,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fApLbwUwAXxqnINFMZFlUXN',
       42,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Egyptian Mau is a rare, naturally spotted cat breed known for its muscular build, distinctive "scarab" marking on the forehead, and light green eyes. It is considered the fastest domestic cat breed, capable of running over 30 mph, due to its longer hind legs and a unique flap of skin aiding agility. This breed can be prone to urate urolithiasis (bladder stones).',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -727,7 +782,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fCFbwDDDsfUV3wXiEmzpbm-',
       43,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Exotic Shorthair is a medium to large-sized cat breed that resembles the Persian but features a short, dense coat. Known for their round faces, large eyes, and gentle temperament, they are popular among cat fanciers. The breed is susceptible to certain health issues common in brachycephalic breeds, such as breathing difficulties and polycystic kidney disease.',
+    [
     StatValue('Energy Level', true, 1),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -748,11 +805,13 @@ List<Breed> breeds = [
       7,
       'American Shorthair Full',
       'mUhe8PEbZck',
-      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'https://www.youtube.com/watch?v=IN45UK8snMY',
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       437,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Extra-Toes Cat is a breed of cat with a distinctive appearance characterized by its extra toes. These cats are known for their playful and affectionate nature, often seeking attention and playtime. Originating from the United States, they are adaptable to various environments and make good companions for families with children.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -773,11 +832,13 @@ List<Breed> breeds = [
       18,
       'Havana Brown Full',
       'HKwMsbxC0RQ',
-      'https://www.youtube.com/watch?v=LMb9DQuCeAw',
+      'https://www.youtube.com/watch?v=OWA6_wJcX50',
       'PLrrwGtN2q9fCzeEdFBSsgNSJYB1S0rCE-',
       44,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Havana Brown is a rare, muscular, short-haired cat with a distinctive warm, reddish-brown coat, developed in England and the US from Siamese and black domestic cats. They are moderately active and known for their unique head shape and friendly temperament. The breed is endangered, with few registered catteries, especially the US-type Havana Brown.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 5),
@@ -802,7 +863,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fAa306YWUJ8PYOdeWit9UBy',
       45,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Himalayan is a long-haired cat breed similar to the Persian, distinguished by its blue eyes and point coloration inherited from Siamese cats. These cats have a cobby body, round face, and a long, thick coat and are known for having health issues common to brachycephalic breeds. While some registries consider it a color variant of the Persian, others recognize it as a separate breed.',
+    [
     StatValue('Energy Level', true, 1),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 4),
@@ -823,11 +886,13 @@ List<Breed> breeds = [
       19,
       'Japanese Bobtail Full',
       '7ILupJIPZI4',
-      'https://www.youtube.com/watch?v=Id5LsGabYGo',
+      'https://www.youtube.com/watch?v=DK3rg6_e5t0',
       'PLrrwGtN2q9fBV22EZooFxnUOBORMNmkj2',
       46,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Japanese Bobtail is a domestic cat breed originating from Japan, easily identified by its distinctive short, rabbit-like bobtail. These cats, known for appearing in Japanese folklore and art, come in various colors but are often predominantly white calico and are considered a lucky breed. Despite their ancient roots, they were only officially registered in the 1960s.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -852,7 +917,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fDvvXfyLJT-uisxLLPEvQHB',
       438,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Javanese, a relative of the Balinese and Siamese, is a medium-longhaired cat known for its silky coat and diverse range of non-traditional point colors like tabby and tortoiseshell. These intelligent and affectionate cats were developed in North America and are registered differently depending on the cat association, sometimes as a separate breed or a division within the Balinese.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -873,11 +940,13 @@ List<Breed> breeds = [
       21,
       'Korat Full',
       'KfU5I7DA3q4',
-      'https://www.youtube.com/watch?v=GN6za4hyELg',
+      'https://www.youtube.com/watch?v=crjkoONh3gk',
       'PLrrwGtN2q9fBBB69bAyihsPBqpI0YCr4u',
       47,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Korat is a silver-tipped blue-grey, short-haired cat from Thailand known for its heart-shaped head, large green eyes, and affectionate, vocal personality. This ancient breed is considered a "good luck cat" and is often given as gifts, distinguished by its consistent appearance throughout centuries and its unusual shimmering coat.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -898,11 +967,13 @@ List<Breed> breeds = [
       43,
       'LaPerm Full',
       'aDTpLE_KULw',
-      'https://www.youtube.com/watch?v=qR1760oJGOk',
+      'https://www.youtube.com/watch?v=wUi2RZT1X5w',
       'PLrrwGtN2q9fAVUzD_Ni38mXKmcjTNsUlJ',
       439,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The LaPerm is a rex cat breed originating in the US, known for its unique curly coat caused by a dominant gene. They are affectionate, active, and outgoing cats with an elegant build, often described as hypoallergenic. Their coat, which comes in various colors and patterns, resembles a shaggy perm with soft waves and ringlets.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -927,7 +998,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fBuxcRlIn3gnAaHDWq827Om',
       48,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Maine Coon is a large, social cat breed from Maine, known for its dense fur coat and gentle temperament, often described as "dog-like." Originating in North America, this breed boasts a history filled with myths and legends, eventually becoming the most registered cat breed in 2015 due to its unique appearance and desirable traits developed through natural selection in harsh climates.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 2),
@@ -952,7 +1025,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fAAWJ0wsfCgKi9CFRR0gfxI',
       49,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Manx cat, originating from the Isle of Man, is known for its distinctive taillessness, a result of a natural genetic mutation, and also possesses elongated hind legs and a rounded head. These cats are prized as skilled hunters, sociable, and active, and come in various coat colors and patterns.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -973,11 +1048,13 @@ List<Breed> breeds = [
       41,
       'Munchkin Full',
       'tBw-mJUKCng',
-      'https://www.youtube.com/watch?v=0tHRYsnItlM',
+      'https://www.youtube.com/watch?v=8E-3P045bLc',
       'PLrrwGtN2q9fDHeycOmUc3gqTrzFp6DEo2',
       440,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'Munchkin cats are characterized by their distinctively short legs, a result of a genetic mutation.  They have faced controversy and are not recognized by some major cat registries due to concerns about potential health issues and welfare related to their dwarfism. Despite the controversy, the Munchkin has gained popularity and is known for its playful and outgoing temperament.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -998,11 +1075,13 @@ List<Breed> breeds = [
       42,
       'Nebelung Full',
       'YW2K-0MjRmk',
-      'https://www.youtube.com/watch?v=OTcXt_bkB0I',
+      'https://www.youtube.com/watch?v=Ws1nUeFkXt0',
       'PLrrwGtN2q9fCRIhEHDPklzSr4ITpRNsxF',
       441,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Nebelung is a rare breed characterized by its long, dense, solid blue-grey coat, wide-set green eyes, and semi-foreign body type. Originating in the US in the 1980s with some lines coming from Russia, these cats have a mild disposition and are known for their resemblance to long-haired Russian Blues.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -1016,7 +1095,7 @@ List<Breed> breeds = [
   ]),
   Breed(
       40,
-      'Norwegian Forest Cat',
+      'Norwegian Forest',
       41,
       'Norwegian_Forest_cat',
       'Norwegian Forest Cat',
@@ -1027,7 +1106,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fCYAeMsgooKFhtq3IZo1_-7',
       50,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Norwegian Forest Cat is a medium-to-large cat breed originating from Norway, known for its dense, long fur coat and sociable, playful temperament. These cats are often described as "dog-like" due to their friendly and outgoing nature, and come in various coat colors and patterns.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1048,11 +1129,13 @@ List<Breed> breeds = [
       25,
       'Ocicat Full',
       'csJY9KnwZi0',
-      'https://www.youtube.com/watch?v=lUHo4LOPivY',
+      'https://www.youtube.com/watch?v=qPtG-EtS3QM',
       'PLrrwGtN2q9fB4FFne22_bY5ualm1gwGwG',
       51,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Ocicat is a medium-to-large, all-domestic cat breed that resembles a wild ocelot due to its spotted coat pattern, but has no wild DNA. Known for its "dog-like" personality, Ocicats are intelligent and trainable, often able to learn tricks like fetching and walking on a leash. They come in various colors.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1077,7 +1160,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fC4aNHEujfdIL5pcNazm3yI',
       52,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Oriental Longhair is a long-haired version of the Oriental Shorthair, characterized by its slender, tubular body and silky coat in a wide array of colors. Known for their intelligence and playful nature, these active cats are highly social and thrive in interactive homes, often forming close bonds with their owners and other pets. While generally healthy, they can be prone to certain conditions like flat-chested kitten syndrome and amyloidosis.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -1098,11 +1183,13 @@ List<Breed> breeds = [
       27,
       'Persian Full',
       'lbUBpTC1wOQ',
-      'https://www.animalplanet.com/tv-shows/cats-101/videos/persian/',
+      'https://www.youtube.com/watch?v=Y906sw15W1Y',
       'PLrrwGtN2q9fD6DO8G5Qd3Tdh7cQyv_GVa',
       53,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'Traditional Persians, also known by other names like "Doll Face Persian," represent the original Persian cat breed before selective breeding led to extreme facial features. These cats retain a more moderate appearance with a longer nose, and while less common in modern cat shows, they are recognizable from appearances in films.  Breeders are working to preserve the breed as a cat in their own right, and recognition exists in some cat registries.',
+    [
     StatValue('Energy Level', true, 1),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 4),
@@ -1123,11 +1210,13 @@ List<Breed> breeds = [
       40,
       'Pixie-Bob Full',
       '5rJzNCr2_Pk',
-      'https://www.youtube.com/watch?v=n9ChF8WGOj0',
+      'https://www.youtube.com/watch?v=fuBwSCcqEBA',
       'PLrrwGtN2q9fDhJXxRQSzeTt57P43TmSMX',
       54,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Pixie-bob is a fully domestic cat breed selectively bred to resemble the North American bobcat, featuring a spotted coat, short tail, and sometimes polydactyl paws. Known for their intelligent and social temperament, Pixie-bobs are active cats that often "chirp" and enjoy interacting with their owners and other animals. The breed is genetically diverse due to outcrossing, making it less prone to inbreeding-related health issues.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -1148,11 +1237,13 @@ List<Breed> breeds = [
       28,
       'Ragamuffin Full',
       'XyRE3o6Gjh8',
-      'https://www.youtube.com/watch?v=m-YhajU8u9Y',
+      'https://www.youtube.com/watch?v=mpbCvHnCHjk',
       'PLrrwGtN2q9fAmifDyDwNtg2bcVoP_MFdj',
       444,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Ragamuffin is a large, affectionate cat breed with a soft, dense, silky coat that comes in a wide variety of colors and patterns. Originating from the Ragdoll breed, Ragamuffins are known for their friendly and docile temperaments, as well as their "sweet" facial expression with large, rounded eyes. Selective outcrossing was used to create the breed and improve genetic diversity.',
+    [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 2),
@@ -1173,11 +1264,13 @@ List<Breed> breeds = [
       28,
       'Ragdoll Full',
       '13Si2jW9fk4',
-      'https://www.youtube.com/watch?v=FIdyDUhuLwk',
+      'https://www.youtube.com/watch?v=9vOgfwKQckY',
       'PLrrwGtN2q9fACWLiKjm6sgvh9NvyKlSWh',
       55,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'Ragdolls are large, affectionate cats known for their distinctive colorpoint coats, striking blue eyes, and docile, "dog-like" temperament. Developed in the 1960s, they are named for their tendency to go limp when held and are generally relaxed and gentle companions. These cats have a semi-long, silky coat and require regular brushing.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 2),
@@ -1198,11 +1291,13 @@ List<Breed> breeds = [
       29,
       'Russian Blue Full',
       'ZqnOhWIk34A',
-      'https://www.youtube.com/watch?v=RtI7UgN3bxQ',
+      'https://www.youtube.com/watch?v=7-ABXxRAnaY',
       'PLrrwGtN2q9fBSsr3o7CB1Bvo129Z3Svfj',
       56,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Russian Blue is a pedigreed cat breed known for its plush, dense, double coat in a distinctive shimmering blue-grey color and striking emerald green eyes. Originating from Russia, they are generally quiet and have been used in the development or alteration of other breeds. They should not be confused with other "blue" breeds, such as British Blues.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 3),
@@ -1228,7 +1323,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fAgPmIOQAdwKntqGSXMGkn1',
       853,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Savannah is a hybrid cat breed resulting from a serval and domestic cat cross, known for its large size, spotted coat, and distinctive serval-like features such as large ears and long legs. Savannahs are bred through filial generations, with early generations (F1 and F2) being the largest and most influenced by serval genetics, while later generations are closer in size to other large domestic breeds. Despite variations, they\'re typically intelligent and active cats.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 1),
     StatValue('TLC', true, 1),
@@ -1249,11 +1346,13 @@ List<Breed> breeds = [
       30,
       'Scottish Fold Full',
       'jCEKIrJkAPo',
-      'https://www.youtube.com/watch?v=TmyDjs1guKs',
+      'https://www.youtube.com/watch?v=mlNJMpBtNzo',
       'PLrrwGtN2q9fDI6jhhN1J0bd81a0nHr_zf',
       57,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Scottish Fold is known for its distinctive folded ears, a trait caused by a genetic mutation affecting cartilage development. While their unique appearance, with their "owl-like" face, is appealing, this genetic mutation leads to painful osteochondrodysplasia, causing severe joint issues. Due to these health concerns, breeding Scottish Folds is restricted or prohibited in some countries.',
+    [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1278,7 +1377,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fCk45OMo2lBCuWqzmlnI2RN',
       58,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Selkirk Rex is a cat breed originating in the US, known for its distinctive, thick curly coat and robust build, setting it apart from other Rex breeds. These cats have a placid and affectionate temperament, making them social and cuddly companions. The breed is relatively healthy but can have earwax buildup due to their curly fur.',
+    [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 3),
     StatValue('TLC', true, 4),
@@ -1303,7 +1404,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALVoa3-3aGkcUxtba1X78P',
       59,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Siamese cat, originating from Thailand, is recognized for its distinctive colorpoint coat, blue almond-shaped eyes, and triangular head. Known for being slender and muscular, the breed is also intelligent and sociable, often described as vocal and demanding attention. The Siamese has served as a foundation breed for others like the Oriental Shorthair and Himalayan.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -1324,11 +1427,13 @@ List<Breed> breeds = [
       32,
       'Siberian Full',
       'lUxuVr5a1PQ',
-      'https://www.youtube.com/watch?v=6cczgBaDccs',
+      'https://www.youtube.com/watch?v=odITeShYi6c',
       'PLrrwGtN2q9fDADFhlCzmrxZEXLBrbIBVs',
       446,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Siberian, also known as the Siberian Forest Cat, is a centuries-old natural breed from Russia, developed as a formal breed in the late 1980s and recognized by major cat registries. It\'s a medium-to-large, muscular cat with a bushy tail and is notable for often being hypoallergenic due to producing less of the Fel d 1 allergen. Siberians are known to be affectionate and playful companions.',
+    [
     StatValue('Energy Level', true, 3),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1350,11 +1455,13 @@ List<Breed> breeds = [
       7,
       'American Shorthair Full',
       'UN4tM2T8EGo',
-      'https://www.youtube.com/watch?v=MCL8ljteX9Y',
+      'https://www.youtube.com/watch?v=fFeTUfUcdPk',
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       0,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Silver is a medium-to-large sized cat breed descended from European cats brought to North America, known for its adaptable nature and variety of coat colors and patterns. Originally working cats, they were later selectively bred, and are recognized as a pedigreed breed by North American cat registries. While generally healthy, the breed has shown susceptibility to PKD1 mutation.',
+    [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1375,11 +1482,13 @@ List<Breed> breeds = [
       33,
       'Singapura Full',
       'ZHgO9GDhz8c',
-      'https://www.youtube.com/watch?v=2arjynd1tIA',
+      'https://www.youtube.com/watch?v=dPlyy9WFJuM',
       'PLrrwGtN2q9fDPrGMd_E0ffJ3AEA1PZVSj',
       447,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Singapura is the smallest cat breed, recognized for its large eyes and ears, ticked coat, and blunt tail. Despite its controversial origins involving imports and exports between Singapore and the US, it is known for its playful and affectionate temperament. Sculptures of the breed, also known as Kucinta, can be found in Singapore, representing its use as a tourism mascot.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -1404,7 +1513,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       60,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Snowshoe is a rare, short-haired colorpoint breed originating in the US, known for its distinctive white markings on the paws and face. Bred from Siamese and American Shorthair cats, Snowshoes are difficult to breed to the breed standard due to the complex genetics controlling their coat patterns. They are medium-large cats with blue eyes, coming in a variety of point colors.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1429,7 +1540,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fA7Edg-O-vxTg_6a5jD-Joh',
       61,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Somali cat is a medium-large breed with a distinctive "fox-like" appearance, characterized by its long, soft, ticked tabby coat and energetic, social temperament. Genetically similar to the Abyssinian, the Somali developed due to a recessive long-hair gene and features a coat with multiple color bands on each hair, making it softer than other breeds.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1454,7 +1567,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fBM8lH7qljyrc0fHTcu5zzc',
       62,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Sphynx is a hairless cat breed known for its chamois-like skin, large ears, and wedge-shaped head. Developed through selective breeding, these cats are warm to the touch due to heat loss and have a playful, outgoing temperament. Despite their lack of fur, Sphynx cats can display a variety of skin colors and patterns.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 5),
@@ -1479,7 +1594,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       63,
       1.0,
-      Colors.white, [
+      Colors.white,
+      '',
+      [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1504,7 +1621,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       68,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Toyger is a medium-sized, pedigreed breed descended from European working cats, known for its adaptability and diverse range of coat colors and patterns. They are generally considered to be a hardy breed, but some lines can be predisposed to kidney issues. Once valued for pest control, today the Toyger is known for its gentle, adaptable temperament.',
+    [
     StatValue('Energy Level', true, 5),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),
@@ -1529,7 +1648,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fCEiud6FCDZxch8Fzl6kEQK',
       69,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Tonkinese is a medium-sized, muscular cat breed resulting from a cross between Siamese and Burmese, known for its distinctive pointed coat patterns in various colors and aquamarine eyes. Tonkinese are known for their lively personalities.  A semi-longhaired variety, sometimes called Tibetan, is also recognized, particularly in Europe.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1555,7 +1676,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fC934m1piYbpBy9PuFEl5OG',
       70,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Torbie is a medium-to-large sized cat breed originating from European cats brought to North America, known for its adaptable nature and variety of coat colors and patterns. Originally working cats, they were later selectively bred, and are recognized as a pedigreed breed by North American cat registries. While generally healthy, the breed has shown susceptibility to PKD1 mutation.',
+    [
     StatValue('Energy Level', true, 2),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 3),
@@ -1580,7 +1703,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fALQfJ9PG6GtlJx635KId2g',
       71,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Tortoiseshell is a medium to large-sized cat breed descended from European cats brought to North America, known for its adaptability and wide variety of coat colors and patterns. Originally working cats valued for pest control, they are now popular pedigreed companions with a generally good temperament. While typically healthy, they can be predisposed to polycystic kidney disease.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -1606,7 +1731,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fDATNy_IVlYnpdTTGNhxzP2',
       450,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Turkish Angora is an ancient, naturally occurring cat breed known for its slender body, silky coat (often white), and plumed tail. These cats are intelligent, playful, and bond strongly with their owners, often becoming very protective of a chosen family member. They originated in Turkey and while deafness can be associated with the white coat and blue eyes, breeders in Turkey value a sturdier build unlike some "purebred on paper."',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 4),
     StatValue('TLC', true, 4),
@@ -1632,7 +1759,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fBQhqV5jbaGppEft4WRDNMw',
       72,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Turkish Van is a semi-longhaired cat breed known for its distinctive "Van pattern," where color is primarily restricted to the head and tail, with a mostly white body. Originating from Turkey but developed in the UK, this breed is one of the larger breeds and can have blue, amber, or odd-colored eyes. While generally affectionate, the Turkish Van is also noted for being intelligent and active.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 4),
@@ -1658,7 +1787,9 @@ List<Breed> breeds = [
       'PLrrwGtN2q9fBAvUnc2_mWFloX08SmDdcN',
       73,
       1.0,
-      Colors.white, [
+      Colors.white,
+    'The Tuxedo is a medium-to-large sized cat breed originating from European cats brought to North America, known for its adaptable nature and variety of coat colors and patterns. Originally working cats, they were later selectively bred, and are recognized as a pedigreed breed by North American cat registries. While generally healthy, the breed has shown susceptibility to PKD1 mutation.',
+    [
     StatValue('Energy Level', true, 4),
     StatValue('Fun-loving', true, 5),
     StatValue('TLC', true, 3),

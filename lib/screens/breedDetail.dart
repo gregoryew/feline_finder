@@ -22,6 +22,8 @@ import 'package:linkfy_text/linkfy_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/youtube-video-row.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
+import '../theme.dart';
+import '../widgets/design_system.dart';
 
 enum WidgetMarker { adopt, videos, stats, info }
 
@@ -41,11 +43,15 @@ class BreedDetail extends StatefulWidget {
 
 enum BarType { traitBar, percentageBar, backgroundBar }
 
-class _BreedDetailState extends State<BreedDetail> {
+class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin {
   WidgetMarker selectedWidgetMarker = WidgetMarker.info;
   late String BreedDescription = "";
   List<Playlist> playlists = [];
   final maxValues = [5, 5, 5, 5, 5, 5, 5, 5, 4, 5, 5, 11, 6, 3, 12];
+  late AnimationController _glowController;
+  late AnimationController _fadeController;
+  late AnimationController _playButtonPulseController;
+  late Animation<double> _fadeAnimation;
 
   String url = "";
   double progress = 0;
@@ -61,6 +67,36 @@ class _BreedDetailState extends State<BreedDetail> {
   @override
   void initState() {
     super.initState();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+    
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
+    
+    // Reset to 0 and start animation after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fadeController.reset();
+        _fadeController.forward();
+      }
+    });
+    
+    _playButtonPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    
     () async {
       setState(() {
         rescueGroupApi = AppConfig.rescueGroupsApiKey;
@@ -69,6 +105,14 @@ class _BreedDetailState extends State<BreedDetail> {
         getPets(widget.breed.rid.toString());
       });
     }();
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    _fadeController.dispose();
+    _playButtonPulseController.dispose();
+    super.dispose();
   }
 
   void getPets(String breedID) async {
@@ -156,6 +200,8 @@ class _BreedDetailState extends State<BreedDetail> {
         BreedDescription =
             BreedDescriptionObj.query!.pages!.page?.extract ?? "";
       });
+      
+      // No need to generate summary - it's pre-computed in breed data
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
@@ -183,11 +229,11 @@ class _BreedDetailState extends State<BreedDetail> {
     }
   }
 
-  List<String> icons = [
-    "adopt_icon.png",
-    "youtube_icon.png",
-    "stats_icon.png",
-    "info_icon.png"
+  List<IconData> icons = [
+    Icons.favorite,      // Adopt
+    Icons.play_circle,  // Videos
+    Icons.analytics,     // Stats
+    Icons.info,          // Info
   ];
   int hilightedCell = 3;
   List<WidgetMarker> selectedIcon = [
@@ -235,10 +281,44 @@ class _BreedDetailState extends State<BreedDetail> {
   Future<void> _onOpen(String link) async {
     var l = Uri.parse((!link.startsWith("http") ? "http://" : "") + link);
     if (await canLaunchUrl(l)) {
-      await launchUrl(l);
+      await launchUrl(l, mode: LaunchMode.inAppWebView);
     } else {
       throw 'Could not launch $link';
     }
+  }
+
+  Future<void> _openWikipediaArticle() async {
+    final wikipediaUrl = 'https://en.wikipedia.org/wiki/${widget.breed.htmlUrl}';
+    final uri = Uri.parse(wikipediaUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.inAppWebView);
+    } else {
+      throw 'Could not launch Wikipedia article';
+    }
+  }
+
+  String _getSummary(String fullText) {
+    // Use pre-computed summary from breed data if available
+    if (widget.breed.breedSummary.isNotEmpty) {
+      return widget.breed.breedSummary;
+    }
+    
+    // Fallback to simple truncation if no summary is available
+    if (fullText.isEmpty) return "";
+    
+    // Get first paragraph or first 500 characters, whichever is shorter
+    final firstParagraph = fullText.split('\n\n').first;
+    if (firstParagraph.length <= 500) {
+      return firstParagraph;
+    }
+    
+    // Truncate to 500 characters at word boundary
+    final truncated = fullText.substring(0, 500);
+    final lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > 0) {
+      return truncated.substring(0, lastSpace) + '...';
+    }
+    return truncated + '...';
   }
 
   String _extractVideoId(String url) {
@@ -263,22 +343,352 @@ class _BreedDetailState extends State<BreedDetail> {
     return thumbnailUrl;
   }
 
+  Widget _buildTabContent() {
+    switch (selectedWidgetMarker) {
+      case WidgetMarker.adopt:
+        return Container(
+          key: const ValueKey('adopt'),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: (tiles.isEmpty)
+              ? Container(
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.goldBase.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      "No Cats Returned.",
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                )
+              : GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 3 / 4,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12),
+                  itemCount: tiles.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return GestureDetector(
+                      onTap: () => {
+                        Get.to(() =>
+                            petDetail(tiles[index].id.toString())),
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image(
+                                image: NetworkImage(
+                                    tiles[index].picture ?? ""),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: AppTheme.deepPurple.withOpacity(0.3),
+                                    child: Icon(Icons.pets,
+                                        size: 50,
+                                        color: Colors.white.withOpacity(0.7)),
+                                  );
+                                },
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.7),
+                                      ],
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  child: OutlinedText(
+                                    text: Text(
+                                      tiles[index].name ?? "Unknown Name",
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    strokes: [
+                                      OutlinedTextStroke(
+                                          color: Colors.black, width: 4),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        );
+      case WidgetMarker.videos:
+        return Container(
+          key: const ValueKey('videos'),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: (playlists.isEmpty)
+              ? Container(
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.goldBase.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      "No Cat Videos Available.",
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                )
+              : Container(
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.goldBase.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: ListView.separated(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    separatorBuilder: (context, index) => Divider(
+                      thickness: 1.0,
+                      color: Colors.white.withOpacity(0.2),
+                    ),
+                    itemCount: playlists.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: PlaylistRow(
+                          displayDescription: false,
+                          playlist: playlists[index],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        );
+      case WidgetMarker.stats:
+        return Container(
+          key: const ValueKey('stats'),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.goldBase.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.goldBase.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.analytics_outlined,
+                      color: AppTheme.goldBase,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      "Breed Traits & Fit",
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Text(
+                  "🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                separatorBuilder: (context, index) => Divider(
+                  thickness: 1.0,
+                  color: Colors.white.withOpacity(0.2),
+                ),
+                itemCount: widget.breed.stats.length,
+                itemBuilder: (context, index) {
+                  var statPrecentage = (widget.breed.stats[index].isPercent)
+                      ? widget.breed.stats[index].value.toDouble() /
+                          maxValues[index].toDouble()
+                      : 1.0;
+                  var userPreference = (widget.breed.stats[index].isPercent)
+                      ? globals.FelineFinderServer.instance.sliderValue[index] /
+                          maxValues[index].toDouble()
+                      : 1.0;
+                  if (statPrecentage < userPreference) {
+                    return Stack(
+                      children: <Widget>[
+                        bar(1, BarType.backgroundBar),
+                        bar(userPreference, BarType.percentageBar),
+                        Positioned(
+                          child: bar(statPrecentage, BarType.traitBar),
+                        ),
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Text(
+                              "         " +
+                                  widget.breed.stats[index].name +
+                                  ': ' +
+                                  Question.questions[index]
+                                      .choices[widget.breed.stats[index].value
+                                          .toInt()]
+                                      .name,
+                              style: const TextStyle(
+                                  fontSize: 16.0,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  } else {
+                    return Stack(
+                      children: <Widget>[
+                        bar(100, BarType.backgroundBar),
+                        bar(statPrecentage, BarType.percentageBar),
+                        Positioned(
+                          child: bar(userPreference, BarType.traitBar),
+                        ),
+                        Positioned(
+                          left: 13,
+                          top: 4,
+                          child: Text(statPrecentage == userPreference &&
+                                  (widget.breed.stats[index].isPercent)
+                              ? "🎯"
+                              : ""),
+                        ),
+                        Positioned.fill(
+                          child: Row(
+                            children: <Widget>[
+                              Align(
+                                alignment: Alignment.center,
+                                child: Text(
+                                  "         " +
+                                      widget.breed.stats[index].name +
+                                      ': ' +
+                                      Question.questions[index]
+                                          .choices[widget.breed.stats[index].value
+                                              .toInt()]
+                                          .name,
+                                  style: const TextStyle(
+                                      fontSize: 16.0,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      case WidgetMarker.info:
+        return Container(
+          key: const ValueKey('info'),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: textBox(widget.breed.name, BreedDescription),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // 1
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.breed.name),
+      appBar: GradientAppBar(
+        title: "Feline Finder",
       ),
       // 2
-      body: SingleChildScrollView(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.purpleGradient,
+        ),
+        child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Column(
             children: <Widget>[
               // 4 - YouTube Video Thumbnail with Play Button
-              Builder(
-                builder: (context) {
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: Builder(
+                  builder: (context) {
                   // Only show thumbnail if cats101URL is available
                   print('cats101URL: ${widget.breed.cats101URL}');
                   if (widget.breed.cats101URL.isEmpty) {
@@ -290,9 +700,15 @@ class _BreedDetailState extends State<BreedDetail> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: AppTheme.goldBase.withOpacity(0.4),
                             blurRadius: 20,
+                            spreadRadius: 2,
                             offset: const Offset(0, 8),
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
@@ -320,9 +736,15 @@ class _BreedDetailState extends State<BreedDetail> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
+                          color: AppTheme.goldBase.withOpacity(0.4),
                           blurRadius: 20,
+                          spreadRadius: 2,
                           offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
@@ -418,31 +840,42 @@ class _BreedDetailState extends State<BreedDetail> {
                                   );
                                 },
                               ),
-                              // Dark overlay for better play button visibility
-                              Container(
-                                color: Colors.black.withOpacity(0.3),
-                              ),
-                              // Play button
-                              Center(
-                                child: Container(
-                                  width: 80,
-                                  height: 80,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white.withOpacity(0.9),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
+                              // Small play icon in bottom-right corner with pulse animation
+                              Positioned(
+                                bottom: 12,
+                                right: 12,
+                                child: AnimatedBuilder(
+                                  animation: _playButtonPulseController,
+                                  builder: (context, child) {
+                                    final scale = 1.0 + (_playButtonPulseController.value * 0.05);
+                                    return Transform.scale(
+                                      scale: scale,
+                                      child: Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.black.withOpacity(0.7),
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.5),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.play_arrow,
+                                          size: 28,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.play_arrow,
-                                    size: 50,
-                                    color: Color(0xFF2196F3),
-                                  ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -453,483 +886,154 @@ class _BreedDetailState extends State<BreedDetail> {
                   );
                 },
               ),
+              ),
               const SizedBox(height: 20),
-              // Breed name with modern card styling matching petDetail
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: const Color(0xFF2196F3).withOpacity(0.1),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2196F3).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.pets,
-                        color: Color(0xFF2196F3),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.breed.name,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2196F3),
-                              fontFamily: 'Poppins',
-                            ),
-                            textAlign: TextAlign.left,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              // Gold Flowing Ribbon with Breed Name
+              FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, -0.2),
+                    end: Offset.zero,
+                  ).animate(_fadeAnimation),
+                  child: _buildGoldRibbon(widget.breed.name),
                 ),
               ),
               const SizedBox(height: 20),
-              // Button grid with modern styling
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: const Color(0xFF2196F3).withOpacity(0.1),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(8),
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4, childAspectRatio: 4 / 3),
-                  itemCount: 4,
-                  itemBuilder: (BuildContext context, int index) {
-                    return GestureDetector(
-                      onTap: () => {
-                        setState(
-                          () {
-                            hilightedCell = index;
-                            selectedWidgetMarker = selectedIcon[index];
-                          },
-                        ),
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: index == hilightedCell
-                              ? const Color(0xFF2196F3).withOpacity(0.1)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: index == hilightedCell
-                              ? Border.all(
-                                  color: const Color(0xFF2196F3),
-                                  width: 2,
-                                )
-                              : null,
-                        ),
-                        child: Center(
-                          child: Image(
-                              width: 30,
-                              fit: BoxFit.fitWidth,
-                              image:
-                                  AssetImage("assets/Icons/${icons[index]}")),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              // Circular 3D Gold Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(4, (index) {
+                  final isSelected = index == hilightedCell;
+                  return _buildCircularGoldButton(
+                    icon: icons[index],
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() {
+                        hilightedCell = index;
+                        selectedWidgetMarker = selectedIcon[index];
+                      });
+                    },
+                  );
+                }),
               ),
               const SizedBox(height: 20),
-              // Cats subpage with modern styling
-              Visibility(
-                visible: selectedWidgetMarker == WidgetMarker.adopt,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  child: (tiles.isEmpty)
-                      ? Container(
-                          padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              "No Cats Returned.",
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ),
-                        )
-                      : GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  childAspectRatio: 3 / 4,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12),
-                          itemCount: tiles.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            return GestureDetector(
-                              onTap: () => {
-                                Get.to(() =>
-                                    petDetail(tiles[index].id.toString())),
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.1),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      Image(
-                                        image: NetworkImage(
-                                            tiles[index].picture ?? ""),
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return Container(
-                                            color: Colors.grey[300],
-                                            child: Icon(Icons.pets,
-                                                size: 50,
-                                                color: Colors.grey[600]),
-                                          );
-                                        },
-                                      ),
-                                      Positioned(
-                                        bottom: 0,
-                                        left: 0,
-                                        right: 0,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                              colors: [
-                                                Colors.transparent,
-                                                Colors.black.withOpacity(0.7),
-                                              ],
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.all(12),
-                                          child: OutlinedText(
-                                            text: Text(
-                                              tiles[index].name ??
-                                                  "Unknown Name",
-                                              style: GoogleFonts.poppins(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            strokes: [
-                                              OutlinedTextStroke(
-                                                  color: Colors.black,
-                                                  width: 4),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ),
-              // YouTube videos subpage with modern styling
-              Visibility(
-                visible: selectedWidgetMarker == WidgetMarker.videos,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  child: (playlists.isEmpty)
-                      ? Container(
-                          padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              "No Cat Videos Available.",
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ),
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                            border: Border.all(
-                              color: const Color(0xFF2196F3).withOpacity(0.1),
-                              width: 1,
-                            ),
-                          ),
-                          child: ListView.separated(
-                            physics: const NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            separatorBuilder: (context, index) => Divider(
-                              thickness: 1.0,
-                              color: Colors.grey[200],
-                            ),
-                            itemCount: playlists.length,
-                            itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                child: PlaylistRow(
-                                  displayDescription: false,
-                                  playlist: playlists[index],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                ),
-              ),
-              // Fit/Stats subwindow with modern styling
-              Visibility(
-                visible: selectedWidgetMarker == WidgetMarker.stats,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: const Color(0xFF2196F3).withOpacity(0.1),
-                      width: 1,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2196F3).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.analytics_outlined,
-                              color: Color(0xFF2196F3),
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              "Breed Traits & Fit",
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2196F3),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Center(
-                        child: Text(
-                          "🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ListView.separated(
-                        physics: const NeverScrollableScrollPhysics(),
-                        shrinkWrap: true,
-                        separatorBuilder: (context, index) => Divider(
-                          thickness: 1.0,
-                          color: Colors.grey[200],
-                        ),
-                        itemCount: widget.breed.stats.length,
-                        itemBuilder: (context, index) {
-                          var statPrecentage =
-                              (widget.breed.stats[index].isPercent)
-                                  ? widget.breed.stats[index].value.toDouble() /
-                                      maxValues[index].toDouble()
-                                  : 1.0;
-                          var userPreference =
-                              (widget.breed.stats[index].isPercent)
-                                  ? globals.FelineFinderServer.instance
-                                          .sliderValue[index] /
-                                      maxValues[index].toDouble()
-                                  : 1.0;
-                          if (statPrecentage < userPreference) {
-                            return Stack(
-                              //alignment:new Alignment(x, y)
-                              children: <Widget>[
-                                bar(1, BarType.backgroundBar),
-                                bar(userPreference, BarType.percentageBar),
-                                Positioned(
-                                  child: bar(statPrecentage, BarType.traitBar),
-                                ),
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      "         " +
-                                          widget.breed.stats[index].name +
-                                          ': ' +
-                                          Question
-                                              .questions[index]
-                                              .choices[widget
-                                                  .breed.stats[index].value
-                                                  .toInt()]
-                                              .name,
-                                      style: const TextStyle(
-                                          fontSize: 16.0,
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          } else {
-                            return Stack(
-                              children: <Widget>[
-                                bar(100, BarType.backgroundBar),
-                                bar(statPrecentage, BarType.percentageBar),
-                                Positioned(
-                                  child: bar(userPreference, BarType.traitBar),
-                                ),
-                                Positioned(
-                                  left: 13,
-                                  top: 4,
-                                  child: Text(statPrecentage ==
-                                              userPreference &&
-                                          (widget.breed.stats[index].isPercent)
-                                      ? "🎯"
-                                      : ""),
-                                ),
-                                Positioned.fill(
-                                  child: Row(
-                                    children: <Widget>[
-                                      Align(
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          "         " +
-                                              widget.breed.stats[index].name +
-                                              ': ' +
-                                              Question
-                                                  .questions[index]
-                                                  .choices[widget
-                                                      .breed.stats[index].value
-                                                      .toInt()]
-                                                  .name,
-                                          style: const TextStyle(
-                                              fontSize: 16.0,
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Wikipedia info subpage with modern styling
-              Visibility(
-                visible: selectedWidgetMarker == WidgetMarker.info,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  child: textBox(widget.breed.name, BreedDescription),
-                ),
+              // Tab content with smooth transitions
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  );
+                },
+                child: _buildTabContent(),
               ),
             ],
+          ),
+        ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCircularGoldButton({
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return AnimatedBuilder(
+      animation: _glowController,
+      builder: (context, child) {
+        final glowValue = isSelected 
+            ? 0.5 + (_glowController.value * 0.5) // Pulse between 0.5 and 1.0
+            : 0.3;
+        
+        return GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.goldHighlight,
+                  AppTheme.goldBase,
+                  AppTheme.goldShadow,
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+              boxShadow: [
+                // Inner shadow for 3D effect
+                BoxShadow(
+                  color: AppTheme.goldShadow.withOpacity(0.8),
+                  blurRadius: 4,
+                  offset: const Offset(2, 2),
+                  spreadRadius: -2,
+                ),
+                // Outer glow for selected button
+                if (isSelected)
+                  BoxShadow(
+                    color: AppTheme.goldBase.withOpacity(glowValue),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                // Standard shadow
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 28,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.5),
+                    offset: const Offset(0, 1),
+                    blurRadius: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGoldRibbon(String breedName) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: CustomPaint(
+        painter: _GoldRibbonPainter(),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+          child: Center(
+            child: Text(
+              breedName,
+              style: GoogleFonts.poppins(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 1.2,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.3),
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ),
@@ -940,76 +1044,146 @@ class _BreedDetailState extends State<BreedDetail> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
         border: Border.all(
-          color: const Color(0xFF2196F3).withOpacity(0.1),
+          color: AppTheme.goldBase.withOpacity(0.3),
           width: 1,
         ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2196F3).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.info_outline,
-                color: Color(0xFF2196F3),
-                size: 24,
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF2196F3),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  LinkifyText(
-                    textBlock.isEmpty
-                        ? "Loading breed information..."
-                        : textBlock,
-                    textAlign: TextAlign.left,
-                    textStyle: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[700],
-                      height: 1.5,
-                    ),
-                    linkTypes: const [LinkType.email, LinkType.url],
-                    linkStyle: const TextStyle(
-                      color: Color(0xFF2196F3),
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
-                    ),
-                    onTap: (link) => _onOpen(link.value!),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            // Summary text
+            Text(
+              textBlock.isEmpty
+                  ? "Loading breed information..."
+                  : _getSummary(textBlock),
+              textAlign: TextAlign.left,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                height: 1.5,
               ),
             ),
+            const SizedBox(height: 16),
+            // Wikipedia link button
+            if (textBlock.isNotEmpty)
+              ElevatedButton.icon(
+                onPressed: _openWikipediaArticle,
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: Text(
+                  'Read Full Article on Wikipedia',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.goldBase,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 4,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+}
+
+class _GoldRibbonPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.fill;
+    
+    // Create gold gradient
+    final gradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        AppTheme.goldHighlight,
+        AppTheme.goldBase,
+        AppTheme.goldShadow,
+        AppTheme.goldBase,
+        AppTheme.goldHighlight,
+      ],
+      stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+    );
+    
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    paint.shader = gradient.createShader(rect);
+    
+    // Draw flowing ribbon shape with wavy edges
+    final path = Path();
+    const waveHeight = 8.0;
+    const waveLength = 40.0;
+    
+    // Top wavy edge
+    path.moveTo(0, waveHeight);
+    for (double x = 0; x <= size.width; x += waveLength) {
+      path.quadraticBezierTo(
+        x + waveLength / 2,
+        x % (waveLength * 2) == 0 ? 0 : waveHeight * 2,
+        x + waveLength,
+        waveHeight,
+      );
+    }
+    
+    // Right edge
+    path.lineTo(size.width, size.height - waveHeight);
+    
+    // Bottom wavy edge - out of phase with top for flowing ribbon effect
+    // Iterate from right to left, but use x-from-left for pattern matching
+    double currentX = size.width;
+    while (currentX > 0) {
+      final nextX = (currentX - waveLength).clamp(0.0, size.width);
+      final xFromLeft = size.width - currentX;
+      final controlX = currentX - waveLength / 2;
+      // Offset by waveLength to be out of phase (peaks align with valleys)
+      final controlY = (xFromLeft + waveLength) % (waveLength * 2) == 0 
+          ? size.height 
+          : size.height - waveHeight * 2;
+      
+      path.quadraticBezierTo(
+        controlX,
+        controlY,
+        nextX,
+        size.height - waveHeight,
+      );
+      currentX = nextX;
+    }
+    
+    // Left edge
+    path.close();
+    
+    canvas.drawPath(path, paint);
+    
+    // Add gold border
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = AppTheme.goldShadow
+      ..strokeWidth = 2.0;
+    canvas.drawPath(path, borderPaint);
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

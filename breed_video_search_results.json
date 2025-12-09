@@ -1,0 +1,434 @@
+{
+  "Cymric": {
+    "queries": [
+      "Cats 101 Cymric",
+      "Cymric cat breed information",
+      "Cymric cat breed facts",
+      "Cymric cat characteristics",
+      "Cymric cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Cymric",
+      "https://www.youtube.com/results?search_query=Cymric+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Cymric+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Cymric+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Cymric+cat+breed+guide"
+    ]
+  },
+  "Extra-Toes Cat": {
+    "queries": [
+      "Cats 101 Extra-Toes Cat",
+      "Extra-Toes Cat cat breed information",
+      "Extra-Toes Cat cat breed facts",
+      "Extra-Toes Cat cat characteristics",
+      "Extra-Toes Cat cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Extra+Toes+Cat",
+      "https://www.youtube.com/results?search_query=Extra+Toes+Cat+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Extra+Toes+Cat+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Extra+Toes+Cat+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Extra+Toes+Cat+cat+breed+guide"
+    ]
+  },
+  "Havana": {
+    "queries": [
+      "Cats 101 Havana",
+      "Havana cat breed information",
+      "Havana cat breed facts",
+      "Havana cat characteristics",
+      "Havana cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Havana",
+      "https://www.youtube.com/results?search_query=Havana+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Havana+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Havana+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Havana+cat+breed+guide"
+    ]
+  },
+  "Japanese Bobtail": {
+    "queries": [
+      "Cats 101 Japanese Bobtail",
+      "Japanese Bobtail cat breed information",
+      "Japanese Bobtail cat breed facts",
+      "Japanese Bobtail cat characteristics",
+      "Japanese Bobtail cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Japanese+Bobtail",
+      "https://www.youtube.com/results?search_query=Japanese+Bobtail+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Japanese+Bobtail+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Japanese+Bobtail+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Japanese+Bobtail+cat+breed+guide"
+    ]
+  },
+  "Korat": {
+    "queries": [
+      "Cats 101 Korat",
+      "Korat cat breed information",
+      "Korat cat breed facts",
+      "Korat cat characteristics",
+      "Korat cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Korat",
+      "https://www.youtube.com/results?search_query=Korat+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Korat+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Korat+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Korat+cat+breed+guide"
+    ]
+  },
+  "LaPerm": {
+    "queries": [
+      "Cats 101 LaPerm",
+      "LaPerm cat breed information",
+      "LaPerm cat breed facts",
+      "LaPerm cat characteristics",
+      "LaPerm cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+LaPerm",
+      "https://www.youtube.com/results?search_query=LaPerm+cat+breed+information",
+      "https://www.youtube.com/results?search_query=LaPerm+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=LaPerm+cat+characteristics",
+      "https://www.youtube.com/results?search_query=LaPerm+cat+breed+guide"
+    ]
+  },
+  "Munchkin": {
+    "queries": [
+      "Cats 101 Munchkin",
+      "Munchkin cat breed information",
+      "Munchkin cat breed facts",
+      "Munchkin cat characteristics",
+      "Munchkin cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Munchkin",
+      "https://www.youtube.com/results?search_query=Munchkin+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Munchkin+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Munchkin+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Munchkin+cat+breed+guide"
+    ]
+  },
+  "Nebelung": {
+    "queries": [
+      "Cats 101 Nebelung",
+      "Nebelung cat breed information",
+      "Nebelung cat breed facts",
+      "Nebelung cat characteristics",
+      "Nebelung cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Nebelung",
+      "https://www.youtube.com/results?search_query=Nebelung+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Nebelung+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Nebelung+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Nebelung+cat+breed+guide"
+    ]
+  },
+  "Ocicat": {
+    "queries": [
+      "Cats 101 Ocicat",
+      "Ocicat cat breed information",
+      "Ocicat cat breed facts",
+      "Ocicat cat characteristics",
+      "Ocicat cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Ocicat",
+      "https://www.youtube.com/results?search_query=Ocicat+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Ocicat+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Ocicat+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Ocicat+cat+breed+guide"
+    ]
+  },
+  "Persian": {
+    "queries": [
+      "Cats 101 Persian",
+      "Persian cat breed information",
+      "Persian cat breed facts",
+      "Persian cat characteristics",
+      "Persian cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Persian",
+      "https://www.youtube.com/results?search_query=Persian+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Persian+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Persian+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Persian+cat+breed+guide"
+    ]
+  },
+  "Pixie-Bob": {
+    "queries": [
+      "Cats 101 Pixie-Bob",
+      "Pixie-Bob cat breed information",
+      "Pixie-Bob cat breed facts",
+      "Pixie-Bob cat characteristics",
+      "Pixie-Bob cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Pixie+Bob",
+      "https://www.youtube.com/results?search_query=Pixie+Bob+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Pixie+Bob+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Pixie+Bob+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Pixie+Bob+cat+breed+guide"
+    ]
+  },
+  "Ragamuffin": {
+    "queries": [
+      "Cats 101 Ragamuffin",
+      "Ragamuffin cat breed information",
+      "Ragamuffin cat breed facts",
+      "Ragamuffin cat characteristics",
+      "Ragamuffin cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Ragamuffin",
+      "https://www.youtube.com/results?search_query=Ragamuffin+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Ragamuffin+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Ragamuffin+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Ragamuffin+cat+breed+guide"
+    ]
+  },
+  "Ragdoll": {
+    "queries": [
+      "Cats 101 Ragdoll",
+      "Ragdoll cat breed information",
+      "Ragdoll cat breed facts",
+      "Ragdoll cat characteristics",
+      "Ragdoll cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Ragdoll",
+      "https://www.youtube.com/results?search_query=Ragdoll+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Ragdoll+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Ragdoll+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Ragdoll+cat+breed+guide"
+    ]
+  },
+  "Russian Blue": {
+    "queries": [
+      "Cats 101 Russian Blue",
+      "Russian Blue cat breed information",
+      "Russian Blue cat breed facts",
+      "Russian Blue cat characteristics",
+      "Russian Blue cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Russian+Blue",
+      "https://www.youtube.com/results?search_query=Russian+Blue+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Russian+Blue+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Russian+Blue+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Russian+Blue+cat+breed+guide"
+    ]
+  },
+  "Scottish Fold": {
+    "queries": [
+      "Cats 101 Scottish Fold",
+      "Scottish Fold cat breed information",
+      "Scottish Fold cat breed facts",
+      "Scottish Fold cat characteristics",
+      "Scottish Fold cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Scottish+Fold",
+      "https://www.youtube.com/results?search_query=Scottish+Fold+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Scottish+Fold+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Scottish+Fold+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Scottish+Fold+cat+breed+guide"
+    ]
+  },
+  "Siberian": {
+    "queries": [
+      "Cats 101 Siberian",
+      "Siberian cat breed information",
+      "Siberian cat breed facts",
+      "Siberian cat characteristics",
+      "Siberian cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Siberian",
+      "https://www.youtube.com/results?search_query=Siberian+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Siberian+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Siberian+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Siberian+cat+breed+guide"
+    ]
+  },
+  "Silver": {
+    "queries": [
+      "Cats 101 Silver",
+      "Silver cat breed information",
+      "Silver cat breed facts",
+      "Silver cat characteristics",
+      "Silver cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Silver",
+      "https://www.youtube.com/results?search_query=Silver+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Silver+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Silver+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Silver+cat+breed+guide"
+    ]
+  },
+  "Singapura": {
+    "queries": [
+      "Cats 101 Singapura",
+      "Singapura cat breed information",
+      "Singapura cat breed facts",
+      "Singapura cat characteristics",
+      "Singapura cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Singapura",
+      "https://www.youtube.com/results?search_query=Singapura+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Singapura+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Singapura+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Singapura+cat+breed+guide"
+    ]
+  },
+  "Snowshoe": {
+    "queries": [
+      "Cats 101 Snowshoe",
+      "Snowshoe cat breed information",
+      "Snowshoe cat breed facts",
+      "Snowshoe cat characteristics",
+      "Snowshoe cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Snowshoe",
+      "https://www.youtube.com/results?search_query=Snowshoe+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Snowshoe+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Snowshoe+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Snowshoe+cat+breed+guide"
+    ]
+  },
+  "Somali": {
+    "queries": [
+      "Cats 101 Somali",
+      "Somali cat breed information",
+      "Somali cat breed facts",
+      "Somali cat characteristics",
+      "Somali cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Somali",
+      "https://www.youtube.com/results?search_query=Somali+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Somali+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Somali+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Somali+cat+breed+guide"
+    ]
+  },
+  "Sphynx": {
+    "queries": [
+      "Cats 101 Sphynx",
+      "Sphynx cat breed information",
+      "Sphynx cat breed facts",
+      "Sphynx cat characteristics",
+      "Sphynx cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Sphynx",
+      "https://www.youtube.com/results?search_query=Sphynx+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Sphynx+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Sphynx+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Sphynx+cat+breed+guide"
+    ]
+  },
+  "Tabby": {
+    "queries": [
+      "Cats 101 Tabby",
+      "Tabby cat breed information",
+      "Tabby cat breed facts",
+      "Tabby cat characteristics",
+      "Tabby cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Tabby",
+      "https://www.youtube.com/results?search_query=Tabby+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Tabby+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Tabby+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Tabby+cat+breed+guide"
+    ]
+  },
+  "Tonkinese": {
+    "queries": [
+      "Cats 101 Tonkinese",
+      "Tonkinese cat breed information",
+      "Tonkinese cat breed facts",
+      "Tonkinese cat characteristics",
+      "Tonkinese cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Tonkinese",
+      "https://www.youtube.com/results?search_query=Tonkinese+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Tonkinese+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Tonkinese+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Tonkinese+cat+breed+guide"
+    ]
+  },
+  "Torbie": {
+    "queries": [
+      "Cats 101 Torbie",
+      "Torbie cat breed information",
+      "Torbie cat breed facts",
+      "Torbie cat characteristics",
+      "Torbie cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Torbie",
+      "https://www.youtube.com/results?search_query=Torbie+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Torbie+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Torbie+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Torbie+cat+breed+guide"
+    ]
+  },
+  "Tortoiseshell": {
+    "queries": [
+      "Cats 101 Tortoiseshell",
+      "Tortoiseshell cat breed information",
+      "Tortoiseshell cat breed facts",
+      "Tortoiseshell cat characteristics",
+      "Tortoiseshell cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Tortoiseshell",
+      "https://www.youtube.com/results?search_query=Tortoiseshell+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Tortoiseshell+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Tortoiseshell+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Tortoiseshell+cat+breed+guide"
+    ]
+  },
+  "Turkish Van": {
+    "queries": [
+      "Cats 101 Turkish Van",
+      "Turkish Van cat breed information",
+      "Turkish Van cat breed facts",
+      "Turkish Van cat characteristics",
+      "Turkish Van cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Turkish+Van",
+      "https://www.youtube.com/results?search_query=Turkish+Van+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Turkish+Van+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Turkish+Van+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Turkish+Van+cat+breed+guide"
+    ]
+  },
+  "Tuxedo": {
+    "queries": [
+      "Cats 101 Tuxedo",
+      "Tuxedo cat breed information",
+      "Tuxedo cat breed facts",
+      "Tuxedo cat characteristics",
+      "Tuxedo cat breed guide"
+    ],
+    "urls": [
+      "https://www.youtube.com/results?search_query=Cats+101+Tuxedo",
+      "https://www.youtube.com/results?search_query=Tuxedo+cat+breed+information",
+      "https://www.youtube.com/results?search_query=Tuxedo+cat+breed+facts",
+      "https://www.youtube.com/results?search_query=Tuxedo+cat+characteristics",
+      "https://www.youtube.com/results?search_query=Tuxedo+cat+breed+guide"
+    ]
+  }
+}

@@ -88,19 +88,79 @@ def search_videos(youtube, query: str, max_results: int = 3) -> List[Dict]:
         print(f"Error searching for '{query}': {e}")
         return []
 
+def is_video_relevant(video_title: str, breed: str) -> bool:
+    """
+    Check if a video title is relevant to the breed.
+    Returns True if the breed name (or key terms) appear in the title.
+    """
+    title_lower = video_title.lower()
+    breed_lower = breed.lower()
+    
+    # Handle special cases with alternative search terms
+    breed_terms = {
+        'extra-toes cat': ['extra-toes', 'polydactyl', 'extra toes'],
+        'havana': ['havana brown', 'havana'],
+        'japanese bobtail': ['japanese bobtail', 'japan bobtail'],
+        'pixie-bob': ['pixie-bob', 'pixie bob', 'pixiebob'],
+        'russian blue': ['russian blue'],
+        'scottish fold': ['scottish fold'],
+        'turkish van': ['turkish van'],
+        'silver': ['silver tabby', 'silver cat breed', 'silver cat'],
+        'tabby': ['tabby cat', 'tabby breed', 'tabby'],
+        'tortoiseshell': ['tortoiseshell', 'tortie', 'tortoiseshell cat'],
+        'tuxedo': ['tuxedo cat', 'tuxedo', 'tuxedo breed'],
+        'torbie': ['torbie', 'tortoiseshell tabby', 'torbie cat'],
+        'snowshoe': ['snowshoe', 'snowshoe cat'],
+        'somali': ['somali', 'somali cat'],
+        'sphynx': ['sphynx', 'sphynx cat', 'hairless cat'],
+        'tonkinese': ['tonkinese', 'tonkinese cat'],
+    }
+    
+    # Get search terms for this breed
+    if breed_lower in breed_terms:
+        terms = breed_terms[breed_lower]
+    else:
+        # For other breeds, use the breed name and common variations
+        terms = [breed_lower]
+        # Add variations (e.g., "Scottish Fold" -> "scottish fold", "scottishfold")
+        if ' ' in breed_lower:
+            terms.append(breed_lower.replace(' ', ''))
+            terms.append(breed_lower.replace(' ', '-'))
+    
+    # Check if any term appears in the title
+    for term in terms:
+        if term in title_lower:
+            return True
+    
+    return False
+
 def find_breed_videos(youtube, breed: str, max_videos: int = 3) -> List[Dict]:
     """
     Find videos for a breed, prioritizing Cats 101.
+    Only returns videos that are actually relevant to the breed.
     Returns list of video dictionaries.
     """
+    # Handle special cases with alternative search terms
+    search_breed_map = {
+        'Extra-Toes Cat': 'polydactyl cat',
+        'Havana': 'Havana Brown',
+        'Silver': 'silver tabby cat breed',
+        'Tabby': 'tabby cat breed',
+        'Tortoiseshell': 'tortoiseshell cat breed',
+        'Tuxedo': 'tuxedo cat breed',
+        'Torbie': 'torbie cat tortoiseshell tabby',
+    }
+    
+    search_breed = search_breed_map.get(breed, breed)
+    
     # Search queries in priority order
     queries = [
-        f"Cats 101 {breed}",
-        f"{breed} cat breed information",
-        f"{breed} cat breed facts",
-        f"{breed} cat characteristics",
-        f"{breed} cat breed guide",
-        f"{breed} cat breed"
+        f'"Cats 101" {search_breed}',  # Use quotes to require exact phrase
+        f'Cats 101 {search_breed}',
+        f'"{search_breed}" cat breed',
+        f'{search_breed} cat breed information',
+        f'{search_breed} cat breed facts',
+        f'{search_breed} cat characteristics',
     ]
     
     all_videos = []
@@ -111,10 +171,14 @@ def find_breed_videos(youtube, breed: str, max_videos: int = 3) -> List[Dict]:
         if len(all_videos) >= max_videos:
             break
         
-        videos = search_videos(youtube, query, max_results=max_videos)
+        videos = search_videos(youtube, query, max_results=10)  # Get more to filter
         
         for video in videos:
-            if video['id'] not in seen_ids:
+            if video['id'] in seen_ids:
+                continue
+            
+            # Check if video is relevant to the breed
+            if is_video_relevant(video['title'], breed):
                 all_videos.append(video)
                 seen_ids.add(video['id'])
                 

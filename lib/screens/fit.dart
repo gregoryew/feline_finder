@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:catapp/Models/question.dart';
 
@@ -392,14 +393,17 @@ class BubbleOverlayController {
 }
 
 class FitState extends State<Fit> {
-  // Track which question's card should glow as "active"
-  int? _activeAnimationQuestionId;
+  // Track which question's card should glow as "active" (always has a value)
+  int _activeAnimationQuestionId = 0;
 
   // Counter to force ListView rebuild when breeds are sorted
   int _breedListKey = 0;
 
   // Local state for slider values to ensure reactivity
   final Map<int, double> _sliderValues = {};
+
+  // Track if instructions are dismissed
+  bool _instructionsDismissed = false;
 
   // GlobalKeys for each question card to position the balloon
   late final Map<int, GlobalKey> _questionCardKeys;
@@ -442,13 +446,46 @@ class FitState extends State<Fit> {
     
     // Add scroll listener to track when list scrolls
     _questionsScrollController.addListener(_onQuestionsScroll);
+    
+    // Load saved instructions dismissal state
+    _loadInstructionsState();
+    
+    // TEMPORARY: Uncomment the line below to reset instructions for testing
+    _resetInstructions();
+    
+    // Set first question as active on start (ensure there's always an active question)
+    if (Question.questions.isNotEmpty) {
+      _activeAnimationQuestionId = Question.questions[0].id;
+    } else {
+      _activeAnimationQuestionId = 0;
+    }
+  }
+  
+  Future<void> _loadInstructionsState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _instructionsDismissed = prefs.getBool('fit_instructions_dismissed') ?? false;
+    });
+  }
+  
+  Future<void> _saveInstructionsState(bool dismissed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('fit_instructions_dismissed', dismissed);
+  }
+  
+  // Temporary method to reset instructions for testing
+  Future<void> _resetInstructions() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('fit_instructions_dismissed');
+    setState(() {
+      _instructionsDismissed = false;
+    });
   }
   
   void _onQuestionsScroll() {
-    // Hide balloon when list scrolls
-    if (_activeAnimationQuestionId != null && _bubbleController.isVisible) {
+    // Hide balloon when list scrolls, but keep the active question
+    if (_bubbleController.isVisible) {
       _bubbleController.hideBubble();
-      _activeAnimationQuestionId = null;
       setState(() {});
     }
   }
@@ -459,6 +496,102 @@ class FitState extends State<Fit> {
     _questionsScrollController.dispose();
     _bubbleController.dispose();
     super.dispose();
+  }
+
+  void _showQuestionDescription(BuildContext context, Question question) {
+    // Hide the animation balloon when help button is pressed, but keep the active question
+    if (_bubbleController.isVisible) {
+      _bubbleController.hideBubble();
+      setState(() {});
+    }
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            padding: const EdgeInsets.all(24.0),
+            decoration: BoxDecoration(
+              gradient: AppTheme.purpleGradient,
+              borderRadius: BorderRadius.circular(16.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        question.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                      onPressed: () => Navigator.of(context).pop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Description
+                Text(
+                  question.description,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.white,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Close button
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      backgroundColor: AppTheme.goldBase.withOpacity(0.2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: AppTheme.goldBase, width: 1),
+                      ),
+                    ),
+                    child: const Text(
+                      'Close',
+                      style: TextStyle(
+                        color: AppTheme.goldBase,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -480,11 +613,10 @@ class FitState extends State<Fit> {
   Widget buildQuestions() {
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {
-        // Hide balloon when list scrolls
+        // Hide balloon when list scrolls, but keep the active question
         if (notification is ScrollUpdateNotification) {
-          if (_activeAnimationQuestionId != null && _bubbleController.isVisible) {
+          if (_bubbleController.isVisible) {
             _bubbleController.hideBubble();
-            _activeAnimationQuestionId = null;
             setState(() {});
           }
         }
@@ -561,9 +693,45 @@ class FitState extends State<Fit> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "${question.name}: ${question.choices[(_sliderValues[question.id] ?? 0.0).round()].name}",
-                    style: const TextStyle(fontSize: 13, color: Colors.white),
+                  // Header row with question name and help button (only show on active card)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "${question.name}: ${question.choices[(_sliderValues[question.id] ?? 0.0).round()].name}",
+                          style: const TextStyle(fontSize: 13, color: Colors.white),
+                        ),
+                      ),
+                      if (isActive) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => _showQuestionDescription(context, question),
+                          child: Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.goldBase.withOpacity(0.2),
+                              border: Border.all(
+                                color: AppTheme.goldBase,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                '?',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.goldBase,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   SfSliderTheme(
                     data: SfSliderThemeData(
@@ -688,7 +856,7 @@ class FitState extends State<Fit> {
                                 if (stat.isPercent) {
                                   sum += 1.0 -
                                       (desiredValue - stat.value).abs() /
-                                          q.choices.length;
+                                          (q.choices.length - 1);
                                 } else {
                                   if (desiredValue == stat.value) {
                                     sum += 1;
@@ -731,6 +899,27 @@ class FitState extends State<Fit> {
                       },
                     ),
                   ),
+                  // Add low/high labels below the slider
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Low',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const Text(
+                        'High',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -742,24 +931,99 @@ class FitState extends State<Fit> {
 
   Widget buildMatches() {
     // Right column now only shows the breed cards (no animation square)
-    return ListView.builder(
-      key: ValueKey(_breedListKey),
-      itemCount: breeds.length,
-      itemBuilder: (BuildContext context, int index) {
-        return GestureDetector(
-          onTap: () {
-            Get.to(() => BreedDetail(breed: breeds[index]),
-                transition: Transition.circularReveal,
-                duration: const Duration(seconds: 1));
-          },
-          child: buildBreedCard(breeds[index]),
-        );
-      },
+    return Column(
+      children: [
+        // Instructions at the top (if not dismissed)
+        if (!_instructionsDismissed)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12.0, left: 5.0, right: 5.0),
+            padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 12.0, bottom: 12.0),
+            decoration: BoxDecoration(
+              gradient: AppTheme.purpleGradient,
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: Stack(
+              children: [
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 28.0),
+                    child: Text(
+                      'Adjust sliders to see your top breed matches',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+                // X button in top right
+                Positioned(
+                  top: 2,
+                  right: 2,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _instructionsDismissed = true;
+                      });
+                      _saveInstructionsState(true);
+                    },
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.3),
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // Breed cards list
+        Expanded(
+          child: ListView.builder(
+            key: ValueKey(_breedListKey),
+            itemCount: breeds.length,
+            itemBuilder: (BuildContext context, int index) {
+              return GestureDetector(
+                onTap: () {
+                  Get.to(() => BreedDetail(breed: breeds[index]),
+                      transition: Transition.circularReveal,
+                      duration: const Duration(seconds: 1));
+                },
+                child: buildBreedCard(breeds[index]),
+              );
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  bool _hasPreferences() {
+    for (var q in Question.questions) {
+      final sliderVal = globals.FelineFinderServer.instance.sliderValue[q.id];
+      if (sliderVal > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Widget buildBreedCard(Breed breed) {
     const double availableWidth = 210;
+    final hasPrefs = _hasPreferences();
+    final matchText = hasPrefs 
+        ? '${(breed.percentMatch * 100).toStringAsFixed(1)}%'
+        : 'Any';
 
     return Container(
       margin: const EdgeInsets.only(
@@ -772,7 +1036,7 @@ class FitState extends State<Fit> {
       child: GoldFramedPanel(
         plaqueLines: [
           breed.name,
-          '${(breed.percentMatch * 100).toStringAsFixed(1)}%',
+          matchText,
         ],
         child: Column(
           mainAxisSize: MainAxisSize.min,

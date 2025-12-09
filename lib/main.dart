@@ -269,7 +269,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     if (selectedIndex == 0) {
       // Adopt tab is now at index 0
       return <Widget>[
-        GestureDetector(
+        // Heart button - 3D beveled golden coin with recessed rim
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
             onTap: () {
               favoritesSelected = !favoritesSelected;
               AdoptionGridKey.currentState!.setFavorites(favoritesSelected);
@@ -283,54 +286,199 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                 _sparkleController.forward();
               }
             },
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  Icons.favorite,
-                  color: (favoritesSelected) ? Colors.red : Colors.grey,
-                  size: 40,
-                ),
-                if (favoritesSelected)
-                  AnimatedBuilder(
-                    animation: _sparkleAnimation,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _sparkleAnimation.value,
-                        child: Opacity(
-                          opacity: 1.0 - _sparkleAnimation.value,
-                          child: const Icon(
-                            Icons.auto_awesome,
-                            color: Colors.yellow,
-                            size: 20,
-                          ),
+            borderRadius: BorderRadius.circular(22),
+            child: Container(
+              width: 44,
+              height: 44,
+              child: Stack(
+                children: [
+                  // Outer beveled face
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFFFF4C7), // Highlight top-left
+                          Color(0xFFE0A93C), // Body gold bottom-right
+                        ],
+                      ),
+                      border: Border.all(
+                        color: const Color(0xFFC3922E), // Raised edge
+                        width: 2.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: const Offset(2, 3),
+                          blurRadius: 6,
                         ),
-                      );
-                    },
+                      ],
+                    ),
                   ),
-              ],
-            )),
-        const SizedBox(width: 10, height: 30),
-        /*
-        GestureDetector(
-          onTap: () {
-            AdoptionGridKey.currentState!.whileYourAwaySearch();
-          },
-          child: const ImageIcon(AssetImage("assets/Icons/away.png"), size: 30),
-        ),
-        const SizedBox(width: 10, height: 30),
-        */
-        GestureDetector(
-          onTap: () {
-            AdoptionGridKey.currentState!.search();
-          },
-          child: ImageIcon(
-            const AssetImage("assets/Icons/search.png"),
-            size: 30,
-            color: AppTheme.goldBase,
+                  // Inner recessed rim
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.bottomRight,
+                            end: Alignment.topLeft,
+                            colors: [
+                              Color(0xFFE2B55A), // Lighter inner gold
+                              Color(0xFFC89232), // Deeper recessed color
+                            ],
+                          ),
+                          border: Border.all(
+                            color: const Color(0xFFB07A26),
+                            width: 1.3,
+                          ),
+                          boxShadow: [
+                            // Inner shadow effect
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 6,
+                              spreadRadius: -4,
+                              offset: const Offset(2, 2),
+                            ),
+                          ],
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(
+                              Icons.favorite,
+                              color: (favoritesSelected) 
+                                  ? Colors.red 
+                                  : const Color(0xFF7A5A19), // Deep bronze
+                              size: 24,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.4),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            if (favoritesSelected)
+                              AnimatedBuilder(
+                                animation: _sparkleAnimation,
+                                builder: (context, child) {
+                                  return Transform.scale(
+                                    scale: _sparkleAnimation.value,
+                                    child: Opacity(
+                                      opacity: 1.0 - _sparkleAnimation.value,
+                                      child: const Icon(
+                                        Icons.auto_awesome,
+                                        color: Colors.yellow,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 15, height: 30)
+        const SizedBox(width: 12),
+        // Search button - 3D beveled golden coin with recessed rim
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              AdoptionGridKey.currentState!.search();
+            },
+            borderRadius: BorderRadius.circular(22),
+            child: Container(
+              width: 44,
+              height: 44,
+              child: Stack(
+                children: [
+                  // Outer beveled face
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFFFF4C7), // Highlight top-left
+                          Color(0xFFE0A93C), // Body gold bottom-right
+                        ],
+                      ),
+                      border: Border.all(
+                        color: const Color(0xFFC3922E), // Raised edge
+                        width: 2.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: const Offset(2, 3),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Inner recessed rim
+                  Positioned.fill(
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.bottomRight,
+                            end: Alignment.topLeft,
+                            colors: [
+                              Color(0xFFE2B55A), // Lighter inner gold
+                              Color(0xFFC89232), // Deeper recessed color
+                            ],
+                          ),
+                          border: Border.all(
+                            color: const Color(0xFFB07A26),
+                            width: 1.3,
+                          ),
+                          boxShadow: [
+                            // Inner shadow effect
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 6,
+                              spreadRadius: -4,
+                              offset: const Offset(2, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.search,
+                          color: Color(0xFF7A5A19), // Deep bronze
+                          size: 24,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black38,
+                              blurRadius: 2,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
       ];
     }
     return null;
@@ -396,6 +544,11 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ],
                 ),
+              ),
+              // Black divider line
+              Container(
+                height: 1,
+                color: Colors.black,
               ),
               // Main content
               Expanded(

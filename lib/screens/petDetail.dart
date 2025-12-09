@@ -854,30 +854,42 @@ class petDetailState extends State<petDetail>
                     ],
                   ),
                 )
-              : CachedNetworkImage(
-                  imageUrl: (media as SmallPhoto).photo,
-                  fit: BoxFit.cover,
-                  width: safeWidth,
-                  height: fixedHeight,
-                  placeholder: (context, url) => Container(
+              : GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FullScreenImageView(
+                          imageUrl: (media as SmallPhoto).photo,
+                        ),
+                      ),
+                    );
+                  },
+                  child: CachedNetworkImage(
+                    imageUrl: (media as SmallPhoto).photo,
+                    fit: BoxFit.cover,
                     width: safeWidth,
                     height: fixedHeight,
-                    color: Colors.grey[200],
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF2196F3),
+                    placeholder: (context, url) => Container(
+                      width: safeWidth,
+                      height: fixedHeight,
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF2196F3),
+                        ),
                       ),
                     ),
-                  ),
-                  errorWidget: (context, url, error) =>
-                      Container(
-                    width: safeWidth,
-                    height: fixedHeight,
-                    color: Colors.grey[200],
-                    child: const Center(
-                      child: Icon(
-                        Icons.error_outline,
-                        color: Colors.grey,
+                    errorWidget: (context, url, error) =>
+                        Container(
+                      width: safeWidth,
+                      height: fixedHeight,
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(
+                          Icons.error_outline,
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                   ),
@@ -1159,5 +1171,83 @@ class petDetailState extends State<petDetail>
       return list;
     }
     return [];
+  }
+}
+
+/// Full-screen image viewer that displays an image fitted to the screen
+/// without cutting anything off or distorting it
+class FullScreenImageView extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImageView({
+    Key? key,
+    required this.imageUrl,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Full-screen image
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => Container(
+                    color: Colors.black,
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.black,
+                    child: const Center(
+                      child: Icon(
+                        Icons.error_outline,
+                        color: Colors.white,
+                        size: 64,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Close button
+            Positioned(
+              top: 16,
+              right: 16,
+              child: Material(
+                color: Colors.black.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(24),
+                child: InkWell(
+                  onTap: () => Navigator.pop(context),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

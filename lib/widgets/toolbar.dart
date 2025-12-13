@@ -33,26 +33,49 @@ class Tool extends StatelessWidget {
   Widget _buildCircularIcon(
       BuildContext context, IconData iconData, Color iconColor) {
     return Container(
-      width: 48,
-      height: 48,
+      width: 60,
+      height: 60,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: iconColor,
-          width: 2,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.goldHighlight,
+            AppTheme.goldBase,
+            AppTheme.goldShadow,
+          ],
+          stops: const [0.0, 0.5, 1.0],
         ),
         boxShadow: [
+          // Inner shadow for 3D effect
           BoxShadow(
-            color: iconColor.withValues(alpha: 0.2),
-            blurRadius: 6,
-            spreadRadius: 1,
+            color: AppTheme.goldShadow.withOpacity(0.8),
+            blurRadius: 4,
+            offset: const Offset(2, 2),
+            spreadRadius: -2,
+          ),
+          // Standard shadow
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Icon(
-        iconData,
-        size: 24,
-        color: iconColor,
+      child: Center(
+        child: Icon(
+          iconData,
+          color: Colors.white,
+          size: 28,
+          shadows: [
+            Shadow(
+              color: Colors.black.withOpacity(0.5),
+              offset: const Offset(0, 1),
+              blurRadius: 2,
+            ),
+          ],
+        ),
       ),
     );
   }

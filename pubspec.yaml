@@ -64,6 +64,7 @@ dependencies:
   google_generative_ai: ^0.4.7
   flutter_svg: ^2.0.9
   gif: ^2.3.0
+  webview_flutter: ^4.4.2
 
 dev_dependencies:
   flutter_test:

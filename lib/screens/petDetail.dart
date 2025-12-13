@@ -18,6 +18,7 @@ import '../widgets/youtube-video-row.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petDetailData.dart';
 import '/models/shelter.dart';
+import 'webview_screen.dart';
 import '/models/rescuegroups_v5.dart';
 import '../config.dart';
 import 'globals.dart' as globals;
@@ -312,14 +313,17 @@ class petDetailState extends State<petDetail>
         actions: <Widget>[
           Padding(
             padding: const EdgeInsets.only(right: 10.0),
-            child: LikeButton(
-              onTap: (isLiked) async {
+            child: InkWell(
+              borderRadius: BorderRadius.circular(40),
+              onTap: () async {
                 print("userID = $userID petID = ${widget.petID}");
-                if (isLiked == true) {
+                if (isFavorited) {
                   widget.server.unfavoritePet(userID, widget.petID);
-                  isFavorited = false;
+                  setState(() {
+                    isFavorited = false;
+                  });
                   globals.listOfFavorites.remove(widget.petID);
-                } else if (isLiked == false) {
+                } else {
                   final SharedPreferences prefs =
                       await SharedPreferences.getInstance();
                   if (!prefs.containsKey("RatedApp")) {
@@ -331,45 +335,96 @@ class petDetailState extends State<petDetail>
                   }
                   globals.listOfFavorites.add(widget.petID);
                   widget.server.favoritePet(userID, widget.petID);
-                  isFavorited = true;
+                  setState(() {
+                    isFavorited = true;
+                  });
 
                   _sparkleController.reset();
                   _sparkleController.forward();
                 }
                 print("Set changed to $isFavorited");
-                return isFavorited;
               },
-              size: 40,
-              isLiked: isFavorited,
-              likeBuilder: (isLiked) {
-                final color = isLiked ? Colors.red : Colors.blueGrey;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Icon(Icons.favorite, color: color, size: 40),
-                      if (isLiked)
-                        AnimatedBuilder(
-                          animation: _sparkleAnimation,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: _sparkleAnimation.value,
-                              child: Opacity(
-                                opacity: 1.0 - _sparkleAnimation.value,
-                                child: const Icon(
-                                  Icons.auto_awesome,
-                                  color: Colors.yellow,
-                                  size: 20,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFFFBE7A1), // highlight
+                      Color(0xFFE0A93C), // body gold
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                );
-              },
+                  border: Border.all(
+                    color: const Color(0xFFC3922E),
+                    width: 2.2,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black45,
+                      offset: Offset(1, 2),
+                      blurRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Container(
+                  margin: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.bottomRight,
+                      end: Alignment.topLeft,
+                      colors: [
+                        Color(0xFFEAC46E),
+                        Color(0xFFC58F2B),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFFB07A26),
+                      width: 1.3,
+                    ),
+                  ),
+                  child: Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          Icons.favorite,
+                          color: isFavorited ? Colors.pinkAccent : Colors.white,
+                          size: 26,
+                          shadows: const [
+                            Shadow(
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                              color: Colors.black45,
+                            ),
+                          ],
+                        ),
+                        if (isFavorited)
+                          AnimatedBuilder(
+                            animation: _sparkleAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: _sparkleAnimation.value,
+                                child: Opacity(
+                                  opacity: 1.0 - _sparkleAnimation.value,
+                                  child: const Icon(
+                                    Icons.auto_awesome,
+                                    color: Colors.yellow,
+                                    size: 20,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -386,7 +441,7 @@ class petDetailState extends State<petDetail>
               // Gold-framed media gallery (no built-in plaque)
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: GoldFramedPanel(
                   plaqueLines: null,
                   child: LayoutBuilder(
@@ -395,9 +450,9 @@ class petDetailState extends State<petDetail>
                       final availableHeight = constraints.maxHeight;
                       final availableWidth = constraints.maxWidth;
                       
-                      // Image height is available height - 20px
+                      // Image height fills the full available height (touches top and bottom)
                       final imageHeight = availableHeight > 0 && availableHeight != double.infinity
-                          ? availableHeight - 20.0
+                          ? availableHeight
                           : 200.0;
                       
                       if (petDetailInstance == null ||
@@ -434,99 +489,104 @@ class petDetailState extends State<petDetail>
                         );
                       }
 
-                      double totalWidth = 0.0;
-                      List<double> imageWidths = [];
-
-                      for (var media in petDetailInstance!.media) {
-                        double imageWidth = imageHeight;
-
-                        if (media is SmallPhoto &&
-                            petDetailInstance!.mainPictures.isNotEmpty) {
-                          final photoUrl = media.photo;
-                          final matchingPicture =
-                              petDetailInstance!.mainPictures.firstWhere(
-                            (pic) => pic.url.toString() == photoUrl,
-                            orElse: () => petDetailInstance!.mainPictures[0],
-                          );
-
-                          if (matchingPicture.resolutionX != null &&
-                              matchingPicture.resolutionY != null &&
-                              matchingPicture.resolutionX! > 0 &&
-                              matchingPicture.resolutionY! > 0) {
-                            final aspectRatio = matchingPicture.resolutionX! /
-                                matchingPicture.resolutionY!;
-                            imageWidth = imageHeight * aspectRatio;
-                          } else {
-                            imageWidth = imageHeight * 4 / 3;
-                          }
-                        } else if (media is YouTubeVideo) {
-                          imageWidth = imageHeight * 16 / 9;
-                        } else {
-                          imageWidth = imageHeight * 4 / 3;
-                        }
-
-                        if (imageWidth <= 0) {
-                          imageWidth = imageHeight * 4 / 3;
-                        }
-
-                        imageWidths.add(imageWidth);
-                        totalWidth += imageWidth;
-                        if (imageWidths.length <
-                            petDetailInstance!.media.length) {
-                          totalWidth += 8.0;
-                        }
-                      }
-
-                      final shouldCenter = totalWidth < availableWidth;
-
-                      if (imageWidths.length !=
-                          petDetailInstance!.media.length) {
-                        imageWidths = List.generate(
-                          petDetailInstance!.media.length,
-                          (index) => imageHeight * 4 / 3,
-                        );
-                      }
-
-                      return Container(
+                      // Use PageView to show one image at a time
+                      return SizedBox(
                         width: double.infinity,
                         height: availableHeight > 0 && availableHeight != double.infinity 
                             ? availableHeight 
-                            : imageHeight + 20,
-                        decoration: const BoxDecoration(
-                          gradient: AppTheme.purpleGradient,
-                        ),
-                        child: petDetailInstance!.media.isEmpty
-                            ? const SizedBox.shrink()
-                            : (shouldCenter
-                                ? Center(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: List.generate(
-                                        petDetailInstance!.media.length,
-                                        (index) => _buildMediaItem(
-                                          petDetailInstance!.media[index],
-                                          imageWidths[index],
-                                          imageHeight,
-                                          index,
-                                          petDetailInstance!.media.length,
+                            : imageHeight,
+                        child: Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          decoration: const BoxDecoration(
+                            gradient: AppTheme.purpleGradient,
+                          ),
+                          child: petDetailInstance!.media.isEmpty
+                              ? const SizedBox.shrink()
+                              : Stack(
+                                  children: [
+                                    // PageView for swiping through images
+                                    PageView.builder(
+                                      controller: _pageController,
+                                      itemCount: petDetailInstance!.media.length,
+                                      onPageChanged: (index) {
+                                        setState(() {
+                                          currentIndexPage = index;
+                                        });
+                                      },
+                                      itemBuilder: (context, index) {
+                                        // Calculate width based on aspect ratio
+                                        double imageWidth = imageHeight;
+                                        final media = petDetailInstance!.media[index];
+                                        
+                                        if (media is SmallPhoto &&
+                                            petDetailInstance!.mainPictures.isNotEmpty) {
+                                          final photoUrl = media.photo;
+                                          final matchingPicture =
+                                              petDetailInstance!.mainPictures.firstWhere(
+                                            (pic) => pic.url.toString() == photoUrl,
+                                            orElse: () => petDetailInstance!.mainPictures[0],
+                                          );
+
+                                          if (matchingPicture.resolutionX != null &&
+                                              matchingPicture.resolutionY != null &&
+                                              matchingPicture.resolutionX! > 0 &&
+                                              matchingPicture.resolutionY! > 0) {
+                                            final aspectRatio = matchingPicture.resolutionX! /
+                                                matchingPicture.resolutionY!;
+                                            imageWidth = imageHeight * aspectRatio;
+                                          } else {
+                                            imageWidth = imageHeight * 4 / 3;
+                                          }
+                                        } else if (media is YouTubeVideo) {
+                                          imageWidth = imageHeight * 16 / 9;
+                                        } else {
+                                          imageWidth = imageHeight * 4 / 3;
+                                        }
+
+                                        if (imageWidth <= 0) {
+                                          imageWidth = imageHeight * 4 / 3;
+                                        }
+
+                                        // Center the image
+                                        return Center(
+                                          child: _buildMediaItem(
+                                            media,
+                                            imageWidth,
+                                            imageHeight,
+                                            index,
+                                            petDetailInstance!.media.length,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    // Page indicator dots at the bottom
+                                    if (petDetailInstance!.media.length > 1)
+                                      Positioned(
+                                        bottom: 10,
+                                        left: 0,
+                                        right: 0,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: List.generate(
+                                            petDetailInstance!.media.length,
+                                            (index) => Container(
+                                              width: 8,
+                                              height: 8,
+                                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: currentIndexPage == index
+                                                    ? AppTheme.goldBase
+                                                    : Colors.white.withOpacity(0.5),
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    padding: EdgeInsets.zero,
-                                    itemCount: petDetailInstance!.media.length,
-                                    itemBuilder: (context, index) =>
-                                        _buildMediaItem(
-                                      petDetailInstance!.media[index],
-                                      imageWidths[index],
-                                      imageHeight,
-                                      index,
-                                      petDetailInstance!.media.length,
-                                    ),
-                                  )),
+                                  ],
+                                ),
+                        ),
                       );
                     },
                   ),
@@ -537,26 +597,17 @@ class petDetailState extends State<petDetail>
               if (petDetailInstance != null)
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: NameBreedPlaque(
                     name: petDetailInstance!.name ?? "",
                     breed: petDetailInstance!.primaryBreed ?? "",
                   ),
                 ),
 
-              // Stats badges section
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: StatsBadgeSection(
-                  child: getStats(),
-                ),
-              ),
-
-              const SizedBox(height: 10),
+              const SizedBox(height: 5),
               Center(
                 child: SizedBox(
-                  height: 100,
+                  height: 80,
                   child: Center(
                     child: ToolBar(
                       detail: petDetailInstance,
@@ -565,7 +616,7 @@ class petDetailState extends State<petDetail>
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               const Center(
                 child: Text(
@@ -577,7 +628,7 @@ class petDetailState extends State<petDetail>
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               // Contact section using thin gold outline
               ThinGoldSection(
@@ -594,32 +645,32 @@ class petDetailState extends State<petDetail>
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Description", petDetailInstance?.description ?? ""),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Serves Area", serveAreas),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("About", about),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Services", services),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Adoption Process", adoptionProcess),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Meet Pets", meetPets),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Adoption Url", adoptionUrl),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Facebook Url", facebookUrl),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Donation Url", donationUrl),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox("Sponsorship Url", sponsorshipUrl),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               textBox(
                 "DISCLAIMER",
                 "PLEASE READ: Information regarding adoptable pets is provided by the adopting organization and is neither checked for accuracy or completeness nor guaranteed to be accurate or complete.  The health status and behavior of any pet found, adopted through, or listed on the Feline Finder app are sole responsibility of the adoption organization listing the same and/or the adopting party and by using this service, the adopting party releases Feline Finder and Gregory Edward Williams from any and all liability arising out of or in any way connected with the adoption of a pet listed on the Feline Finder app.",
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -629,13 +680,10 @@ class petDetailState extends State<petDetail>
 
   Widget _buildMediaItem(
       dynamic media, double imageWidth, double fixedHeight, int index, int totalCount) {
-    final isLast = index == totalCount - 1;
     final safeWidth = imageWidth > 0 ? imageWidth : fixedHeight * 4 / 3;
 
     return Container(
-      margin: EdgeInsets.only(
-        right: isLast ? 0 : 8.0,
-      ),
+      // No margin needed for PageView
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -753,7 +801,7 @@ class petDetailState extends State<petDetail>
                   },
                   child: CachedNetworkImage(
                     imageUrl: (media as SmallPhoto).photo,
-                    fit: BoxFit.contain,
+                    fit: BoxFit.fitHeight,
                     width: safeWidth,
                     height: fixedHeight,
                     placeholder: (context, url) => Container(
@@ -787,6 +835,67 @@ class petDetailState extends State<petDetail>
   Widget textBox(String title, String textBlock) {
     var document = parseFragment(textBlock);
     var textString = document.text ?? "";
+    
+    // Extract URLs from HTML <a> tags and ensure they're in the text with proper protocol
+    // This ensures URLs in HTML links are also detected by LinkifyText
+    final linkElements = document.querySelectorAll('a[href]');
+    for (var link in linkElements) {
+      final href = link.attributes['href'];
+      final linkText = link.text.trim();
+      if (href != null && href.isNotEmpty) {
+        // Clean the href (remove HTML entities and whitespace)
+        String cleanHref = href.trim();
+        final originalHref = cleanHref;
+        
+        // Ensure URL has a protocol for proper detection by LinkifyText
+        if (!cleanHref.startsWith('http://') && !cleanHref.startsWith('https://')) {
+          // Special handling for Facebook URLs - construct full URL if needed
+          if (title.toLowerCase().contains('facebook') || 
+              cleanHref.contains('facebook.com') ||
+              (!cleanHref.contains('.') && !cleanHref.startsWith('/'))) {
+            // If it's a Facebook URL section and doesn't contain a domain, construct it
+            if (!cleanHref.contains('facebook.com') && !cleanHref.contains('.')) {
+              // Might be just a page name - construct Facebook URL
+              if (cleanHref.startsWith('/')) {
+                cleanHref = 'https://www.facebook.com$cleanHref';
+              } else {
+                cleanHref = 'https://www.facebook.com/$cleanHref';
+              }
+            } else {
+              cleanHref = 'https://$cleanHref';
+            }
+          } else {
+            cleanHref = 'https://$cleanHref';
+          }
+        }
+        
+        // Check if URL (with or without protocol) is already in text
+        final hasProtocol = originalHref.startsWith('http://') || originalHref.startsWith('https://');
+        final urlInText = textString.contains(cleanHref) || 
+                         (!hasProtocol && textString.contains(originalHref));
+        
+        if (!urlInText) {
+          // URL not in text - add it
+          if (linkText.isNotEmpty && linkText != originalHref && linkText != cleanHref) {
+            // Link text is different from URL - add URL after link text
+            textString = textString.replaceFirst(linkText, '$linkText ($cleanHref)');
+          } else {
+            // Link text is same as URL or empty - add URL with protocol
+            textString += ' $cleanHref';
+          }
+        } else {
+          // URL is in text - ensure it has protocol for LinkifyText to detect it
+          if (!hasProtocol && textString.contains(originalHref)) {
+            // Replace URL without protocol with URL that has protocol
+            // Use word boundaries to avoid partial matches
+            // Replace only if it's a standalone word (not part of another URL)
+            final regex = RegExp(r'\b' + RegExp.escape(originalHref) + r'\b');
+            textString = textString.replaceAll(regex, cleanHref);
+          }
+        }
+      }
+    }
+    
     final TextStyle textStyle;
     if (title == "DISCLAIMER") {
       textStyle = GoogleFonts.karla(
@@ -836,10 +945,12 @@ class petDetailState extends State<petDetail>
           height: 1.5,
         ),
         linkTypes: const [LinkType.email, LinkType.url],
-        linkStyle: const TextStyle(
+        linkStyle: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
           decoration: TextDecoration.underline,
+          decorationColor: Colors.white,
+          decorationThickness: 1.5,
         ),
         onTap: (link) => _onOpen(link.value!),
       ),
@@ -847,53 +958,124 @@ class petDetailState extends State<petDetail>
   }
 
   Future<void> _onOpen(String link) async {
-    var l = Uri.parse((!link.startsWith("http") ? "http://" : "") + link);
-    if (await canLaunchUrl(l)) {
-      await launchUrl(l);
-    } else {
-      throw 'Could not launch $link';
+    if (link.isEmpty || link.trim().isEmpty) {
+      // Show error if URL is empty
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid URL'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
+    // Clean and validate URL
+    String url = link.trim();
+    
+    // Remove any leading/trailing quotes
+    if (url.startsWith('"') || url.startsWith("'")) {
+      url = url.substring(1);
+    }
+    if (url.endsWith('"') || url.endsWith("'")) {
+      url = url.substring(0, url.length - 1);
+    }
+    
+    // Remove any trailing punctuation that might have been included
+    url = url.trim();
+    
+    // Ensure URL has a protocol - this is critical!
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      // Check if it looks like a URL (contains a dot or is a known domain)
+      if (url.contains('.') || url.startsWith('www.')) {
+        url = "https://$url";
+      } else {
+        // Might be a relative path or invalid - try to construct a valid URL
+        // For Facebook URLs, construct the full URL
+        if (url.contains('facebook') || url.startsWith('/')) {
+          if (url.startsWith('/')) {
+            url = "https://www.facebook.com$url";
+          } else {
+            url = "https://www.facebook.com/$url";
+          }
+        } else {
+          // Try adding https:// anyway
+          url = "https://$url";
+        }
+      }
+    }
+    
+    // Final validation - ensure URL is properly formatted
+    try {
+      final uri = Uri.parse(url);
+      
+      // Double-check the scheme
+      if (!uri.hasScheme) {
+        // If somehow the scheme is missing, add it
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+          url = "https://$url";
+          // Re-parse after adding scheme
+          final reParsed = Uri.parse(url);
+          if (!reParsed.hasScheme || !reParsed.scheme.startsWith('http')) {
+            throw FormatException('Invalid URL scheme after repair');
+          }
+        } else {
+          throw FormatException('Invalid URL scheme');
+        }
+      } else if (!uri.scheme.startsWith('http')) {
+        throw FormatException('URL scheme must be http or https');
+      }
+      
+      // Ensure we have a valid host
+      if (uri.host.isEmpty && uri.path.isEmpty) {
+        throw FormatException('URL must have a host or path');
+      }
+      
+      // Navigate to in-app web browser with the validated URL
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => WebViewScreen(
+              url: url, // Use the validated and fixed URL
+              title: _getUrlTitle(url),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error if URL is invalid
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Invalid URL: ${link.length > 50 ? "${link.substring(0, 50)}..." : link}\nError: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      print('URL parsing error: $e\nOriginal link: $link\nProcessed URL: $url');
     }
   }
-
-  Widget getStats() {
-    if (petDetailInstance == null) {
-      return const SizedBox.shrink();
+  
+  String _getUrlTitle(String url) {
+    // Extract a readable title from the URL
+    try {
+      final uri = Uri.parse(url);
+      String host = uri.host;
+      // Remove www. prefix if present
+      if (host.startsWith('www.')) {
+        host = host.substring(4);
+      }
+      // Capitalize first letter
+      if (host.isNotEmpty) {
+        host = host[0].toUpperCase() + host.substring(1);
+      }
+      return host;
+    } catch (e) {
+      return 'Web Page';
     }
-
-    List<String> stats = [];
-    if (petDetailInstance!.status != null &&
-        petDetailInstance!.status!.trim().isNotEmpty) {
-      stats.add(petDetailInstance!.status!.trim());
-    }
-    if (petDetailInstance!.sex != null &&
-        petDetailInstance!.sex!.trim().isNotEmpty) {
-      stats.add(petDetailInstance!.sex!.trim());
-    }
-    if (petDetailInstance!.sizeGroup != null &&
-        petDetailInstance!.sizeGroup!.trim().isNotEmpty) {
-      stats.add(petDetailInstance!.sizeGroup!.trim());
-    }
-    if (petDetailInstance!.ageGroup != null &&
-        petDetailInstance!.ageGroup!.trim().isNotEmpty) {
-      stats.add(petDetailInstance!.ageGroup!.trim());
-    }
-
-    if (stats.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Center(
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 10,
-        runSpacing: 10,
-        children: stats
-            .map(
-              (item) => GoldOutlineBadge(label: item),
-            )
-            .toList(),
-      ),
-    );
   }
 
   void loadAsset() async {
@@ -1097,115 +1279,138 @@ class NameBreedPlaque extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = AppTheme.goldenBorder.top.color;
-
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        color: AppTheme.traitCardBackground,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            name,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              fontFamily: AppTheme.fontFamily,
-            ),
-          ),
-          if (breed.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              breed,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withOpacity(0.9),
-                fontFamily: AppTheme.fontFamily,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: CustomPaint(
+        painter: _GoldRibbonPainter(),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withOpacity(0.3),
+                      offset: const Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class GoldOutlineBadge extends StatelessWidget {
-  final String label;
-
-  const GoldOutlineBadge({
-    Key? key,
-    required this.label,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final borderColor = AppTheme.goldenBorder.top.color;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.traitCardBackground,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor, width: 1.5),
-      ),
-      child: Text(
-        label,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.karla(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
+              if (breed.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  breed,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    letterSpacing: 0.8,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.3),
+                        offset: const Offset(0, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class StatsBadgeSection extends StatelessWidget {
-  final Widget child;
-
-  const StatsBadgeSection({
-    Key? key,
-    required this.child,
-  }) : super(key: key);
-
+class _GoldRibbonPainter extends CustomPainter {
   @override
-  Widget build(BuildContext context) {
-    final borderColor = AppTheme.goldenBorder.top.color;
-
-    return Container(
-      padding: EdgeInsets.all(AppTheme.spacingL),
-      decoration: BoxDecoration(
-        color: AppTheme.traitCardBackground,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.30),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: child,
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.fill;
+    
+    // Create gold gradient
+    final gradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        AppTheme.goldHighlight,
+        AppTheme.goldBase,
+        AppTheme.goldShadow,
+        AppTheme.goldBase,
+        AppTheme.goldHighlight,
+      ],
+      stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
     );
+    
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    paint.shader = gradient.createShader(rect);
+    
+    // Draw flowing ribbon shape with wavy edges
+    final path = Path();
+    const waveHeight = 8.0;
+    const waveLength = 40.0;
+    
+    // Top wavy edge
+    path.moveTo(0, waveHeight);
+    for (double x = 0; x <= size.width; x += waveLength) {
+      path.quadraticBezierTo(
+        x + waveLength / 2,
+        x % (waveLength * 2) == 0 ? 0 : waveHeight * 2,
+        x + waveLength,
+        waveHeight,
+      );
+    }
+    
+    // Right edge
+    path.lineTo(size.width, size.height - waveHeight);
+    
+    // Bottom wavy edge - out of phase with top for flowing ribbon effect
+    // Iterate from right to left, but use x-from-left for pattern matching
+    double currentX = size.width;
+    while (currentX > 0) {
+      final nextX = (currentX - waveLength).clamp(0.0, size.width);
+      final xFromLeft = size.width - currentX;
+      final controlX = currentX - waveLength / 2;
+      // Offset by waveLength to be out of phase (peaks align with valleys)
+      final controlY = (xFromLeft + waveLength) % (waveLength * 2) == 0 
+          ? size.height 
+          : size.height - waveHeight * 2;
+      
+      path.quadraticBezierTo(
+        controlX,
+        controlY,
+        nextX,
+        size.height - waveHeight,
+      );
+      currentX = nextX;
+    }
+    
+    // Left edge
+    path.close();
+    
+    canvas.drawPath(path, paint);
+    
+    // Add gold border
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = AppTheme.goldShadow
+      ..strokeWidth = 2.0;
+    canvas.drawPath(path, borderPaint);
   }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class GoldIconBox extends StatelessWidget {
@@ -1218,19 +1423,51 @@ class GoldIconBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = AppTheme.goldenBorder.top.color;
+    // 3D purple gradient matching the pills
+    final purple3DGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        const Color(0xFF9B7BB8), // Lighter purple (top highlight)
+        const Color(0xFF7A5A96), // Medium purple
+        const Color(0xFF6B4C93), // Darker purple (bottom shadow)
+      ],
+      stops: const [0.0, 0.5, 1.0],
+    );
 
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: 1.5),
+        gradient: purple3DGradient,
+        boxShadow: [
+          // Outer shadow for depth
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 8,
+            spreadRadius: 1,
+            offset: const Offset(0, 3),
+          ),
+          // Inner highlight for 3D effect
+          BoxShadow(
+            color: Colors.white.withOpacity(0.2),
+            blurRadius: 4,
+            spreadRadius: -2,
+            offset: const Offset(-1, -1),
+          ),
+        ],
       ),
       child: Icon(
         icon,
         color: Colors.white,
         size: 22,
+        shadows: [
+          Shadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
     );
   }
@@ -1250,14 +1487,11 @@ class ThinGoldSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = AppTheme.goldenBorder.top.color;
-
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 11),
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 11),
       decoration: BoxDecoration(
-        color: AppTheme.traitCardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 1.5),
+        gradient: AppTheme.purpleGradient,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.25),
@@ -1267,7 +1501,7 @@ class ThinGoldSection extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

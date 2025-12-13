@@ -129,16 +129,17 @@ Widget build(BuildContext context) {
       ),
       child: Column(
         children: [
-          // ZIP BUTTON + CAT COUNT (moved up)
+          // ZIP BUTTON + CAT COUNT (centered)
           Padding(
             padding: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 4),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 GoldZipButton(
                   zip: server.zip,
                   onTap: askForZip,
                 ),
+                const SizedBox(width: 10),
                 Text(
                   status,
                   style: const TextStyle(

@@ -10,6 +10,9 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'services/search_ai_service.dart';
 import 'theme.dart';
+// Import webview platform implementations to ensure they're registered
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';

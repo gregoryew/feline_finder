@@ -52,76 +52,94 @@ class GoldPetCard extends StatelessWidget {
   }
 
   Widget _buildFramedImage() {
-    return Container(
-      margin: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: const Color(0xFFB07A26),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 10,
-            offset: const Offset(1, 2),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: AspectRatio(
-          aspectRatio: 4 / 3,
-          child: Stack(
-            children: [
-              if (!_hasImage)
-                _buildNoImagePlaceholder()
-              else
-                Image.network(
-                  tile.smallPicture!,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: Colors.grey[300],
-                      child: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return _buildNoImagePlaceholder();
-                  },
-                ),
-
-              // Favorite icon
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Visibility(
-                  visible: favorites.contains(tile.id),
-                  child: Image.asset(
-                    "assets/Icons/favorited_icon_resized.png",
-                  ),
-                ),
-              ),
-
-              // Video icon
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Visibility(
-                  visible: tile.hasVideos ?? false,
-                  child: Image.asset(
-                    "assets/Icons/video_icon_resized.png",
-                  ),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate available width (card width minus margins)
+        final availableWidth = constraints.maxWidth - 12; // 6px margin on each side
+        
+        return Container(
+          margin: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: const Color(0xFFB07A26),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: 10,
+                offset: const Offset(1, 2),
               ),
             ],
           ),
-        ),
-      ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: availableWidth,
+              child: Stack(
+                children: [
+                  if (!_hasImage)
+                    SizedBox(
+                      width: availableWidth,
+                      height: availableWidth * 3 / 4, // Default 4:3 aspect ratio
+                      child: _buildNoImagePlaceholder(),
+                    )
+                  else
+                    Image.network(
+                      tile.smallPicture!,
+                      width: availableWidth,
+                      fit: BoxFit.fitWidth,
+                      alignment: Alignment.topCenter,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: availableWidth,
+                          height: availableWidth * 3 / 4,
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return SizedBox(
+                          width: availableWidth,
+                          height: availableWidth * 3 / 4,
+                          child: _buildNoImagePlaceholder(),
+                        );
+                      },
+                    ),
+
+                  // Favorite icon
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Visibility(
+                      visible: favorites.contains(tile.id),
+                      child: Image.asset(
+                        "assets/Icons/favorited_icon_resized.png",
+                      ),
+                    ),
+                  ),
+
+                  // Video icon
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Visibility(
+                      visible: tile.hasVideos ?? false,
+                      child: Image.asset(
+                        "assets/Icons/video_icon_resized.png",
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

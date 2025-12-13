@@ -28,10 +28,25 @@ class GoldFramedPanel extends StatelessWidget {
         
         // Determine border thickness based on card size
         final bool useSmallBorders = constraints.maxWidth < 200;
-        // Increased top and bottom padding to ensure borders are visible
+        
+        // Calculate proportional border thickness
+        // Original frame: 886x886px with 108px left/right, 106px top/bottom borders
+        // Border ratio: ~12.2% for width, ~12.0% for height
+        final double borderRatioWidth = 108.0 / 886.0;  // ~12.2%
+        final double borderRatioHeight = 106.0 / 886.0; // ~12.0%
+        
         final EdgeInsets borderThickness = useSmallBorders
             ? const EdgeInsets.only(left: 4, top: 12, right: 4, bottom: 12)
-            : const EdgeInsets.only(left: 108, top: 106, right: 108, bottom: 106);
+            : EdgeInsets.only(
+                left: constraints.maxWidth * borderRatioWidth,
+                top: constraints.maxHeight != double.infinity 
+                    ? constraints.maxHeight * borderRatioHeight 
+                    : 106.0,
+                right: constraints.maxWidth * borderRatioWidth,
+                bottom: constraints.maxHeight != double.infinity 
+                    ? constraints.maxHeight * borderRatioHeight 
+                    : 106.0,
+              );
 
         // Calculate plaque height if needed
         double plaqueHeight = 0;

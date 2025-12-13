@@ -25,7 +25,7 @@ import '../widgets/gold/gold_zip_button.dart';
 
 import '../theme.dart';
 import '../widgets/design_system.dart';
-import '../models/searchPageConfig.dart';
+import '../models/searchPageConfig.dart' as searchConfig;
 
 class AdoptGrid extends StatefulWidget {
   final ValueChanged<bool>? setFav;
@@ -52,6 +52,16 @@ class AdoptGridState extends State<AdoptGrid> {
   String? RescueGroupApi = "";
 
   late TextEditingController controller2;
+  
+  // Get filtering options from searchPageConfig
+  List<searchConfig.filterOption> get filteringOptions {
+    // Use persistentFilteringOptions if available, otherwise use the global filteringOptions
+    if (searchConfig.persistentFilteringOptions.isNotEmpty) {
+      return searchConfig.persistentFilteringOptions;
+    }
+    // Access the global filteringOptions variable from searchPageConfig
+    return searchConfig.filteringOptions;
+  }
 
   @override
   void initState() {
@@ -119,17 +129,16 @@ Widget build(BuildContext context) {
       ),
       child: Column(
         children: [
-          // NEXT ROW: ZIP BUTTON + CAT COUNT
+          // ZIP BUTTON + CAT COUNT (moved up)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 4),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 GoldZipButton(
                   zip: server.zip,
                   onTap: askForZip,
                 ),
-                const SizedBox(width: 10),
                 Text(
                   status,
                   style: const TextStyle(
@@ -276,9 +285,9 @@ Future<void> askForZip() async {
 // ----------------------------------------------------------------------
 //                         BUILD CATEGORIES
 // ----------------------------------------------------------------------
-Map<CatClassification, List<filterOption>> _buildCategories() {
-  Map<CatClassification, List<filterOption>> categories = {};
-  for (var classification in CatClassification.values) {
+Map<searchConfig.CatClassification, List<searchConfig.filterOption>> _buildCategories() {
+  Map<searchConfig.CatClassification, List<searchConfig.filterOption>> categories = {};
+  for (var classification in searchConfig.CatClassification.values) {
     categories[classification] = filteringOptions
         .where((filter) => filter.classification == classification)
         .toList();
@@ -460,16 +469,16 @@ void getPets() async {
       count = "No Matches";
     });
   }
-}
+  }
 
-// ----------------------------------------------------------------------
-//                              DISPOSE
-// ----------------------------------------------------------------------
-@override
-void dispose() {
-  controller.removeListener(_scrollListener);
-  controller.dispose();
-  controller2.dispose();
-  super.dispose();
-}
+  // ----------------------------------------------------------------------
+  //                              DISPOSE
+  // ----------------------------------------------------------------------
+  @override
+  void dispose() {
+    controller.removeListener(_scrollListener);
+    controller.dispose();
+    controller2.dispose();
+    super.dispose();
+  }
 }

@@ -137,19 +137,19 @@ class _BreedList extends State<BreedList> {
                               plaqueLines: [
                                 widget.letters[widget.keys[subSubMenuIndex]][index].name,
                               ],
-                              child: Padding(
+                            child: Padding(
                                 padding: const EdgeInsets.only(
                                   top: 15.0,
                                   left: 15.0,
                                   right: 15.0,
                                   bottom: 8.0, // Keep original bottom padding
                                 ),
-                                child: Center(
+                              child: Center(
                                   child: Image(
-                                    image: AssetImage(
+                                        image: AssetImage(
                                         "assets/Cartoon/${widget.letters[widget.keys[subSubMenuIndex]][index].pictureHeadShotName.replaceAll(' ', '_')}.png"),
                                     fit: BoxFit.contain,
-                                  ),
+                                    ),
                                 ),
                               ),
                             ),

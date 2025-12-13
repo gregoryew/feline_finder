@@ -15,12 +15,18 @@ import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
 import '/screens/chatList.dart';
+import '/widgets/gold/gold_circle_icon_button.dart';
 
 FirebaseAuth? auth;
 // final gsi.GoogleSignIn googleSignIn = gsi.GoogleSignIn();
 
+final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Track start time to ensure minimum 3-second display
+  final startTime = DateTime.now();
 
   // Add a small delay to prevent Firestore lock errors
   await Future.delayed(const Duration(milliseconds: 500));
@@ -44,115 +50,99 @@ void main() async {
     // Continue without Firebase for now
     auth = null;
   }
-  runApp(const SplashPage());
-}
 
-class SplashPage extends StatefulWidget {
-  const SplashPage({Key? key}) : super(key: key);
+  // Initialize authentication
+  await _initializeAuth();
 
-  @override
-  _SplashPageState createState() => _SplashPageState();
-}
-
-final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
-
-class _SplashPageState extends State<SplashPage> {
-  @override
-  void initState() {
-    super.initState();
+  // Ensure minimum 3 seconds have passed (launch screen will show during this time)
+  final elapsed = DateTime.now().difference(startTime);
+  if (elapsed.inSeconds < 3) {
+    await Future.delayed(Duration(seconds: 3 - elapsed.inSeconds));
   }
 
-  void checkAuthAndNavigate() async {
-    if (auth == null) {
-      print("Firebase Auth not available");
-      return;
-    }
+  runApp(const MyApp());
+}
 
-    // Check for persistent anonymous user ID
-    final prefs = await SharedPreferences.getInstance();
-    var storedAnonymousUID = prefs.getString('anonymous_user_uid');
+Future<void> _initializeAuth() async {
+  if (auth == null) {
+    print("Firebase Auth not available");
+    return;
+  }
 
-    // Clear any fallback UIDs on startup
-    if (storedAnonymousUID != null &&
-        storedAnonymousUID.startsWith('fallback-')) {
-      print('⚠️ Found invalid fallback UID in storage, clearing it');
-      await prefs.remove('anonymous_user_uid');
-      storedAnonymousUID = null;
-    }
+  // Check for persistent anonymous user ID
+  final prefs = await SharedPreferences.getInstance();
+  var storedAnonymousUID = prefs.getString('anonymous_user_uid');
 
-    final user = auth!.currentUser;
+  // Clear any fallback UIDs on startup
+  if (storedAnonymousUID != null &&
+      storedAnonymousUID.startsWith('fallback-')) {
+    print('⚠️ Found invalid fallback UID in storage, clearing it');
+    await prefs.remove('anonymous_user_uid');
+    storedAnonymousUID = null;
+  }
 
-    // If we have a stored UID but no current user, try to restore
-    if (user == null) {
-      if (storedAnonymousUID != null && storedAnonymousUID.isNotEmpty) {
-        print("Found stored anonymous UID: $storedAnonymousUID");
-        // Firebase anonymous auth should persist, but if it doesn't, create new
-        // The stored UID will be used for data operations
-        await signinAnon();
-      } else {
-        // First time user - sign in anonymously and store the UID
-        await signinAnon();
-        final newUser = auth!.currentUser;
-        if (newUser != null) {
-          await prefs.setString('anonymous_user_uid', newUser.uid);
-          print("Stored new anonymous UID: ${newUser.uid}");
-        }
-      }
+  final user = auth!.currentUser;
+
+  // If we have a stored UID but no current user, try to restore
+  if (user == null) {
+    if (storedAnonymousUID != null && storedAnonymousUID.isNotEmpty) {
+      print("Found stored anonymous UID: $storedAnonymousUID");
+      // Firebase anonymous auth should persist, but if it doesn't, create new
+      // The stored UID will be used for data operations
+      await _signinAnon();
     } else {
-      // User exists - ensure UID is stored for persistence
-      if (storedAnonymousUID != user.uid) {
-        await prefs.setString('anonymous_user_uid', user.uid);
-        print("Updated stored anonymous UID: ${user.uid}");
+      // First time user - sign in anonymously and store the UID
+      await _signinAnon();
+      final newUser = auth!.currentUser;
+      if (newUser != null) {
+        await prefs.setString('anonymous_user_uid', newUser.uid);
+        print("Stored new anonymous UID: ${newUser.uid}");
       }
     }
-
-    // Proceed to home (UUID system will handle user creation)
-    await _navigateToHome();
-  }
-
-  Future<void> signinAnon() async {
-    if (auth == null) {
-      print("Firebase Auth not available, skipping anonymous sign-in");
-      return;
-    }
-    try {
-      await auth!.signInAnonymously();
-      print("Signed in with temporary account.");
-    } on FirebaseAuthException catch (e) {
-      switch (e.code) {
-        case "operation-not-allowed":
-          print("Anonymous auth hasn't been enabled for this project.");
-          break;
-        case "keychain-error":
-          print("⚠️ iOS Keychain error - this is often a simulator issue.");
-          print("   The app will continue but authentication may not persist.");
-          print("   On a real device, check keychain access permissions.");
-          // Continue anyway - the app can still work with fallback UID
-          break;
-        default:
-          print("Firebase Auth error: ${e.code} - ${e.message}");
-          print("Stack trace: ${e.stackTrace}");
-      }
-    } catch (e, stackTrace) {
-      print("Unexpected error during anonymous sign-in: $e");
-      print("Error type: ${e.runtimeType}");
-      print("Stack trace: $stackTrace");
+  } else {
+    // User exists - ensure UID is stored for persistence
+    if (storedAnonymousUID != user.uid) {
+      await prefs.setString('anonymous_user_uid', user.uid);
+      print("Updated stored anonymous UID: ${user.uid}");
     }
   }
+}
 
-  Future<void> _navigateToHome() async {
-    // Navigate directly to home screen without showing introduction video
-    Timer(const Duration(seconds: 3),
-        () => Get.off(const HomeScreen(title: 'Feline Finder')));
+Future<void> _signinAnon() async {
+  if (auth == null) {
+    print("Firebase Auth not available, skipping anonymous sign-in");
+    return;
   }
+  try {
+    await auth!.signInAnonymously();
+    print("Signed in with temporary account.");
+  } on FirebaseAuthException catch (e) {
+    switch (e.code) {
+      case "operation-not-allowed":
+        print("Anonymous auth hasn't been enabled for this project.");
+        break;
+      case "keychain-error":
+        print("⚠️ iOS Keychain error - this is often a simulator issue.");
+        print("   The app will continue but authentication may not persist.");
+        print("   On a real device, check keychain access permissions.");
+        // Continue anyway - the app can still work with fallback UID
+        break;
+      default:
+        print("Firebase Auth error: ${e.code} - ${e.message}");
+        print("Stack trace: ${e.stackTrace}");
+    }
+  } catch (e, stackTrace) {
+    print("Unexpected error during anonymous sign-in: $e");
+    print("Error type: ${e.runtimeType}");
+    print("Stack trace: $stackTrace");
+  }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Check authentication and navigate after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      checkAuthAndNavigate();
-    });
-
     return GetMaterialApp(
       title: 'Feline Finder',
       theme: ThemeData(
@@ -191,18 +181,7 @@ class _SplashPageState extends State<SplashPage> {
         useMaterial3: true,
       ),
       navigatorObservers: [routeObserver],
-      home: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(gradient: AppTheme.purpleGradient),
-          child: Center(
-            child: Image.asset("assets/Full/Launch.png",
-                fit: BoxFit.cover,
-                height: double.infinity,
-                width: double.infinity,
-                alignment: Alignment.center),
-          ),
-        ),
-      ),
+      home: const HomeScreen(title: 'Feline Finder'),
     );
   }
 }
@@ -269,216 +248,31 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     if (selectedIndex == 0) {
       // Adopt tab is now at index 0
       return <Widget>[
-        // Heart button - 3D beveled golden coin with recessed rim
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              favoritesSelected = !favoritesSelected;
-              AdoptionGridKey.currentState!.setFavorites(favoritesSelected);
-              setState(() {
-                // favoritesSelected is a global variable, update it
-              });
+        GoldCircleIconButton(
+          icon: Icons.favorite,
+          isSelected: favoritesSelected,
+          onTap: () {
+            favoritesSelected = !favoritesSelected;
+            AdoptionGridKey.currentState!.setFavorites(favoritesSelected);
+            setState(() {
+              // favoritesSelected is a global variable, update it
+            });
 
-              // Trigger sparkle animation when favorited
-              if (favoritesSelected) {
-                _sparkleController.reset();
-                _sparkleController.forward();
-              }
-            },
-            borderRadius: BorderRadius.circular(22),
-            child: Container(
-              width: 44,
-              height: 44,
-              child: Stack(
-                children: [
-                  // Outer beveled face
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFFFFF4C7), // Highlight top-left
-                          Color(0xFFE0A93C), // Body gold bottom-right
-                        ],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFFC3922E), // Raised edge
-                        width: 2.0,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          offset: const Offset(2, 3),
-                          blurRadius: 6,
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Inner recessed rim
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.bottomRight,
-                            end: Alignment.topLeft,
-                            colors: [
-                              Color(0xFFE2B55A), // Lighter inner gold
-                              Color(0xFFC89232), // Deeper recessed color
-                            ],
-                          ),
-                          border: Border.all(
-                            color: const Color(0xFFB07A26),
-                            width: 1.3,
-                          ),
-                          boxShadow: [
-                            // Inner shadow effect
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 6,
-                              spreadRadius: -4,
-                              offset: const Offset(2, 2),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(
-                              Icons.favorite,
-                              color: (favoritesSelected) 
-                                  ? Colors.red 
-                                  : const Color(0xFF7A5A19), // Deep bronze
-                              size: 24,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.4),
-                                  blurRadius: 2,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            if (favoritesSelected)
-                              AnimatedBuilder(
-                                animation: _sparkleAnimation,
-                                builder: (context, child) {
-                                  return Transform.scale(
-                                    scale: _sparkleAnimation.value,
-                                    child: Opacity(
-                                      opacity: 1.0 - _sparkleAnimation.value,
-                                      child: const Icon(
-                                        Icons.auto_awesome,
-                                        color: Colors.yellow,
-                                        size: 16,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+            // Trigger sparkle animation when favorited
+            if (favoritesSelected) {
+              _sparkleController.reset();
+              _sparkleController.forward();
+            }
+          },
         ),
-        const SizedBox(width: 12),
-        // Search button - 3D beveled golden coin with recessed rim
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              AdoptionGridKey.currentState!.search();
-            },
-            borderRadius: BorderRadius.circular(22),
-            child: Container(
-              width: 44,
-              height: 44,
-              child: Stack(
-                children: [
-                  // Outer beveled face
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFFFFF4C7), // Highlight top-left
-                          Color(0xFFE0A93C), // Body gold bottom-right
-                        ],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFFC3922E), // Raised edge
-                        width: 2.0,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          offset: const Offset(2, 3),
-                          blurRadius: 6,
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Inner recessed rim
-                  Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.bottomRight,
-                            end: Alignment.topLeft,
-                            colors: [
-                              Color(0xFFE2B55A), // Lighter inner gold
-                              Color(0xFFC89232), // Deeper recessed color
-                            ],
-                          ),
-                          border: Border.all(
-                            color: const Color(0xFFB07A26),
-                            width: 1.3,
-                          ),
-                          boxShadow: [
-                            // Inner shadow effect
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 6,
-                              spreadRadius: -4,
-                              offset: const Offset(2, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.search,
-                          color: Color(0xFF7A5A19), // Deep bronze
-                          size: 24,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black38,
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        const SizedBox(width: 14),
+        GoldCircleIconButton(
+          icon: Icons.search,
+          onTap: () {
+            AdoptionGridKey.currentState!.search();
+          },
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 15),
       ];
     }
     return null;
@@ -544,11 +338,6 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ],
                 ),
-              ),
-              // Black divider line
-              Container(
-                height: 1,
-                color: Colors.black,
               ),
               // Main content
               Expanded(

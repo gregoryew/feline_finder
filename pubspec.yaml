@@ -160,4 +160,5 @@ flutter:
     - assets/Fit_Examples/Size/
     - assets/Fit_Examples/Zodicat/
     - assets/frame/
+    - assets/splash/
     - .env

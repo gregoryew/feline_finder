@@ -124,9 +124,9 @@ class Question {
           Choice('Low Intelligence', 1, 1, 6),
           Choice('Below Average', 2, 2, 5),
           Choice('Average', 3, 3, 4),
-          Choice('Above Average', 4, 4, 3),
+      Choice('Above Average', 4, 4, 3),
           Choice('Very Intelligent', 5, 5, 2),
-        ]),
+    ]),
     Question(
         8,
         'Grooming Needs',

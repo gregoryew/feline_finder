@@ -393,8 +393,8 @@ class BubbleOverlayController {
 }
 
 class FitState extends State<Fit> {
-  // Track which question's card should glow as "active" (always has a value)
-  int _activeAnimationQuestionId = 0;
+  // Track which question's card should glow as "active"
+  int? _activeAnimationQuestionId;
 
   // Counter to force ListView rebuild when breeds are sorted
   int _breedListKey = 0;
@@ -452,13 +452,6 @@ class FitState extends State<Fit> {
     
     // TEMPORARY: Uncomment the line below to reset instructions for testing
     _resetInstructions();
-    
-    // Set first question as active on start (ensure there's always an active question)
-    if (Question.questions.isNotEmpty) {
-      _activeAnimationQuestionId = Question.questions[0].id;
-    } else {
-      _activeAnimationQuestionId = 0;
-    }
   }
   
   Future<void> _loadInstructionsState() async {
@@ -483,8 +476,8 @@ class FitState extends State<Fit> {
   }
   
   void _onQuestionsScroll() {
-    // Hide balloon when list scrolls, but keep the active question
-    if (_bubbleController.isVisible) {
+    // Hide balloon when list scrolls
+    if (_activeAnimationQuestionId != null && _bubbleController.isVisible) {
       _bubbleController.hideBubble();
       setState(() {});
     }
@@ -499,9 +492,10 @@ class FitState extends State<Fit> {
   }
 
   void _showQuestionDescription(BuildContext context, Question question) {
-    // Hide the animation balloon when help button is pressed, but keep the active question
-    if (_bubbleController.isVisible) {
+    // Hide the animation balloon when help button is pressed
+    if (_activeAnimationQuestionId != null && _bubbleController.isVisible) {
       _bubbleController.hideBubble();
+      _activeAnimationQuestionId = null;
       setState(() {});
     }
     
@@ -613,10 +607,11 @@ class FitState extends State<Fit> {
   Widget buildQuestions() {
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {
-        // Hide balloon when list scrolls, but keep the active question
+        // Hide balloon when list scrolls
         if (notification is ScrollUpdateNotification) {
-          if (_bubbleController.isVisible) {
+          if (_activeAnimationQuestionId != null && _bubbleController.isVisible) {
             _bubbleController.hideBubble();
+            _activeAnimationQuestionId = null;
             setState(() {});
           }
         }
@@ -693,7 +688,7 @@ class FitState extends State<Fit> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header row with question name and help button (only show on active card)
+                  // Header row with question name and help button
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -703,34 +698,32 @@ class FitState extends State<Fit> {
                           style: const TextStyle(fontSize: 13, color: Colors.white),
                         ),
                       ),
-                      if (isActive) ...[
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => _showQuestionDescription(context, question),
-                          child: Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.goldBase.withOpacity(0.2),
-                              border: Border.all(
-                                color: AppTheme.goldBase,
-                                width: 1.5,
-                              ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _showQuestionDescription(context, question),
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.goldBase.withOpacity(0.2),
+                            border: Border.all(
+                              color: AppTheme.goldBase,
+                              width: 1.5,
                             ),
-                            child: const Center(
-                              child: Text(
-                                '?',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.goldBase,
-                                ),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              '?',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.goldBase,
                               ),
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
                   SfSliderTheme(
@@ -899,27 +892,6 @@ class FitState extends State<Fit> {
                       },
                     ),
                   ),
-                  // Add low/high labels below the slider
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Low',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      const Text(
-                        'High',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -1008,22 +980,8 @@ class FitState extends State<Fit> {
     );
   }
 
-  bool _hasPreferences() {
-    for (var q in Question.questions) {
-      final sliderVal = globals.FelineFinderServer.instance.sliderValue[q.id];
-      if (sliderVal > 0) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   Widget buildBreedCard(Breed breed) {
     const double availableWidth = 210;
-    final hasPrefs = _hasPreferences();
-    final matchText = hasPrefs 
-        ? '${(breed.percentMatch * 100).toStringAsFixed(1)}%'
-        : 'Any';
 
     return Container(
       margin: const EdgeInsets.only(
@@ -1036,7 +994,7 @@ class FitState extends State<Fit> {
       child: GoldFramedPanel(
         plaqueLines: [
           breed.name,
-          matchText,
+          '${(breed.percentMatch * 100).toStringAsFixed(1)}%',
         ],
         child: Column(
           mainAxisSize: MainAxisSize.min,

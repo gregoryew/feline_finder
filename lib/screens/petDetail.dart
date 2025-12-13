@@ -26,6 +26,7 @@ import 'package:get/get.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import '../theme.dart';
 import '../widgets/design_system.dart';
+import '../gold_frame/gold_frame_panel.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
@@ -37,14 +38,6 @@ class petDetail extends StatefulWidget {
     Key? key,
   }) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
   @override
   petDetailState createState() {
     return petDetailState();
@@ -67,7 +60,6 @@ class petDetailState extends State<petDetail>
 
   final _dialog = RatingDialog(
     initialRating: 1.0,
-    // your app's name?
     title: const Text(
       'Feline Finder',
       textAlign: TextAlign.center,
@@ -76,13 +68,11 @@ class petDetailState extends State<petDetail>
         fontWeight: FontWeight.bold,
       ),
     ),
-    // encourage your user to leave a high rating?
     message: const Text(
       'Like the app? Then please rate it.  A review would also be appreciated.',
       textAlign: TextAlign.center,
       style: TextStyle(fontSize: 15),
     ),
-    // your app's logo?
     image: Image.asset("assets/icon/icon_rating.png"),
     submitButtonText: 'Submit',
     commentHint: 'Please provide a comment here.',
@@ -98,7 +88,6 @@ class petDetailState extends State<petDetail>
 
   @override
   void initState() {
-    // Initialize sparkle animation
     _sparkleController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -113,7 +102,7 @@ class petDetailState extends State<petDetail>
 
     String user = "";
     bool favorited = false;
-    Map<String, String>? mapKeys;
+
     () async {
       try {
         user = await widget.server.getUser();
@@ -123,24 +112,20 @@ class petDetailState extends State<petDetail>
           isFavorited = favorited;
           userID = user;
           getPetDetail(widget.petID);
-          _controller.addListener(() {
-            _scrollListener();
-          });
+          _controller.addListener(_scrollListener);
         });
       } catch (e) {
         print("Error initializing pet detail: $e");
-        // Set fallback values when Firestore fails
         setState(() {
           rescueGroupApi = AppConfig.rescueGroupsApiKey;
           isFavorited = false;
-          userID = "demo-user"; // Fallback user ID
+          userID = "demo-user";
           getPetDetail(widget.petID);
-          _controller.addListener(() {
-            _scrollListener();
-          });
+          _controller.addListener(_scrollListener);
         });
       }
     }();
+
     super.initState();
   }
 
@@ -159,21 +144,17 @@ class petDetailState extends State<petDetail>
     print("URL = $url");
 
     var response = await http.get(Uri.parse(url), headers: {
-      'Content-Type': 'application/json', //; charset=UTF-8',
+      'Content-Type': 'application/json',
       'Authorization': rescueGroupApi!
     });
 
     if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
       print("status 200");
       setState(() {
         shelterDetailInstance = Shelter.fromJson(jsonDecode(response.body));
         loadAsset();
       });
     } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
       print("response.statusCode = ${response.statusCode}");
       throw Exception('Failed to load pet ${response.body}');
     }
@@ -207,27 +188,24 @@ class petDetailState extends State<petDetail>
     var data2 = RescueGroupsQuery.fromJson(data);
 
     var response = await http.get(Uri.parse(url), headers: {
-      'Content-Type': 'application/json', //; charset=UTF-8',
+      'Content-Type': 'application/json',
       'Authorization': rescueGroupApi!
     });
 
     if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
       print("status 200");
       var petDecoded = pet.fromJson(jsonDecode(response.body));
       setState(() {
         petDetailInstance = PetDetailData(
-            petDecoded.data![0],
-            petDecoded.included!,
-            petDecoded.data![0].relationships!.values.toList());
+          petDecoded.data![0],
+          petDecoded.included!,
+          petDecoded.data![0].relationships!.values.toList(),
+        );
         getShelterDetail(petDetailInstance!.organizationID!);
         loadAsset();
       });
       print("********DD = ${petDetailInstance?.media}");
     } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
       print("response.statusCode = ${response.statusCode}");
       throw Exception('Failed to load pet ${response.body}');
     }
@@ -298,16 +276,12 @@ class petDetailState extends State<petDetail>
     String donationUrl = "Not Available.";
     String sponsorshipUrl = "Not Available.";
     String facebookUrl = "Not Available.";
-    String rescueOrgID = "?";
-    String animalID = "?";
 
     if (shelterDetailInstance != null &&
         shelterDetailInstance!.data != null &&
         shelterDetailInstance!.data!.isNotEmpty &&
         shelterDetailInstance!.data![0].attributes != null) {
       Attributes detail = shelterDetailInstance!.data![0].attributes!;
-      animalID = petDetailInstance?.id ?? "?";
-      rescueOrgID = shelterDetailInstance!.data![0].id ?? "?";
       serveAreas = detail.serveAreas ?? "Please contact shelter for details.";
       about = detail.about ?? "Please contact shelter for details.";
       services = detail.services ?? "Please contact shelter for details.";
@@ -327,6 +301,7 @@ class petDetailState extends State<petDetail>
           ? "<a href='${detail.sponsorshipUrl}'>${detail.sponsorshipUrl}</a>"
           : "Not Available.";
     }
+
     return Scaffold(
       backgroundColor: AppTheme.deepPurple,
       appBar: AppBar(
@@ -339,20 +314,18 @@ class petDetailState extends State<petDetail>
             padding: const EdgeInsets.only(right: 10.0),
             child: LikeButton(
               onTap: (isLiked) async {
-                print("userID = ${userID}petID = ${widget.petID}");
+                print("userID = $userID petID = ${widget.petID}");
                 if (isLiked == true) {
                   widget.server.unfavoritePet(userID, widget.petID);
                   isFavorited = false;
                   globals.listOfFavorites.remove(widget.petID);
                 } else if (isLiked == false) {
-                  Future<SharedPreferences> prefs0 =
-                      SharedPreferences.getInstance();
-                  final SharedPreferences prefs = await prefs0;
+                  final SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
                   if (!prefs.containsKey("RatedApp")) {
                     showDialog(
                       context: context,
-                      barrierDismissible:
-                          true, // set to false if you want to force a rating
+                      barrierDismissible: true,
                       builder: (context) => _dialog,
                     );
                   }
@@ -360,7 +333,6 @@ class petDetailState extends State<petDetail>
                   widget.server.favoritePet(userID, widget.petID);
                   isFavorited = true;
 
-                  // Trigger sparkle animation when favorited
                   _sparkleController.reset();
                   _sparkleController.forward();
                 }
@@ -411,300 +383,217 @@ class petDetailState extends State<petDetail>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Horizontal Scrolling Photo Gallery (full width, no padding)
-              if (petDetailInstance == null || petDetailInstance!.media.isEmpty)
-                Container(
-                  width: double.infinity,
-                  margin: EdgeInsets.zero,
-                  height: 200,
-                  decoration: const BoxDecoration(
-                    gradient: AppTheme.purpleGradient,
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.pets,
-                          size: 64,
-                          color: Colors.white,
-                        ),
-                        SizedBox(height: AppTheme.spacingM),
-                        Text(
-                          'No photos available',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: AppTheme.fontSizeM,
-                            fontFamily: AppTheme.fontFamily,
+              // Gold-framed media gallery (no built-in plaque)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                child: GoldFramedPanel(
+                  plaqueLines: null,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Get actual available space inside the frame
+                      final availableHeight = constraints.maxHeight;
+                      final availableWidth = constraints.maxWidth;
+                      
+                      // Image height is available height - 20px
+                      final imageHeight = availableHeight > 0 && availableHeight != double.infinity
+                          ? availableHeight - 20.0
+                          : 200.0;
+                      
+                      if (petDetailInstance == null ||
+                          petDetailInstance!.media.isEmpty) {
+                        return Container(
+                          width: double.infinity,
+                          height: availableHeight > 0 && availableHeight != double.infinity 
+                              ? availableHeight 
+                              : 200,
+                          decoration: const BoxDecoration(
+                            gradient: AppTheme.purpleGradient,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Builder(
-                  builder: (context) {
-                    final fixedHeight = 200.0;
-                    final screenWidth = MediaQuery.of(context).size.width;
-                    final availableWidth = screenWidth;
-                    
-                    // Calculate total width of all images
-                    double totalWidth = 0.0;
-                    List<double> imageWidths = [];
-                    
-                    for (var media in petDetailInstance!.media) {
-                      double imageWidth = fixedHeight;
-                      
-                      // Calculate proportional width based on image aspect ratio
-                      if (media is SmallPhoto && petDetailInstance!.mainPictures.isNotEmpty) {
-                        // Find matching picture in mainPictures by comparing URLs
-                        final photoUrl = media.photo;
-                        final matchingPicture = petDetailInstance!.mainPictures.firstWhere(
-                          (pic) => pic.url.toString() == photoUrl,
-                          orElse: () => petDetailInstance!.mainPictures[0],
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.pets,
+                                  size: 64,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(height: AppTheme.spacingM),
+                                Text(
+                                  'No photos available',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: AppTheme.fontSizeM,
+                                    fontFamily: AppTheme.fontFamily,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         );
-                        
-                        // Calculate width based on actual image dimensions
-                        if (matchingPicture.resolutionX != null && 
-                            matchingPicture.resolutionY != null &&
-                            matchingPicture.resolutionX! > 0 &&
-                            matchingPicture.resolutionY! > 0) {
-                          final aspectRatio = matchingPicture.resolutionX! / matchingPicture.resolutionY!;
-                          imageWidth = fixedHeight * aspectRatio;
+                      }
+
+                      double totalWidth = 0.0;
+                      List<double> imageWidths = [];
+
+                      for (var media in petDetailInstance!.media) {
+                        double imageWidth = imageHeight;
+
+                        if (media is SmallPhoto &&
+                            petDetailInstance!.mainPictures.isNotEmpty) {
+                          final photoUrl = media.photo;
+                          final matchingPicture =
+                              petDetailInstance!.mainPictures.firstWhere(
+                            (pic) => pic.url.toString() == photoUrl,
+                            orElse: () => petDetailInstance!.mainPictures[0],
+                          );
+
+                          if (matchingPicture.resolutionX != null &&
+                              matchingPicture.resolutionY != null &&
+                              matchingPicture.resolutionX! > 0 &&
+                              matchingPicture.resolutionY! > 0) {
+                            final aspectRatio = matchingPicture.resolutionX! /
+                                matchingPicture.resolutionY!;
+                            imageWidth = imageHeight * aspectRatio;
+                          } else {
+                            imageWidth = imageHeight * 4 / 3;
+                          }
+                        } else if (media is YouTubeVideo) {
+                          imageWidth = imageHeight * 16 / 9;
                         } else {
-                          // Default aspect ratio for photos (4:3)
-                          imageWidth = fixedHeight * 4 / 3;
+                          imageWidth = imageHeight * 4 / 3;
                         }
-                      } else if (media is YouTubeVideo) {
-                        // Standard video aspect ratio (16:9)
-                        imageWidth = fixedHeight * 16 / 9;
-                      } else {
-                        // Default aspect ratio for photos (4:3)
-                        imageWidth = fixedHeight * 4 / 3;
+
+                        if (imageWidth <= 0) {
+                          imageWidth = imageHeight * 4 / 3;
+                        }
+
+                        imageWidths.add(imageWidth);
+                        totalWidth += imageWidth;
+                        if (imageWidths.length <
+                            petDetailInstance!.media.length) {
+                          totalWidth += 8.0;
+                        }
                       }
-                      
-                      // Ensure imageWidth is always positive
-                      if (imageWidth <= 0) {
-                        imageWidth = fixedHeight * 4 / 3;
+
+                      final shouldCenter = totalWidth < availableWidth;
+
+                      if (imageWidths.length !=
+                          petDetailInstance!.media.length) {
+                        imageWidths = List.generate(
+                          petDetailInstance!.media.length,
+                          (index) => imageHeight * 4 / 3,
+                        );
                       }
-                      
-                      imageWidths.add(imageWidth);
-                      totalWidth += imageWidth;
-                      // Add margin between images (8px between each, except last)
-                      if (imageWidths.length < petDetailInstance!.media.length) {
-                        totalWidth += 8.0;
-                      }
-                    }
-                    
-                    // If total width is less than available width, center and disable scrolling
-                    final shouldCenter = totalWidth < availableWidth;
-                    
-                    // Safety check: ensure imageWidths matches media length
-                    if (imageWidths.length != petDetailInstance!.media.length) {
-                      // If mismatch, use default widths
-                      imageWidths = List.generate(
-                        petDetailInstance!.media.length,
-                        (index) => fixedHeight * 4 / 3,
-                      );
-                    }
-                    
-                    return Container(
-                      width: double.infinity,
-                      margin: EdgeInsets.zero,
-                      height: 200,
-                      decoration: const BoxDecoration(
-                        gradient: AppTheme.purpleGradient,
-                      ),
-                      child: petDetailInstance!.media.isEmpty
-                          ? const SizedBox.shrink()
-                          : (shouldCenter
-                              ? Center(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: List.generate(
-                                      petDetailInstance!.media.length,
-                                      (index) => _buildMediaItem(
-                                        petDetailInstance!.media[index],
-                                        imageWidths[index],
-                                        fixedHeight,
-                                        index,
+
+                      return Container(
+                        width: double.infinity,
+                        height: availableHeight > 0 && availableHeight != double.infinity 
+                            ? availableHeight 
+                            : imageHeight + 20,
+                        decoration: const BoxDecoration(
+                          gradient: AppTheme.purpleGradient,
+                        ),
+                        child: petDetailInstance!.media.isEmpty
+                            ? const SizedBox.shrink()
+                            : (shouldCenter
+                                ? Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: List.generate(
                                         petDetailInstance!.media.length,
+                                        (index) => _buildMediaItem(
+                                          petDetailInstance!.media[index],
+                                          imageWidths[index],
+                                          imageHeight,
+                                          index,
+                                          petDetailInstance!.media.length,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                )
-                              : ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                  padding: EdgeInsets.zero,
-                                  itemCount: petDetailInstance!.media.length,
-                                  itemBuilder: (context, index) => _buildMediaItem(
-                                    petDetailInstance!.media[index],
-                                    imageWidths[index],
-                                    fixedHeight,
-                                    index,
-                                    petDetailInstance!.media.length,
-                                  ),
-                                )),
-                    );
-                  },
+                                  )
+                                : ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    padding: EdgeInsets.zero,
+                                    itemCount: petDetailInstance!.media.length,
+                                    itemBuilder: (context, index) =>
+                                        _buildMediaItem(
+                                      petDetailInstance!.media[index],
+                                      imageWidths[index],
+                                      imageHeight,
+                                      index,
+                                      petDetailInstance!.media.length,
+                                    ),
+                                  )),
+                      );
+                    },
+                  ),
                 ),
-              // Rest of content with padding
+              ),
+
+              // Name + Breed Plaque (purple with thin gold outline)
+              if (petDetailInstance != null)
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: NameBreedPlaque(
+                    name: petDetailInstance!.name ?? "",
+                    breed: petDetailInstance!.primaryBreed ?? "",
+                  ),
+                ),
+
+              // Stats badges section
               Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    const SizedBox(
-                      height: 5,
-                    ),
-                    GoldenCard(
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 11), // Reduced from 16 to 11 for wider content
-                padding: EdgeInsets.all(AppTheme.spacingL),
-                backgroundColor: AppTheme.traitCardBackground,
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-                          ),
-                          child: const Icon(
-                            Icons.pets,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                petDetailInstance == null
-                                    ? ""
-                                    : petDetailInstance!.name ?? "",
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  fontFamily: 'Poppins',
-                                ),
-                                textAlign: TextAlign.left,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                petDetailInstance == null
-                                    ? ""
-                                    : petDetailInstance!.primaryBreed ?? "",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.left,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    getStats(),
-                  ],
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: StatsBadgeSection(
+                  child: getStats(),
                 ),
               ),
-              const SizedBox(
-                height: 20,
-              ),
+
+              const SizedBox(height: 10),
               Center(
                 child: SizedBox(
                   height: 100,
                   child: Center(
                     child: ToolBar(
-                        detail: petDetailInstance,
-                        shelterDetail: shelterDetailInstance),
+                      detail: petDetailInstance,
+                      shelterDetail: shelterDetailInstance,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 20,
-              ),
-              const Text("General Information",
+              const SizedBox(height: 20),
+
+              const Center(
+                child: Text(
+                  "General Information",
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                  )),
-              const SizedBox(height: 20),
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 11), // Reduced from 16 to 11 for wider content
-                decoration: BoxDecoration(
-                  color: AppTheme.traitCardBackground,
-                  borderRadius: BorderRadius.circular(16),
-                  border: AppTheme.goldenBorder,
-                  boxShadow: AppTheme.goldenGlow,
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.location_on_outlined,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Contact",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.location_on_outlined,
-                                size: 20,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 10),
-                              Flexible(
-                                child: Text(
-                                  getAddress(petDetailInstance),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white,
-                                    height: 1.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
+              const SizedBox(height: 20),
+
+              // Contact section using thin gold outline
+              ThinGoldSection(
+                title: "Contact",
+                icon: Icons.location_on_outlined,
+                child: Text(
+                  getAddress(petDetailInstance),
+                  style: GoogleFonts.karla(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 20),
               textBox("Description", petDetailInstance?.description ?? ""),
               const SizedBox(height: 20),
@@ -726,11 +615,11 @@ class petDetailState extends State<petDetail>
               const SizedBox(height: 20),
               textBox("Sponsorship Url", sponsorshipUrl),
               const SizedBox(height: 20),
-              textBox("DISCLAIMER",
-                  "PLEASE READ: Information regarding adoptable pets is provided by the adopting organization and is neither checked for accuracy or completeness nor guaranteed to be accurate or complete.  The health status and behavior of any pet found, adopted through, or listed on the Feline Finder app are sole responsibility of the adoption organization listing the same and/or the adopting party and by using this service, the adopting party releases Feline Finder and Gregory Edward Williams from any and all liability arising out of or in any way connected with the adoption of a pet listed on the Feline Finder app.")
-                  ],
-                ),
+              textBox(
+                "DISCLAIMER",
+                "PLEASE READ: Information regarding adoptable pets is provided by the adopting organization and is neither checked for accuracy or completeness nor guaranteed to be accurate or complete.  The health status and behavior of any pet found, adopted through, or listed on the Feline Finder app are sole responsibility of the adoption organization listing the same and/or the adopting party and by using this service, the adopting party releases Feline Finder and Gregory Edward Williams from any and all liability arising out of or in any way connected with the adoption of a pet listed on the Feline Finder app.",
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -738,12 +627,11 @@ class petDetailState extends State<petDetail>
     );
   }
 
-  Widget _buildMediaItem(dynamic media, double imageWidth, double fixedHeight, int index, int totalCount) {
+  Widget _buildMediaItem(
+      dynamic media, double imageWidth, double fixedHeight, int index, int totalCount) {
     final isLast = index == totalCount - 1;
-    
-    // Ensure imageWidth is positive
     final safeWidth = imageWidth > 0 ? imageWidth : fixedHeight * 4 / 3;
-    
+
     return Container(
       margin: EdgeInsets.only(
         right: isLast ? 0 : 8.0,
@@ -817,8 +705,7 @@ class petDetailState extends State<petDetail>
                             ),
                           ),
                         ),
-                        errorWidget: (context, url, error) =>
-                            Container(
+                        errorWidget: (context, url, error) => Container(
                           color: Colors.grey[200],
                           child: const Icon(
                             Icons.error_outline,
@@ -830,8 +717,7 @@ class petDetailState extends State<petDetail>
                         color: Colors.black.withOpacity(0.3),
                         child: const Center(
                           child: Column(
-                            mainAxisAlignment:
-                                MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
                                 Icons.play_circle_filled,
@@ -867,7 +753,7 @@ class petDetailState extends State<petDetail>
                   },
                   child: CachedNetworkImage(
                     imageUrl: (media as SmallPhoto).photo,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     width: safeWidth,
                     height: fixedHeight,
                     placeholder: (context, url) => Container(
@@ -880,8 +766,7 @@ class petDetailState extends State<petDetail>
                         ),
                       ),
                     ),
-                    errorWidget: (context, url, error) =>
-                        Container(
+                    errorWidget: (context, url, error) => Container(
                       width: safeWidth,
                       height: fixedHeight,
                       color: Colors.grey[200],
@@ -904,12 +789,17 @@ class petDetailState extends State<petDetail>
     var textString = document.text ?? "";
     final TextStyle textStyle;
     if (title == "DISCLAIMER") {
-      textStyle = GoogleFonts.karla(fontSize: 10, fontWeight: FontWeight.w500);
+      textStyle = GoogleFonts.karla(
+        fontSize: 10,
+        fontWeight: FontWeight.w500,
+      );
     } else {
-      textStyle = GoogleFonts.karla(fontSize: 16, fontWeight: FontWeight.w500);
+      textStyle = GoogleFonts.karla(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      );
     }
 
-    // Get appropriate icon for each section
     IconData getIconForTitle(String title) {
       switch (title.toLowerCase()) {
         case 'about':
@@ -935,66 +825,23 @@ class petDetailState extends State<petDetail>
       }
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 11), // Reduced from 16 to 11 for wider content
-      decoration: BoxDecoration(
-        color: AppTheme.traitCardBackground,
-        borderRadius: BorderRadius.circular(16),
-        border: AppTheme.goldenBorder,
-        boxShadow: AppTheme.goldenGlow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                getIconForTitle(title),
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  LinkifyText(
-                    textString,
-                    textAlign: TextAlign.left,
-                    textStyle: textStyle.copyWith(
-                      color: Colors.white,
-                      height: 1.5,
-                    ),
-                    linkTypes: const [LinkType.email, LinkType.url],
-                    linkStyle: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
-                    ),
-                    onTap: (link) => _onOpen(link.value!),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return ThinGoldSection(
+      title: title,
+      icon: getIconForTitle(title),
+      child: LinkifyText(
+        textString,
+        textAlign: TextAlign.left,
+        textStyle: textStyle.copyWith(
+          color: Colors.white,
+          height: 1.5,
         ),
+        linkTypes: const [LinkType.email, LinkType.url],
+        linkStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          decoration: TextDecoration.underline,
+        ),
+        onTap: (link) => _onOpen(link.value!),
       ),
     );
   }
@@ -1014,54 +861,39 @@ class petDetailState extends State<petDetail>
     }
 
     List<String> stats = [];
-    if (petDetailInstance!.status != null) {
-      stats.add(petDetailInstance!.status ?? "");
+    if (petDetailInstance!.status != null &&
+        petDetailInstance!.status!.trim().isNotEmpty) {
+      stats.add(petDetailInstance!.status!.trim());
     }
-    if (petDetailInstance!.ageGroup != null) {
-      stats.add(petDetailInstance!.ageGroup ?? "");
+    if (petDetailInstance!.sex != null &&
+        petDetailInstance!.sex!.trim().isNotEmpty) {
+      stats.add(petDetailInstance!.sex!.trim());
     }
-    if (petDetailInstance!.sex != null) {
-      stats.add(petDetailInstance!.sex ?? "");
+    if (petDetailInstance!.sizeGroup != null &&
+        petDetailInstance!.sizeGroup!.trim().isNotEmpty) {
+      stats.add(petDetailInstance!.sizeGroup!.trim());
     }
-    if (petDetailInstance!.sizeGroup != null) {
-      stats.add(petDetailInstance!.sizeGroup ?? "");
+    if (petDetailInstance!.ageGroup != null &&
+        petDetailInstance!.ageGroup!.trim().isNotEmpty) {
+      stats.add(petDetailInstance!.ageGroup!.trim());
     }
-    List<Color> foreground = [
-      const Color.fromRGBO(101, 164, 43, 1),
-      const Color.fromRGBO(3, 122, 254, 1),
-      const Color.fromRGBO(245, 76, 10, 1.0),
-      Colors.deepPurple
-    ];
-    List<Color> background = [
-      const Color.fromRGBO(222, 234, 209, 1),
-      const Color.fromRGBO(209, 224, 239, 1),
-      const Color.fromARGB(255, 246, 193, 167),
-      Colors.purpleAccent.shade100
-    ];
+
+    if (stats.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Center(
-        child: SizedBox(
-            width: MediaQuery.of(context).size.width,
-            child: Wrap(
-                alignment: WrapAlignment.spaceEvenly,
-                spacing: 10,
-                runSpacing: 10,
-                direction: Axis.horizontal,
-                children: stats.map((item) {
-                  return Container(
-                      width: 100,
-                      decoration: BoxDecoration(
-                          border: Border.all(
-                              color: foreground[stats.indexOf(item)]),
-                          color: background[stats.indexOf(item)],
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(5))),
-                      child: Text(stats[stats.indexOf(item)].trim(),
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: foreground[stats.indexOf(item)]),
-                          textAlign: TextAlign.center));
-                }).toList())));
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 10,
+        runSpacing: 10,
+        children: stats
+            .map(
+              (item) => GoldOutlineBadge(label: item),
+            )
+            .toList(),
+      ),
+    );
   }
 
   void loadAsset() async {
@@ -1174,8 +1006,7 @@ class petDetailState extends State<petDetail>
   }
 }
 
-/// Full-screen image viewer that displays an image fitted to the screen
-/// without cutting anything off or distorting it
+/// Full-screen image viewer
 class FullScreenImageView extends StatelessWidget {
   final String imageUrl;
 
@@ -1191,7 +1022,6 @@ class FullScreenImageView extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // Full-screen image
             Center(
               child: InteractiveViewer(
                 minScale: 0.5,
@@ -1220,7 +1050,6 @@ class FullScreenImageView extends StatelessWidget {
                 ),
               ),
             ),
-            // Close button
             Positioned(
               top: 16,
               right: 16,
@@ -1243,6 +1072,223 @@ class FullScreenImageView extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+//
+// 👇 New reusable widgets for the Option A mockup
+//
+
+class NameBreedPlaque extends StatelessWidget {
+  final String name;
+  final String breed;
+
+  const NameBreedPlaque({
+    Key? key,
+    required this.name,
+    required this.breed,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = AppTheme.goldenBorder.top.color;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      decoration: BoxDecoration(
+        color: AppTheme.traitCardBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            name,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontFamily: AppTheme.fontFamily,
+            ),
+          ),
+          if (breed.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              breed,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withOpacity(0.9),
+                fontFamily: AppTheme.fontFamily,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class GoldOutlineBadge extends StatelessWidget {
+  final String label;
+
+  const GoldOutlineBadge({
+    Key? key,
+    required this.label,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = AppTheme.goldenBorder.top.color;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.traitCardBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.karla(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+}
+
+class StatsBadgeSection extends StatelessWidget {
+  final Widget child;
+
+  const StatsBadgeSection({
+    Key? key,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = AppTheme.goldenBorder.top.color;
+
+    return Container(
+      padding: EdgeInsets.all(AppTheme.spacingL),
+      decoration: BoxDecoration(
+        color: AppTheme.traitCardBackground,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.30),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class GoldIconBox extends StatelessWidget {
+  final IconData icon;
+
+  const GoldIconBox({
+    Key? key,
+    required this.icon,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = AppTheme.goldenBorder.top.color;
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Icon(
+        icon,
+        color: Colors.white,
+        size: 22,
+      ),
+    );
+  }
+}
+
+class ThinGoldSection extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  const ThinGoldSection({
+    Key? key,
+    required this.title,
+    required this.icon,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = AppTheme.goldenBorder.top.color;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 11),
+      decoration: BoxDecoration(
+        color: AppTheme.traitCardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GoldIconBox(icon: icon),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  child,
+                ],
               ),
             ),
           ],

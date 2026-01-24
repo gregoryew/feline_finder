@@ -9,6 +9,7 @@ import 'gold_plaque.dart';
 class GoldFramedPanel extends StatelessWidget {
   final Widget child;
   final List<String>? plaqueLines;
+  final List<Widget>? plaqueWidgets;
   
   static const String _frameAsset = 'assets/frame/gold_frame_no_plaque.png';
   static const Rect _frameCenterSlice = Rect.fromLTWH(108, 106, 806, 810);
@@ -17,7 +18,9 @@ class GoldFramedPanel extends StatelessWidget {
     Key? key,
     required this.child,
     this.plaqueLines,
-  }) : super(key: key);
+    this.plaqueWidgets,
+  }) : assert(plaqueLines == null || plaqueWidgets == null, 'Cannot provide both plaqueLines and plaqueWidgets'),
+       super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +53,12 @@ class GoldFramedPanel extends StatelessWidget {
 
         // Calculate plaque height if needed
         double plaqueHeight = 0;
-        if (plaqueLines != null && plaqueLines!.isNotEmpty) {
-          // Estimate plaque height based on number of lines (increased to ensure full visibility)
+        if ((plaqueLines != null && plaqueLines!.isNotEmpty) || 
+            (plaqueWidgets != null && plaqueWidgets!.isNotEmpty)) {
+          // Estimate plaque height based on number of lines/widgets (increased to ensure full visibility)
           // Using 20px per line + 20px for padding to ensure the plaque is fully visible
-          plaqueHeight = (plaqueLines!.length * 20.0) + 20.0;
+          final int itemCount = plaqueLines?.length ?? plaqueWidgets?.length ?? 0;
+          plaqueHeight = (itemCount * 20.0) + 20.0;
         }
 
         // For small cards, use Column-based layout to avoid centerSlice issues
@@ -91,9 +96,11 @@ class GoldFramedPanel extends StatelessWidget {
                     ),
                   ),
                   // Plaque positioned directly below image (no spacing)
-                  if (plaqueLines != null && plaqueLines!.isNotEmpty)
+                  if ((plaqueLines != null && plaqueLines!.isNotEmpty) || 
+                      (plaqueWidgets != null && plaqueWidgets!.isNotEmpty))
                     GoldPlaque(
-                      lines: plaqueLines!,
+                      lines: plaqueLines,
+                      widgets: plaqueWidgets,
                       // Increase maxWidth to reduce left/right margins (add 20px total, 10px each side)
                       maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right) + 20,
                     ),
@@ -131,14 +138,16 @@ class GoldFramedPanel extends StatelessWidget {
                 ),
               ),
               // Plaque if provided
-              if (plaqueLines != null && plaqueLines!.isNotEmpty)
+              if ((plaqueLines != null && plaqueLines!.isNotEmpty) || 
+                  (plaqueWidgets != null && plaqueWidgets!.isNotEmpty))
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0, // Position at the very bottom of the frame
                   child: Center(
                     child: GoldPlaque(
-                      lines: plaqueLines!,
+                      lines: plaqueLines,
+                      widgets: plaqueWidgets,
                       // Increase maxWidth to reduce left/right margins (add 20px total, 10px each side)
                       maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right) + 20,
                     ),

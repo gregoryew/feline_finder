@@ -17,7 +17,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
-import '/screens/chatList.dart';
+import '/screens/favoritesList.dart';
 import '/widgets/gold/gold_circle_icon_button.dart';
 
 FirebaseAuth? auth;
@@ -56,6 +56,11 @@ void main() async {
 
   // Initialize authentication
   await _initializeAuth();
+
+  // Reset search animation flag for new app session
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('searchAnimationShownThisSession', false);
+  await prefs.setString('appStartTime', DateTime.now().toIso8601String());
 
   // Ensure minimum 3 seconds have passed (launch screen will show during this time)
   final elapsed = DateTime.now().difference(startTime);
@@ -203,6 +208,7 @@ bool favoritesSelected = false;
 class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late GlobalObjectKey<AdoptGridState> AdoptionGridKey;
+  late GlobalObjectKey<FitState> FitScreenKey = GlobalObjectKey<FitState>(this);
   late AnimationController _sparkleController;
   late Animation<double> _sparkleAnimation;
 
@@ -213,6 +219,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    AdoptionGridKey = GlobalObjectKey<AdoptGridState>(this);
     // Initialize sparkle animation
     _sparkleController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -233,11 +240,11 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  static List<Widget> pages = <Widget>[
-    const AdoptGrid(), // Index 0 - Adopt a cat (first tab)
-    const Fit(), // Index 1 - Fit (second tab)
+  List<Widget> get pages => <Widget>[
+    AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton), // Index 0 - Adopt a cat (first tab)
+    Fit(key: FitScreenKey), // Index 1 - Fit (second tab)
     BreedList(title: "Breed List"), // Index 2 - Breed info (third tab)
-    const ConversationListScreen() // Index 3 - Chat (fourth tab)
+    const FavoritesListScreen() // Index 3 - Saved/Favorites (fourth tab)
   ];
 
 // 9
@@ -253,19 +260,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       return <Widget>[
         GoldCircleIconButton(
           icon: Icons.favorite,
-          isSelected: favoritesSelected,
+          isSelected: true, // Always show red
           onTap: () {
-            favoritesSelected = !favoritesSelected;
-            AdoptionGridKey.currentState!.setFavorites(favoritesSelected);
-            setState(() {
-              // favoritesSelected is a global variable, update it
-            });
-
-            // Trigger sparkle animation when favorited
-            if (favoritesSelected) {
-              _sparkleController.reset();
-              _sparkleController.forward();
-            }
+            // Navigate to favorites tab (index 3)
+            _onItemTapped(3);
           },
         ),
         const SizedBox(width: 14),
@@ -273,6 +271,17 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
           icon: Icons.search,
           onTap: () {
             AdoptionGridKey.currentState!.search();
+          },
+        ),
+        const SizedBox(width: 15),
+      ];
+    } else if (selectedIndex == 1) {
+      // Fit screen - add share button
+      return <Widget>[
+        GoldCircleIconButton(
+          icon: Icons.share,
+          onTap: () {
+            FitScreenKey.currentState?.shareFitScreen();
           },
         ),
         const SizedBox(width: 15),
@@ -304,7 +313,6 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    AdoptionGridKey = GlobalObjectKey<AdoptGridState>(context);
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -359,15 +367,12 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  child: ClipRRect(
+                    child: ClipRRect(
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
                     ),
-                    child: (_selectedIndex == 0) // Adopt tab is now at index 0
-                        ? AdoptGrid(
-                            key: AdoptionGridKey, setFav: _setFavoriteButton)
-                        : pages[_selectedIndex],
+                    child: pages[_selectedIndex],
                   ),
                 ),
               ),
@@ -412,15 +417,29 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
-                  child: ImageIcon(
-                    AssetImage(_selectedIndex == 0
-                        ? "assets/Icons/adopt_selected.png"
-                        : "assets/Icons/adopt_unselected.png"),
-                    color: (_selectedIndex == 0
-                        ? AppTheme.goldBase
-                        : AppTheme.textSecondary),
-                    size: 24,
-                  ),
+                  child: _selectedIndex == 0
+                      ? Text(
+                          '🐈',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: AppTheme.goldBase,
+                          ),
+                        )
+                      : ColorFiltered(
+                          colorFilter: ColorFilter.matrix([
+                            0.2126, 0.7152, 0.0722, 0, 0, // Red channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Green channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
+                            0, 0, 0, 1, 0, // Alpha channel
+                          ]),
+                          child: Text(
+                            '🐈',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
                 ),
                 label: 'Adopt',
               ),
@@ -434,15 +453,29 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
-                  child: ImageIcon(
-                    AssetImage(_selectedIndex == 1
-                        ? "assets/Icons/fit_selected.png"
-                        : "assets/Icons/fit_unselected.png"),
-                    color: (_selectedIndex == 1
-                        ? AppTheme.goldBase
-                        : AppTheme.textSecondary),
-                    size: 24,
-                  ),
+                  child: _selectedIndex == 1
+                      ? Text(
+                          '🧠',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: AppTheme.goldBase,
+                          ),
+                        )
+                      : ColorFiltered(
+                          colorFilter: ColorFilter.matrix([
+                            0.2126, 0.7152, 0.0722, 0, 0, // Red channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Green channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
+                            0, 0, 0, 1, 0, // Alpha channel
+                          ]),
+                          child: Text(
+                            '🧠',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
                 ),
                 label: 'Fit',
               ),
@@ -456,15 +489,29 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
-                  child: ImageIcon(
-                    AssetImage(_selectedIndex == 2
-                        ? "assets/Icons/breeds_selected.png"
-                        : "assets/Icons/breeds_unselected.png"),
-                    color: (_selectedIndex == 2
-                        ? AppTheme.goldBase
-                        : AppTheme.textSecondary),
-                    size: 24,
-                  ),
+                  child: _selectedIndex == 2
+                      ? Text(
+                          '🐱',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: AppTheme.goldBase,
+                          ),
+                        )
+                      : ColorFiltered(
+                          colorFilter: ColorFilter.matrix([
+                            0.2126, 0.7152, 0.0722, 0, 0, // Red channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Green channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
+                            0, 0, 0, 1, 0, // Alpha channel
+                          ]),
+                          child: Text(
+                            '🐱',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
                 ),
                 label: "Breeds",
               ),
@@ -478,17 +525,31 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
-                  child: ImageIcon(
-                    AssetImage(_selectedIndex == 3
-                        ? "assets/Icons/talk_selected.png"
-                        : "assets/Icons/talk_unselected.png"),
-                    color: (_selectedIndex == 3
-                        ? AppTheme.goldBase
-                        : AppTheme.textSecondary),
-                    size: 24,
-                  ),
+                  child: _selectedIndex == 3
+                      ? Text(
+                          '🏷️',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: AppTheme.goldBase,
+                          ),
+                        )
+                      : ColorFiltered(
+                          colorFilter: ColorFilter.matrix([
+                            0.2126, 0.7152, 0.0722, 0, 0, // Red channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Green channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
+                            0, 0, 0, 1, 0, // Alpha channel
+                          ]),
+                          child: Text(
+                            '🏷️',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
                 ),
-                label: 'Chat',
+                label: 'Saved',
               ),
             ],
           ),

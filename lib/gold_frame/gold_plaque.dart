@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 /// A widget that displays text on a gold plaque.
 /// 
-/// Supports 1-3 lines of text, centered horizontally and vertically.
+/// Supports 1-3 lines of text or widgets, centered horizontally and vertically.
 class GoldPlaque extends StatelessWidget {
-  final List<String> lines;
+  final List<String>? lines;
+  final List<Widget>? widgets;
   final double maxWidth;
   
   static const String _plaqueAsset = 'assets/frame/gold_plaque_refined.png';
@@ -16,13 +17,17 @@ class GoldPlaque extends StatelessWidget {
 
   const GoldPlaque({
     Key? key,
-    required this.lines,
+    this.lines,
+    this.widgets,
     required this.maxWidth,
-  }) : super(key: key);
+  }) : assert(lines != null || widgets != null, 'Either lines or widgets must be provided'),
+       assert(lines == null || widgets == null, 'Cannot provide both lines and widgets'),
+       super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    if (lines.isEmpty) {
+    final bool hasContent = (lines != null && lines!.isNotEmpty) || (widgets != null && widgets!.isNotEmpty);
+    if (!hasContent) {
       return const SizedBox.shrink();
     }
 
@@ -52,16 +57,18 @@ class GoldPlaque extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
-        children: lines.map((line) {
-          return Text(
-            line,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _textColor,
-              fontWeight: FontWeight.w600,
-            ),
-          );
-        }).toList(),
+        children: widgets != null
+            ? widgets!
+            : lines!.map((line) {
+                return Text(
+                  line,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _textColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              }).toList(),
       ),
     );
   }

@@ -1,15 +1,24 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart' show RenderObjectToWidgetAdapter, WidgetsBinding;
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:catapp/Models/question.dart';
 
 import '/models/breed.dart';
-import '/screens/breedDetail.dart';
+import '/screens/breedDetail.dart' show BreedDetail, WidgetMarker;
 import 'globals.dart' as globals;
+import '../config.dart';
 import '../theme.dart';
 import '../widgets/design_system.dart';
 import '../gold_frame/gold_frame_panel.dart';
@@ -305,10 +314,10 @@ class BubbleOverlayController {
     final cardSize = renderObject.size;
     final screenSize = MediaQuery.of(context).size;
 
-    // Left trait column width (screen width - gap - fixed 130px right column).
+    // Left trait column width (screen width - gap - fixed 140px right column).
     // This ensures the balloon stays over the left column (B3).
     const double gapBetweenColumns = 10.0;
-    const double rightColumnWidth = 130.0;
+    const double rightColumnWidth = 140.0;
     final double leftColumnWidth =
         screenSize.width - gapBetweenColumns - rightColumnWidth;
 
@@ -413,6 +422,12 @@ class FitState extends State<Fit> {
   
   // ScrollController for the trait cards list
   final ScrollController _questionsScrollController = ScrollController();
+  
+  // GlobalKey for capturing the screen as an image
+  final GlobalKey _fitScreenKey = GlobalKey();
+  
+  // Flag to track if we're capturing for sharing
+  bool _isCapturing = false;
 
   // Map question names to stat names (for name mismatches)
   static const Map<String, String> _questionToStatName = {
@@ -590,7 +605,40 @@ class FitState extends State<Fit> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(child: buildRows());
+    if (_isCapturing) {
+      // When capturing, use UnconstrainedBox to allow full expansion
+      final screenWidth = MediaQuery.of(context).size.width;
+      return RepaintBoundary(
+        key: _fitScreenKey,
+        child: UnconstrainedBox(
+          alignment: Alignment.topCenter,
+          constrainedAxis: Axis.horizontal,
+          child: Container(
+            width: screenWidth,
+            decoration: const BoxDecoration(
+              gradient: AppTheme.purpleGradient,
+            ),
+            child: _buildFullContentForCapture(),
+          ),
+        ),
+      );
+    }
+    
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return RepaintBoundary(
+          key: _fitScreenKey,
+          child: Container(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            decoration: const BoxDecoration(
+              gradient: AppTheme.purpleGradient,
+            ),
+            child: buildRows(),
+          ),
+        );
+      },
+    );
   }
 
   Widget buildRows() {
@@ -599,7 +647,7 @@ class FitState extends State<Fit> {
       children: [
         Expanded(child: buildQuestions()),
         const SizedBox(width: 10), // margin between trait cards and breed cards
-        SizedBox(width: 130, child: buildMatches()),
+        SizedBox(width: 140, child: buildMatches()),
       ],
     );
   }
@@ -719,6 +767,7 @@ class FitState extends State<Fit> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.goldBase,
+                                decoration: TextDecoration.none,
                               ),
                             ),
                           ),
@@ -967,7 +1016,10 @@ class FitState extends State<Fit> {
             itemBuilder: (BuildContext context, int index) {
               return GestureDetector(
                 onTap: () {
-                  Get.to(() => BreedDetail(breed: breeds[index]),
+                  Get.to(() => BreedDetail(
+                        breed: breeds[index],
+                        initialTab: WidgetMarker.stats,
+                      ),
                       transition: Transition.circularReveal,
                       duration: const Duration(seconds: 1));
                 },
@@ -977,6 +1029,78 @@ class FitState extends State<Fit> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Creates a 3D gold dot indicator widget showing breed match percentage
+  /// Shows 5 dots: 1 dot for 0-19%, 2 for 20-39%, 3 for 40-59%, 4 for 60-79%, 5 for 80-100%
+  Widget _buildDotIndicator(double percentMatch) {
+    // Calculate number of filled dots (1 dot per 20%, starting with 1 dot minimum)
+    // Formula: floor(percentage / 20) + 1, clamped to max 5
+    final int filledDots = (((percentMatch * 100) / 20).floor() + 1).clamp(1, 5);
+    
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (index) {
+        final bool isFilled = index < filledDots;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3.0),
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: isFilled
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.goldHighlight,
+                        AppTheme.goldBase,
+                        AppTheme.goldShadow,
+                      ],
+                      stops: [0.0, 0.5, 1.0],
+                    )
+                  : null,
+              color: isFilled ? null : const Color(0xFF4A2C00).withOpacity(0.3),
+              boxShadow: isFilled
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.goldHighlight.withOpacity(0.6),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                        offset: const Offset(-2, -2),
+                      ),
+                      BoxShadow(
+                        color: AppTheme.goldShadow.withOpacity(0.8),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                        offset: const Offset(2, 2),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        blurRadius: 2,
+                        spreadRadius: -1,
+                        offset: const Offset(1, 1),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.1),
+                        blurRadius: 1,
+                        offset: const Offset(-1, -1),
+                      ),
+                    ],
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -992,9 +1116,17 @@ class FitState extends State<Fit> {
       ),
       width: availableWidth,
       child: GoldFramedPanel(
-        plaqueLines: [
-          breed.name,
-          '${(breed.percentMatch * 100).toStringAsFixed(1)}%',
+        plaqueWidgets: [
+          Text(
+            breed.name,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: const Color(0xFF4A2C00),
+              fontWeight: FontWeight.w600,
+              fontSize: AppTheme.fontSizeS, // Explicit font size to match screen version
+            ),
+          ),
+          _buildDotIndicator(breed.percentMatch),
         ],
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1043,5 +1175,411 @@ class FitState extends State<Fit> {
         ),
       ),
     );
+  }
+
+  // Build breed card for capture with correct width constraints
+  Widget _buildBreedCardForCapture(Breed breed) {
+    const double availableWidth = 140; // Match the capture column width
+
+    return Container(
+      margin: const EdgeInsets.only(
+        left: 0.0,
+        right: 5.0,
+        top: 12.0,
+        bottom: 12.0,
+      ),
+      width: availableWidth,
+      child: GoldFramedPanel(
+        plaqueWidgets: [
+          Text(
+            breed.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF4A2C00),
+              fontWeight: FontWeight.w600,
+              fontSize: 12.0, // Explicit font size to match screen version
+              decoration: TextDecoration.none,
+            ),
+          ),
+          _buildDotIndicator(breed.percentMatch),
+        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final double imageWidth = constraints.maxWidth - 16;
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    top: 5.0,
+                    left: 8.0,
+                    right: 8.0,
+                  ),
+                  child: Container(
+                    width: imageWidth,
+                    height: AppTheme.breedCardImageHeight - 15,
+                    decoration: const BoxDecoration(
+                      gradient: AppTheme.purpleGradient,
+                    ),
+                    child: Image.asset(
+                      'assets/Cartoon/${breed.pictureHeadShotName.replaceAll(' ', '_')}.png',
+                      fit: BoxFit.fill,
+                      width: imageWidth,
+                      height: AppTheme.breedCardImageHeight - 15,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          decoration: const BoxDecoration(
+                            gradient: AppTheme.purpleGradient,
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.pets,
+                              color: AppTheme.offWhite,
+                              size: 48,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<String> _getFilePath() async {
+    Directory appDocumentsDirectory = await getApplicationDocumentsDirectory();
+    String appDocumentsPath = appDocumentsDirectory.path;
+    var userID = const Uuid();
+    String filePath = '$appDocumentsPath/${userID.v1()}.jpg';
+    return filePath;
+  }
+
+  // Build a question card for capture (without GlobalKey to avoid duplicates)
+  Widget _buildQuestionCardForCapture(Question question, int index) {
+    final bool isActive = false; // No animations during capture
+    
+    return Container(
+      child: AnimatedScale(
+        scale: 1.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          margin: EdgeInsets.only(
+            left: 10.0,
+            right: 10.0,
+            top: index == 0
+                ? 10.0
+                : (AppTheme.spacingS - 10).clamp(0.0, double.infinity),
+            bottom: 16.0,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.0),
+            gradient: AppTheme.purpleGradient,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12.0),
+            child: Container(
+              padding: const EdgeInsets.all(AppTheme.spacingM),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header row with question name and help button
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "${question.name}: ${question.choices[(_sliderValues[question.id] ?? 0.0).round()].name}",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.white,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.goldBase.withOpacity(0.2),
+                          border: Border.all(
+                            color: AppTheme.goldBase,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            '?',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.goldBase,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SfSliderTheme(
+                    data: SfSliderThemeData(
+                      inactiveTrackColor: AppTheme.deepPurple,
+                      activeTrackColor: AppTheme.goldBase,
+                      inactiveDividerColor: Colors.transparent,
+                      activeDividerColor: Colors.transparent,
+                      activeTrackHeight: 12,
+                      inactiveTrackHeight: 12,
+                      activeDividerRadius: 2,
+                      inactiveDividerRadius: 2,
+                    ),
+                    child: SfSlider(
+                      min: 0,
+                      max: question.choices.length.toDouble() - 1.0,
+                      interval: 1,
+                      showTicks: false,
+                      showDividers: false,
+                      enableTooltip: false,
+                      value: _sliderValues[question.id] ?? 0.0,
+                      thumbIcon: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppTheme.goldHighlight,
+                              AppTheme.goldBase,
+                              AppTheme.goldShadow,
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.goldBase.withOpacity(0.5),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 2),
+                            ),
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          margin: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.3),
+                          ),
+                        ),
+                      ),
+                      onChanged: (newValue) {
+                        // No-op during capture
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Build full content for capture - all question cards and matching breed cards
+  Widget _buildFullContentForCapture() {
+    // Show only the top 6 breed cards in the generated image
+    const int maxBreedCardsToShow = 6;
+    final int breedCardsToShow = maxBreedCardsToShow.clamp(0, breeds.length);
+    
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Left column - ALL question cards
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: Question.questions.asMap().entries.map((entry) {
+              final index = entry.key;
+              final question = entry.value;
+              return _buildQuestionCardForCapture(question, index);
+            }).toList(),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Right column - enough breed cards to match height
+        SizedBox(
+          width: 140,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Instructions if not dismissed
+              if (!_instructionsDismissed)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12.0, left: 5.0, right: 5.0),
+                  padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 12.0, bottom: 12.0),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.purpleGradient,
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Stack(
+                    children: [
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: 28.0),
+                          child: Text(
+                            'Adjust sliders to see your top breed matches',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.3),
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Show only the top 6 breed cards in the generated image
+              // Use capture-specific breed card builder with correct width
+              ...breeds.take(breedCardsToShow).map((breed) => _buildBreedCardForCapture(breed)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> shareFitScreen() async {
+    try {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final GlobalKey captureKey = GlobalKey();
+      
+      // Build the full content widget
+      final fullContentWidget = Container(
+        width: screenWidth,
+        decoration: const BoxDecoration(
+          gradient: AppTheme.purpleGradient,
+        ),
+        child: _buildFullContentForCapture(),
+      );
+      
+      // Create an overlay entry to render off-screen
+      final OverlayEntry overlayEntry = OverlayEntry(
+        builder: (context) => Positioned(
+          left: -10000, // Position far off-screen
+          top: 0,
+          child: RepaintBoundary(
+            key: captureKey,
+            child: fullContentWidget,
+          ),
+        ),
+      );
+      
+      // Insert overlay
+      Overlay.of(context).insert(overlayEntry);
+      
+      // Wait for rendering
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Get the RenderRepaintBoundary
+      final RenderRepaintBoundary? boundary = 
+          captureKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      
+      if (boundary == null) {
+        print('Error: Could not find render boundary');
+        overlayEntry.remove();
+        return;
+      }
+      
+      // Get the size of the boundary
+      final size = boundary.size;
+      print('📸 Capturing image: ${size.width}x${size.height}');
+      
+      // Capture the image with lower pixel ratio to reduce file size
+      // Using 2.0 instead of 3.0 to keep file size manageable for email
+      final ui.Image image = await boundary.toImage(pixelRatio: 2.0);
+      print('📸 Captured image dimensions: ${image.width}x${image.height}');
+      
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      
+      // Remove overlay
+      overlayEntry.remove();
+      
+      if (byteData == null) {
+        print('Error: Could not convert image to byte data');
+        return;
+      }
+      
+      // Convert PNG to JPG
+      final Uint8List pngBytes = byteData.buffer.asUint8List();
+      print('📸 Image size: ${pngBytes.length} bytes');
+      final String filepath = await _getFilePath();
+      final File file = File(filepath);
+      await file.writeAsBytes(pngBytes);
+      
+      // Get the top breed name (breeds are already sorted by percentMatch)
+      final String topBreedName = breeds.isNotEmpty ? breeds[0].name : 'Unknown';
+      
+      // Build the share text with the top breed name and Bitly link
+      final String shareText = 'Feline Finder says my purrfect cat breed match is $topBreedName! What\'s yours? Find out: ${AppConfig.appStoreUrl}';
+      
+      // Share the image
+      await Share.shareXFiles(
+        [XFile(filepath)],
+        text: shareText,
+        subject: 'My Purrfect Cat Breed Match',
+      );
+    } catch (e) {
+      print('Error sharing fit screen: $e');
+      // Fallback to text-only sharing
+      final String topBreedName = breeds.isNotEmpty ? breeds[0].name : 'Unknown';
+      final String shareText = 'Feline Finder says my purrfect cat breed match is $topBreedName! What\'s yours? Find out: ${AppConfig.appStoreUrl}';
+      await Share.share(
+        shareText,
+        subject: 'My Purrfect Cat Breed Match',
+      );
+    }
   }
 }

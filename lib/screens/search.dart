@@ -15,6 +15,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme.dart';
 import '../widgets/design_system.dart';
+import 'search_screen_style.dart';
 
 class SearchScreen extends StatefulWidget {
   final Map<CatClassification, List<filterOption>> categories;
@@ -45,6 +46,8 @@ class SearchScreenState extends State<SearchScreen> {
   final Map<String, GlobalKey> _filterKeys = {};
   // Keys for each filter category (ExpansionTile) to enable scrolling
   final Map<CatClassification, GlobalKey> _categoryKeys = {};
+  // Keys for FilterType-based categories (Core/Advanced)
+  final Map<String, GlobalKey> _filterTypeCategoryKeys = {};
   // Track which categories are expanded (supports both CatClassification and string keys)
   final Map<dynamic, bool> _expandedCategories = {};
   // Track which specific option values are being highlighted
@@ -58,6 +61,8 @@ class SearchScreenState extends State<SearchScreen> {
   List<String> _savedSearchNames = [];
   String? _selectedSavedSearch;
   String? _lastLoadedSearchName; // Track which search is currently loaded
+  // Track if search animation has been shown this session
+  bool _hasShownSearchAnimation = false;
 
   @override
   void initState() {
@@ -90,6 +95,9 @@ class SearchScreenState extends State<SearchScreen> {
 
     // Load saved searches from Firestore
     _loadSavedSearches();
+
+    // Check if search animation should be shown (first time this session)
+    _checkAndShowSearchAnimation();
 
     // Initialize keys for all filters and categories
     for (var filter in widget.filteringOptions) {
@@ -130,6 +138,9 @@ class SearchScreenState extends State<SearchScreen> {
   Future<void> _onZipCodeFocusChange() async {
     // Only validate when losing focus (not gaining focus)
     if (!_zipCodeFocusNode.hasFocus) {
+      // Ensure keyboard is hidden when focus is lost
+      FocusScope.of(context).unfocus();
+      
       final zip = _zipCodeController.text.trim();
 
       // Reset validation state if field is empty
@@ -182,8 +193,8 @@ class SearchScreenState extends State<SearchScreen> {
           _zipCodeIsValid = isValid;
         });
 
-        if (isValid == true) {
-          // Save to server and preferences
+          if (isValid == true) {
+          // Save to server and preferences (global update)
           server.zip = zip;
 
           // Find and update the filter
@@ -208,6 +219,7 @@ class SearchScreenState extends State<SearchScreen> {
             zipFilter.choosenValue = zip;
           }
 
+          // Update globally (SharedPreferences)
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('zipCode', zip);
 
@@ -379,6 +391,27 @@ class SearchScreenState extends State<SearchScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
 
+      // Load last loaded search name to restore selection
+      final lastLoadedSearch = prefs.getString('lastLoadedSearchName');
+      if (lastLoadedSearch != null && lastLoadedSearch.isNotEmpty) {
+        // Check if this search still exists in the list
+        await _loadSavedSearches();
+        if (_savedSearchNames.contains(lastLoadedSearch)) {
+          setState(() {
+            _selectedSavedSearch = lastLoadedSearch;
+            _lastLoadedSearchName = lastLoadedSearch;
+            // Update the filter's choosenValue
+            final savesFilter = widget.filteringOptions.firstWhere(
+              (f) => f.classification == CatClassification.saves,
+              orElse: () => widget.filteringOptions.first,
+            );
+            if (savesFilter.classification == CatClassification.saves) {
+              savesFilter.choosenValue = lastLoadedSearch;
+            }
+          });
+        }
+      }
+
       // Load AI search query
       final savedQuery = prefs.getString('lastSearchQuery');
       if (savedQuery != null && savedQuery.isNotEmpty) {
@@ -542,80 +575,47 @@ class SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildQuickSearchCard() {
-    return GoldenCard(
+    return Container(
       margin: EdgeInsets.all(AppTheme.spacingM),
       padding: EdgeInsets.all(AppTheme.spacingL),
+      decoration: SearchScreenStyle.card(highlighted: true),
       child: Column(
         children: [
-          // Text input field
           Row(
             children: [
-              Icon(Icons.search, color: AppTheme.deepPurple, size: 28),
-              const SizedBox(width: 12),
               Expanded(
-                child: TextField(
-                  controller: controller2,
-                  focusNode: _searchFocusNode,
-                  maxLines: 5,
-                  minLines: 1,
-                  textInputAction: _animateFilters
-                      ? TextInputAction.done // Toggle ON = "Done" button
-                      : TextInputAction.search, // Toggle OFF = "Search" button
-                  keyboardType: TextInputType.text,
-                  onSubmitted: (_) {
-                    // If animate is ON: show "Done" and animate filters (don't navigate)
-                    // If animate is OFF: show "Search" and navigate directly to results
-                    if (_animateFilters) {
-                      _performQuickSearch(); // Animate filters, stay on screen
-                    } else {
-                      _performSearchAndNavigate(); // Navigate directly to results
-                    }
-                  },
-                  onChanged: (_) =>
-                      setState(() {}), // Update UI to show/hide clear button
-                  decoration: InputDecoration(
-                    hintText: "What Do You Want In A Cat",
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
-                      borderSide: BorderSide(
-                          color: const Color(0xFF2196F3).withOpacity(0.3)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
-                      borderSide:
-                          const BorderSide(color: Color(0xFF2196F3), width: 2),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Builder(
-                        builder: (context) {
-                          try {
-                            return SvgPicture.asset(
-                              'assets/icons/eraser.svg',
-                              width: 24,
-                              height: 24,
-                              colorFilter: ColorFilter.mode(
-                                Colors.grey[600]!,
-                                BlendMode.srcIn,
-                              ),
-                              placeholderBuilder: (context) => const Icon(
-                                Icons.cleaning_services,
-                                size: 24,
-                                color: Colors.grey,
-                              ),
-                            );
-                          } catch (e) {
-                            // Fallback to Material icon if SVG fails
-                            return const Icon(
-                              Icons.cleaning_services,
-                              size: 24,
-                              color: Colors.grey,
-                            );
-                          }
-                        },
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: SearchScreenStyle.gold.withOpacity(0.3),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 2),
                       ),
-                      tooltip: 'Reset all filters and search',
-                      onPressed: () => _resetAllFiltersAndSearch(),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: controller2,
+                    focusNode: _searchFocusNode,
+                    maxLines: 5,
+                    minLines: 1,
+                    textInputAction: _animateFilters
+                        ? TextInputAction.done
+                        : TextInputAction.search,
+                    keyboardType: TextInputType.text,
+                    style: const TextStyle(color: Colors.white),
+                    onSubmitted: (_) {
+                      if (_animateFilters) {
+                        _performQuickSearch();
+                      } else {
+                        _performSearchAndNavigate();
+                      }
+                    },
+                    onChanged: (_) => setState(() {}),
+                    decoration: SearchScreenStyle.searchFieldDecoration(
+                      _resetAllFiltersAndSearch,
                     ),
                   ),
                 ),
@@ -629,79 +629,85 @@ class SearchScreenState extends State<SearchScreen> {
 
   Widget _buildFilterCategoryByType(
       String title, IconData icon, FilterType filterType, bool initiallyExpanded) {
-    // Get all filters of the specified type (excluding breed, sort, and saves)
     List<filterOption> filters = widget.filteringOptions.where((filter) =>
         filter.filterType == filterType &&
         filter.classification != CatClassification.breed &&
         filter.classification != CatClassification.sort &&
         filter.classification != CatClassification.saves).toList();
-    
-    // For Core section, add breeds at the top
+
     if (filterType == FilterType.simple) {
-      final breedFilters = widget.filteringOptions.where((filter) =>
-          filter.classification == CatClassification.breed).toList();
+      final breedFilters = widget.filteringOptions
+          .where((filter) => filter.classification == CatClassification.breed)
+          .toList();
       filters = [...breedFilters, ...filters];
     }
-    
-    // Use a unique key for this category type
+
     final categoryKey = '${filterType}_category';
-    final isExpanded = _expandedCategories.containsKey(categoryKey) 
-        ? _expandedCategories[categoryKey]! 
+    final isExpanded = _expandedCategories.containsKey(categoryKey)
+        ? _expandedCategories[categoryKey]!
         : initiallyExpanded;
 
+    // Create or get a key for this category type
+    final categoryTypeKey = '${filterType}_category_key';
+    if (!_filterTypeCategoryKeys.containsKey(categoryTypeKey)) {
+      _filterTypeCategoryKeys[categoryTypeKey] = GlobalKey();
+    }
+    
     return Container(
-      key: GlobalKey(),
+      key: _filterTypeCategoryKeys[categoryTypeKey],
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: const Color(0xFF2196F3).withOpacity(0.1),
-          width: 1,
+      decoration: SearchScreenStyle.card(),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          dividerColor: Colors.transparent,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
         ),
-      ),
-      child: ExpansionTile(
-        key: ValueKey('$filterType-${isExpanded ? 'expanded' : 'collapsed'}'),
-        initiallyExpanded: isExpanded,
-        onExpansionChanged: (expanded) {
-          setState(() {
-            _expandedCategories[categoryKey] = expanded;
-          });
-        },
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2196F3).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: const Color(0xFF2196F3), size: 20),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2196F3),
-            fontFamily: 'Poppins',
-          ),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: filters
-                  .map((filter) => _buildFilterRow(filter, filter.classification))
-                  .toList(),
+        child: ExpansionTile(
+          key: ValueKey('$filterType-${isExpanded ? 'expanded' : 'collapsed'}'),
+          initiallyExpanded: isExpanded,
+          onExpansionChanged: (expanded) {
+            setState(() {
+              _expandedCategories[categoryKey] = expanded;
+            });
+          },
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: SearchScreenStyle.gold.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: SearchScreenStyle.gold,
+              size: 20,
             ),
           ),
-        ],
+          trailing: Icon(
+            isExpanded ? Icons.expand_less : Icons.expand_more,
+            color: SearchScreenStyle.gold,
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: SearchScreenStyle.gold,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: filters
+                    .map((filter) =>
+                        _buildFilterRow(filter, filter.classification))
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -722,21 +728,7 @@ class SearchScreenState extends State<SearchScreen> {
     return Container(
       key: _categoryKeys[classification],
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: const Color(0xFF2196F3).withOpacity(0.1),
-          width: 1,
-        ),
-      ),
+      decoration: SearchScreenStyle.card(),
       child: ExpansionTile(
         key: ValueKey(
             '$classification-${isExpanded ? 'expanded' : 'collapsed'}-${classification == CatClassification.sort ? sortByFilter.choosenValue : ''}'),
@@ -749,17 +741,21 @@ class SearchScreenState extends State<SearchScreen> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF2196F3).withOpacity(0.1),
+            color: SearchScreenStyle.gold.withOpacity(0.15),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: const Color(0xFF2196F3), size: 20),
+          child: Icon(icon, color: SearchScreenStyle.gold, size: 20),
+        ),
+        trailing: Icon(
+          isExpanded ? Icons.expand_less : Icons.expand_more,
+          color: SearchScreenStyle.gold,
         ),
         title: Text(
           title,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF2196F3),
+            color: SearchScreenStyle.gold,
             fontFamily: 'Poppins',
           ),
         ),
@@ -789,28 +785,37 @@ class SearchScreenState extends State<SearchScreen> {
         curve: Curves.easeInOut,
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
+
+        // 🎯 IMPORTANT: this container NO LONGER paints a surface
         decoration: BoxDecoration(
           color: isAnimating
-              ? const Color(0xFF2196F3).withOpacity(0.1)
-              : Colors.grey[50],
+              ? SearchScreenStyle.gold.withOpacity(0.08)
+              : Colors.transparent,
+
           borderRadius: BorderRadius.circular(12),
+
           border: Border.all(
-            color: isAnimating ? const Color(0xFF2196F3) : Colors.grey[200]!,
+            color: isAnimating
+                ? SearchScreenStyle.gold
+                : SearchScreenStyle.gold.withOpacity(0.3),
             width: isAnimating ? 2 : 1,
           ),
+
           boxShadow: isAnimating
               ? [
                   BoxShadow(
-                    color: const Color(0xFF2196F3).withOpacity(0.3),
+                    color: SearchScreenStyle.gold.withOpacity(0.25),
                     blurRadius: 8,
-                    spreadRadius: 2,
+                    spreadRadius: 1,
                   ),
                 ]
               : [],
         ),
+
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 🔹 Row header
             Row(
               children: [
                 Expanded(
@@ -820,11 +825,13 @@ class SearchScreenState extends State<SearchScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: isAnimating
-                          ? const Color(0xFF2196F3)
-                          : Colors.grey[800],
+                          ? SearchScreenStyle.gold
+                          : Colors.white.withOpacity(0.9),
                     ),
                   ),
                 ),
+
+                // 🔹 Animation indicator (gold, not blue)
                 if (isAnimating)
                   TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0.0, end: 1.0),
@@ -835,7 +842,7 @@ class SearchScreenState extends State<SearchScreen> {
                         scale: 0.8 + (value * 0.2),
                         child: const Icon(
                           Icons.check_circle,
-                          color: Color(0xFF2196F3),
+                          color: SearchScreenStyle.gold,
                           size: 24,
                         ),
                       );
@@ -843,7 +850,10 @@ class SearchScreenState extends State<SearchScreen> {
                   ),
               ],
             ),
+
             const SizedBox(height: 8),
+
+            // 🔹 Control selection (UNCHANGED LOGIC)
             if (filter.classification == CatClassification.saves)
               _buildSavedSearchesSection(filter)
             else if (filter.fieldName == "zipCode")
@@ -864,10 +874,15 @@ class SearchScreenState extends State<SearchScreen> {
     final server = FelineFinderServer.instance;
 
     // Get current value from controller or filter
-    final currentZip = _zipCodeController.text.isNotEmpty
+    String currentZip = _zipCodeController.text.isNotEmpty
         ? _zipCodeController.text
         : (filter.choosenValue?.toString() ??
             (server.zip != "?" && server.zip.isNotEmpty ? server.zip : ""));
+
+    // If zip code is blank, try to get from adopter's location (async, will update when ready)
+    if (currentZip.isEmpty) {
+      _loadZipCodeFromLocation(filter);
+    }
 
     if (currentZip.isNotEmpty && _zipCodeController.text.isEmpty) {
       _zipCodeController.text = currentZip;
@@ -887,67 +902,80 @@ class SearchScreenState extends State<SearchScreen> {
       }
     }
 
-    return TextField(
-      controller: _zipCodeController,
-      focusNode: _zipCodeFocusNode,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        hintText: "Enter ZIP code",
-        prefixIcon: Icon(Icons.location_on, color: Colors.grey[600]),
-        suffixIcon: suffixIcon,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: _zipCodeValidated && _zipCodeIsValid == false
-                ? Colors.red
-                : const Color(0xFF2196F3).withOpacity(0.3),
-            width: _zipCodeValidated && _zipCodeIsValid == false ? 2 : 1,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: _zipCodeValidated && _zipCodeIsValid == false
-                ? Colors.red
-                : const Color(0xFF2196F3).withOpacity(0.3),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: _zipCodeValidated && _zipCodeIsValid == false
-                ? Colors.red
-                : const Color(0xFF2196F3),
-            width: 2,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-        filled: true,
-        fillColor: Colors.grey[50],
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
       ),
-      maxLength: 5,
-      onChanged: (value) {
-        // Update filter value as user types
-        filter.choosenValue = value.trim();
-        // Reset validation state when user starts typing again
-        if (_zipCodeValidated) {
-          setState(() {
-            _zipCodeValidated = false;
-            _zipCodeIsValid = null;
-          });
-        }
-      },
-      onEditingComplete: () {
-        // Move focus away to trigger validation on blur
-        _zipCodeFocusNode.unfocus();
-      },
+      child: TextField(
+        controller: _zipCodeController,
+        focusNode: _zipCodeFocusNode,
+        keyboardType: TextInputType.number,
+        textInputAction: TextInputAction.done,
+        maxLength: 5,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: "Enter ZIP code",
+          prefixIcon: Icon(Icons.location_on, color: Colors.grey[600]),
+          suffixIcon: suffixIcon,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: _zipCodeValidated && _zipCodeIsValid == false
+                  ? Colors.red
+                  : const Color(0xFF2196F3).withOpacity(0.3),
+              width: _zipCodeValidated && _zipCodeIsValid == false ? 2 : 1,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: _zipCodeValidated && _zipCodeIsValid == false
+                  ? Colors.red
+                  : const Color(0xFF2196F3).withOpacity(0.3),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: _zipCodeValidated && _zipCodeIsValid == false
+                  ? Colors.red
+                  : const Color(0xFF2196F3),
+              width: 2,
+            ),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 2),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.red, width: 2),
+          ),
+          filled: true,
+          fillColor: SearchScreenStyle.fieldBackground,
+        ),
+        onChanged: (value) {
+          // Update filter value as user types
+          filter.choosenValue = value.trim();
+          // Reset validation state when user starts typing again
+          if (_zipCodeValidated) {
+            setState(() {
+              _zipCodeValidated = false;
+              _zipCodeIsValid = null;
+            });
+          }
+        },
+        onSubmitted: (value) {
+          // Hide keyboard when done/submitted
+          _zipCodeFocusNode.unfocus();
+          FocusScope.of(context).unfocus();
+        },
+        onEditingComplete: () {
+          // Move focus away to trigger validation on blur and hide keyboard
+          _zipCodeFocusNode.unfocus();
+          FocusScope.of(context).unfocus();
+        },
+      ),
     );
   }
 
@@ -1019,84 +1047,105 @@ class SearchScreenState extends State<SearchScreen> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2196F3),
+          backgroundColor: SearchScreenStyle.purpleSurface,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(
+              color: SearchScreenStyle.gold,
+              width: 1.5,
+            ),
           ),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          elevation: 2,
+          elevation: 0,
         ),
       ),
     );
   }
 
   Widget _buildChipSelector(filterOption filter) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: filter.options.map((option) {
-        bool isSelected = filter.choosenListValues.contains(option.value);
-        bool isAnyOption =
-            option.search == "Any" || option.search == "Any Type";
-        // Check if this specific option is being highlighted
-        final highlightKey = '${filter.fieldName}:${option.value}';
-        final isHighlighted = _highlightedOptions.containsKey(highlightKey);
+    return Theme(
+      data: Theme.of(context).copyWith(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: filter.options.map((option) {
+          bool isSelected = filter.choosenListValues.contains(option.value);
+          bool isAnyOption =
+              option.search == "Any" || option.search == "Any Type";
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          child: FilterChip(
-            label: Text(option.displayName),
-            selected: isSelected || isHighlighted,
-            onSelected: (selected) {
-              setState(() {
-                if (selected) {
-                  if (isAnyOption) {
-                    // If "Any" is selected, clear all other selections and only select "Any"
-                    filter.choosenListValues = [option.value];
+          final highlightKey = '${filter.fieldName}:${option.value}';
+          final isHighlighted = _highlightedOptions.containsKey(highlightKey);
+
+          final bool active = isSelected || isHighlighted;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: FilterChip(
+              label: Text(
+                option.displayName,
+                style: TextStyle(
+                  color: active ? SearchScreenStyle.gold : Colors.white,
+                ),
+              ),
+              selected: active,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    if (isAnyOption) {
+                      filter.choosenListValues = [option.value];
+                    } else {
+                      var anyOption = filter.options.firstWhere(
+                        (opt) => opt.search == "Any" || opt.search == "Any Type",
+                        orElse: () => filter.options.last,
+                      );
+                      filter.choosenListValues.remove(anyOption.value);
+                      filter.choosenListValues.add(option.value);
+                    }
                   } else {
-                    // If any other option is selected, remove "Any" and add this option
-                    var anyOption = filter.options.firstWhere(
-                      (opt) => opt.search == "Any" || opt.search == "Any Type",
-                      orElse: () => filter.options.last,
-                    );
-                    filter.choosenListValues.remove(anyOption.value);
-                    filter.choosenListValues.add(option.value);
-                  }
-                } else {
-                  // If deselecting, just remove the option
-                  filter.choosenListValues.remove(option.value);
+                    filter.choosenListValues.remove(option.value);
 
-                  // If no options are selected, select "Any"
-                  if (filter.choosenListValues.isEmpty) {
-                    var anyOption = filter.options.firstWhere(
-                      (opt) => opt.search == "Any" || opt.search == "Any Type",
-                      orElse: () => filter.options.last,
-                    );
-                    filter.choosenListValues = [anyOption.value];
+                    if (filter.choosenListValues.isEmpty) {
+                      var anyOption = filter.options.firstWhere(
+                        (opt) => opt.search == "Any" || opt.search == "Any Type",
+                        orElse: () => filter.options.last,
+                      );
+                      filter.choosenListValues = [anyOption.value];
+                    }
                   }
-                }
-              });
-            },
-            selectedColor: (isSelected || isHighlighted)
-                ? const Color(0xFF2196F3).withOpacity(isHighlighted ? 0.5 : 0.2)
-                : const Color(0xFF2196F3).withOpacity(0.2),
-            checkmarkColor: const Color(0xFF2196F3),
-            backgroundColor: Colors.white,
-            side: BorderSide(
-              color: (isSelected || isHighlighted)
-                  ? const Color(0xFF2196F3)
-                  : Colors.grey[300]!,
-              width:
-                  (isSelected || isHighlighted) ? (isHighlighted ? 3 : 2) : 1,
+                });
+              },
+
+              // 🎨 VISUALS (PURPLE + GOLD)
+              // Keep background color the same for both selected and unselected
+              backgroundColor: SearchScreenStyle.purpleSurface,
+              selectedColor: SearchScreenStyle.purpleSurface, // Same as background
+              checkmarkColor: SearchScreenStyle.gold,
+
+              shape: StadiumBorder(
+                side: BorderSide(
+                  color: active
+                      ? SearchScreenStyle.gold
+                      : SearchScreenStyle.gold.withOpacity(0.5),
+                  width: active ? (isHighlighted ? 3 : 2) : 1,
+                ),
+              ),
+
+              avatar: isHighlighted
+                  ? const Icon(
+                      Icons.check_circle,
+                      color: SearchScreenStyle.gold,
+                      size: 18,
+                    )
+                  : null,
             ),
-            avatar: isHighlighted
-                ? const Icon(Icons.check_circle,
-                    color: Color(0xFF2196F3), size: 18)
-                : null,
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -1105,25 +1154,20 @@ class SearchScreenState extends State<SearchScreen> {
       // Handle different value types (String, bool, int)
       dynamic currentValue = filter.choosenValue;
 
-      // Convert current value to string for comparison
       String? currentValueStr;
       if (currentValue == null) {
         currentValueStr = null;
-      } else if (currentValue is bool) {
-        currentValueStr = currentValue.toString();
       } else {
         currentValueStr = currentValue.toString();
       }
 
       if (currentValueStr == null || currentValueStr.isEmpty) {
-        // Set to first option if no value is selected
         if (filter.options.isNotEmpty) {
           currentValueStr = filter.options.first.search.toString();
           currentValue = filter.options.first.search;
         }
       }
 
-      // Verify the current value exists in options
       bool valueExists = filter.options
           .any((option) => option.search.toString() == currentValueStr);
       if (!valueExists && filter.options.isNotEmpty) {
@@ -1131,41 +1175,66 @@ class SearchScreenState extends State<SearchScreen> {
         currentValue = filter.options.first.search;
       }
 
-      // Check if the current value is being highlighted
       final highlightKey = '${filter.fieldName}:$currentValue';
-      final isHighlighted = _highlightedOptions.containsKey(highlightKey) ||
-          (currentValueStr != null &&
-              _highlightedOptions
-                  .containsKey('${filter.fieldName}:$currentValueStr'));
+      final isHighlighted =
+          _highlightedOptions.containsKey(highlightKey) ||
+              (currentValueStr != null &&
+                  _highlightedOptions
+                      .containsKey('${filter.fieldName}:$currentValueStr'));
 
       return AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 12),
+
         decoration: BoxDecoration(
+          color: Colors.transparent,
           border: Border.all(
             color: isHighlighted
-                ? const Color(0xFF2196F3)
-                : const Color(0xFF2196F3).withOpacity(0.3),
+                ? SearchScreenStyle.gold
+                : SearchScreenStyle.gold.withOpacity(0.3),
             width: isHighlighted ? 3 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
           boxShadow: isHighlighted
               ? [
                   BoxShadow(
-                    color: const Color(0xFF2196F3).withOpacity(0.3),
+                    color: SearchScreenStyle.gold.withOpacity(0.25),
                     blurRadius: 8,
-                    spreadRadius: 2,
+                    spreadRadius: 1,
                   ),
                 ]
               : [],
         ),
+
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: currentValueStr,
             isExpanded: true,
+
+            // ✅ THIS FIXES THE CLOSED TEXT COLOR
+            selectedItemBuilder: (context) {
+              return filter.options.map((option) {
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    option.displayName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              }).toList();
+            },
+
+            iconEnabledColor: Colors.white,
+            dropdownColor: SearchScreenStyle.purpleSurface,
+
             items: filter.options.map((option) {
-              final optionHighlightKey = '${filter.fieldName}:${option.value}';
+              final optionHighlightKey =
+                  '${filter.fieldName}:${option.value}';
               final isOptionHighlighted =
                   _highlightedOptions.containsKey(optionHighlightKey);
 
@@ -1174,16 +1243,19 @@ class SearchScreenState extends State<SearchScreen> {
                 child: Row(
                   children: [
                     if (isOptionHighlighted)
-                      const Icon(Icons.check_circle,
-                          color: Color(0xFF2196F3), size: 18),
+                      const Icon(
+                        Icons.check_circle,
+                        color: SearchScreenStyle.gold,
+                        size: 18,
+                      ),
                     if (isOptionHighlighted) const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         option.displayName,
                         style: TextStyle(
                           color: isOptionHighlighted
-                              ? const Color(0xFF2196F3)
-                              : null,
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.85),
                           fontWeight: isOptionHighlighted
                               ? FontWeight.bold
                               : FontWeight.normal,
@@ -1194,11 +1266,11 @@ class SearchScreenState extends State<SearchScreen> {
                 ),
               );
             }).toList(),
+
             onChanged: (String? newValue) {
               setState(() {
-                // Convert back to original type if needed
                 if (filter.options.isNotEmpty) {
-                  var originalOption = filter.options.firstWhere(
+                  final originalOption = filter.options.firstWhere(
                     (option) => option.search.toString() == newValue,
                     orElse: () => filter.options.first,
                   );
@@ -1207,10 +1279,8 @@ class SearchScreenState extends State<SearchScreen> {
                   filter.choosenValue = newValue;
                 }
 
-                // If this is the "Sort By" filter, trigger rebuild of sort category
                 if (filter.fieldName == 'sortBy') {
-                  // Force rebuild by updating state - the filter category will rebuild
-                  // and show/hide conditional filters based on new selection
+                  // intentional no-op; rebuild happens via setState
                 }
               });
             },
@@ -1219,15 +1289,16 @@ class SearchScreenState extends State<SearchScreen> {
       );
     } catch (e) {
       print('Error building dropdown for filter ${filter.name}: $e');
-      // Return a simple text widget as fallback
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.red.withOpacity(0.3)),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text('Error loading ${filter.name}',
-            style: const TextStyle(color: Colors.red)),
+        child: Text(
+          'Error loading ${filter.name}',
+          style: const TextStyle(color: Colors.red),
+        ),
       );
     }
   }
@@ -1241,9 +1312,7 @@ class SearchScreenState extends State<SearchScreen> {
       ),
       child: SizedBox(
         width: double.infinity,
-        child: GoldenButton(
-          text: "Find Cats",
-          icon: Icons.search,
+        child: ElevatedButton.icon(
           onPressed: () async {
             try {
               print("=== FIND CATS BUTTON PRESSED ===");
@@ -1251,11 +1320,110 @@ class SearchScreenState extends State<SearchScreen> {
               await _saveSearchState();
               var filters = generateFilters();
               print("Generated ${filters.length} filters");
+              
+              // Save filters to SharedPreferences for persistence
+              await _saveFiltersToPrefs(filters);
+              
               Navigator.pop(context, filters);
             } catch (e) {
               print("Error in Find Cats button: $e");
               Navigator.pop(context, []);
             }
+          },
+          icon: const Icon(Icons.search, color: Colors.white),
+          label: const Text(
+            "Find Cats",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: SearchScreenStyle.purpleSurface,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 0,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Check if search animation should be shown (first time this app session)
+  Future<void> _checkAndShowSearchAnimation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final appStartTime = prefs.getString('appStartTime');
+      final currentTime = DateTime.now().toIso8601String();
+      
+      // If no app start time stored, or it's a new session (more than 1 hour old), show animation
+      bool shouldShow = false;
+      if (appStartTime == null) {
+        // First time ever or new session
+        shouldShow = true;
+        await prefs.setString('appStartTime', currentTime);
+        await prefs.setBool('searchAnimationShownThisSession', false);
+      } else {
+        // Check if we've shown it this session
+        final shownThisSession = prefs.getBool('searchAnimationShownThisSession') ?? false;
+        if (!shownThisSession) {
+          shouldShow = true;
+          await prefs.setBool('searchAnimationShownThisSession', true);
+        }
+      }
+      
+      if (shouldShow && mounted) {
+        print('Showing search animation');
+        setState(() {
+          _hasShownSearchAnimation = true;
+        });
+        
+        // Auto-hide 5 seconds after animation starts playing
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted && _hasShownSearchAnimation) {
+            print('Hiding search animation after 5 seconds');
+            setState(() {
+              _hasShownSearchAnimation = false;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      print('Error checking search animation: $e');
+    }
+  }
+
+  /// Build the search animation widget
+  Widget _buildSearchAnimation() {
+    return IgnorePointer(
+      ignoring: true, // Don't block touches
+      child: SizedBox(
+        width: 150,
+        height: 150,
+        child: Image.asset(
+          'assets/Animation/screens/search.gif',
+          fit: BoxFit.contain,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded) {
+              return child;
+            }
+            return AnimatedOpacity(
+              opacity: frame == null ? 0 : 1,
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.easeOut,
+              child: child,
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            print('Error loading search.gif: $error');
+            print('Stack trace: $stackTrace');
+            return Container(
+              color: Colors.grey[300],
+              child: const Icon(Icons.search, size: 50),
+            );
           },
         ),
       ),
@@ -2557,6 +2725,67 @@ class SearchScreenState extends State<SearchScreen> {
     return zipRegex.hasMatch(zip);
   }
 
+  /// Validate zip code using the same method as the search screen
+  /// Returns: {'isValid': bool, 'errorMessage': String?}
+  Future<Map<String, dynamic>> _validateZipCodeForSave(String zip) async {
+    final zipTrimmed = zip.trim();
+    
+    // Check if blank
+    if (zipTrimmed.isEmpty) {
+      return {
+        'isValid': false,
+        'errorMessage': 'ZIP code cannot be blank. Please enter a valid ZIP code.',
+      };
+    }
+    
+    // Check length (must be 5 digits)
+    if (zipTrimmed.length < 5) {
+      return {
+        'isValid': false,
+        'errorMessage': 'ZIP code must be 5 digits.',
+      };
+    }
+    
+    if (zipTrimmed.length != 5) {
+      return {
+        'isValid': false,
+        'errorMessage': 'ZIP code must be exactly 5 digits.',
+      };
+    }
+    
+    // Validate with server (same as _onZipCodeFocusChange)
+    final server = FelineFinderServer.instance;
+    
+    try {
+      final isValid = await server.isZipCodeValid(zipTrimmed);
+      
+      if (isValid == true) {
+        // Valid zip code
+        return {
+          'isValid': true,
+          'errorMessage': null,
+        };
+      } else if (isValid == null) {
+        // Network error - don't allow save
+        return {
+          'isValid': false,
+          'errorMessage': 'Network error. Please check your internet connection and try again.',
+        };
+      } else {
+        // Invalid zip code
+        return {
+          'isValid': false,
+          'errorMessage': 'ZIP code "$zipTrimmed" is not valid. Please enter a valid US ZIP code.',
+        };
+      }
+    } catch (e) {
+      return {
+        'isValid': false,
+        'errorMessage': 'Error validating ZIP code: $e',
+      };
+    }
+  }
+
   /// Show warning message
   void _showWarning(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -2605,14 +2834,36 @@ class SearchScreenState extends State<SearchScreen> {
       final filter = filters[i];
       final filterKey = filter.fieldName;
       final classification = filter.classification;
-      final categoryKey = _categoryKeys[classification];
+      final filterType = filter.filterType;
+      
+      // Determine which category key to use (CatClassification or FilterType)
+      GlobalKey? categoryKey;
+      dynamic categoryExpansionKey; // Can be String (for FilterType) or CatClassification enum
+      
+      // Check if this filter belongs to a type-based category (Core/Advanced)
+      if (filterType == FilterType.simple || filterType == FilterType.advanced) {
+        categoryExpansionKey = '${filterType}_category';
+        // Get or create key for this FilterType category
+        final typeKeyString = '${filterType}_category_key';
+        if (!_filterTypeCategoryKeys.containsKey(typeKeyString)) {
+          _filterTypeCategoryKeys[typeKeyString] = GlobalKey();
+        }
+        categoryKey = _filterTypeCategoryKeys[typeKeyString];
+      } else {
+        // For classification-based categories (sort, saves, etc.)
+        categoryKey = _categoryKeys[classification];
+        // Use the classification enum directly as the key (matches _expandedCategories usage)
+        categoryExpansionKey = classification;
+      }
+      
       final filterRowKey = _filterKeys[filterKey];
 
       print(
           '🎬 Animating filter ${i + 1}/${filters.length}: ${filter.name} (${filter.fieldName})');
-      print('   Classification: $classification');
+      print('   Classification: $classification, FilterType: $filterType');
+      print('   Category expansion key: $categoryExpansionKey');
 
-      // Step 1: Scroll to the category section
+      // Step 1: Scroll to the category section FIRST (even if collapsed)
       if (categoryKey != null && categoryKey.currentContext != null) {
         print('   📍 Step 1: Scrolling to category');
         await Scrollable.ensureVisible(
@@ -2625,17 +2876,19 @@ class SearchScreenState extends State<SearchScreen> {
             const Duration(milliseconds: 150)); // Wait for scroll to settle
         print('   ✅ Scrolled to category');
       } else {
-        print('   ⚠️ Category key or context is null');
+        print('   ⚠️ Category key or context is null - will scroll to filter row directly');
       }
 
-      // Step 2: Expand the category if it's not already expanded
-      final isCurrentlyExpanded = _expandedCategories[classification] ?? false;
+      // Step 2: Expand the category AFTER scrolling (if it's not already expanded)
+      final isCurrentlyExpanded = categoryExpansionKey != null 
+          ? (_expandedCategories[categoryExpansionKey] ?? false)
+          : false;
       print('   📂 Step 2: Category expanded: $isCurrentlyExpanded');
-      if (!isCurrentlyExpanded) {
+      if (!isCurrentlyExpanded && categoryExpansionKey != null) {
         print('   🔓 Expanding category...');
         // Force rebuild by updating state
         setState(() {
-          _expandedCategories[classification] = true;
+          _expandedCategories[categoryExpansionKey] = true;
         });
 
         // Wait a bit for the state update to take effect
@@ -2652,9 +2905,12 @@ class SearchScreenState extends State<SearchScreen> {
         print('   ✓ Category already expanded');
       }
 
-      // Step 3: Scroll to the specific filter row
+      // Step 3: Scroll to the specific filter row/question (after expansion completes)
+      // Wait a bit more to ensure expansion animation is fully complete
+      await Future.delayed(const Duration(milliseconds: 100));
+      
       if (filterRowKey != null && filterRowKey.currentContext != null) {
-        print('   📍 Step 3: Scrolling to filter row');
+        print('   📍 Step 3: Scrolling to filter row/question');
         await Scrollable.ensureVisible(
           filterRowKey.currentContext!,
           duration: scrollDuration,
@@ -2663,9 +2919,19 @@ class SearchScreenState extends State<SearchScreen> {
         );
         await Future.delayed(
             const Duration(milliseconds: 150)); // Wait for scroll to settle
-        print('   ✅ Scrolled to filter row');
+        print('   ✅ Scrolled to filter row/question');
       } else {
         print('   ⚠️ Filter row key or context is null');
+        // Try scrolling to category as fallback
+        if (categoryKey != null && categoryKey.currentContext != null) {
+          print('   📍 Fallback: Scrolling to category');
+          await Scrollable.ensureVisible(
+            categoryKey.currentContext!,
+            duration: scrollDuration,
+            curve: Curves.easeInOut,
+            alignment: 0.1,
+          );
+        }
       }
 
       // Step 4: Highlight the filter row and the specific option value
@@ -2768,20 +3034,14 @@ class SearchScreenState extends State<SearchScreen> {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Find Your Perfect Cat"),
-        backgroundColor: const Color(0xFF2196F3),
-        foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-      ),
+      appBar: SearchScreenStyle.appBar(),
       resizeToAvoidBottomInset:
           false, // We'll handle keyboard positioning manually
       body: Stack(
         children: [
           Container(
             decoration: const BoxDecoration(
-              gradient: AppTheme.purpleGradient,
+              gradient: SearchScreenStyle.background,
             ),
             child: SingleChildScrollView(
               controller: _scrollController,
@@ -2823,6 +3083,22 @@ class SearchScreenState extends State<SearchScreen> {
               right: 0,
               bottom: keyboardHeight - 80,
               child: _buildKeyboardToolbar(),
+            ),
+          // Zip code keyboard toolbar - appears above keyboard when zip code field is focused
+          // Bottom of toolbar touches top of keyboard
+          if (_zipCodeFocusNode.hasFocus && keyboardHeight > 100)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: keyboardHeight, // Bottom of toolbar touches top of keyboard
+              child: _buildZipCodeKeyboardToolbar(),
+            ),
+          // Search animation - bottom left, shows once per app session
+          if (_hasShownSearchAnimation)
+            Positioned(
+              left: 16,
+              bottom: 100, // Above the bottom buttons
+              child: _buildSearchAnimation(),
             ),
         ],
       ),
@@ -2887,11 +3163,44 @@ class SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  /// Build keyboard toolbar for zip code field that appears above the keyboard
+  Widget _buildZipCodeKeyboardToolbar() {
+    return Container(
+      height: 44, // Standard iOS input accessory height
+      decoration: const BoxDecoration(
+        color: Colors.grey, // Match keyboard gray background exactly
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          TextButton(
+            onPressed: () {
+              // Hide keyboard when Done is pressed
+              _zipCodeFocusNode.unfocus();
+              FocusScope.of(context).unfocus();
+            },
+            child: const Text(
+              'Done',
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF2196F3),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Build saved searches section with dropdown and action buttons
   Widget _buildSavedSearchesSection(filterOption filter) {
     // Update filter options to exclude "New..." and use saved search names
-    final savedSearchOptions = _savedSearchNames
-        .map((name) => listOption(name, name, _savedSearchNames.indexOf(name)))
+    // Remove duplicates to ensure unique values
+    final uniqueNames = _savedSearchNames.toSet().toList();
+    final savedSearchOptions = uniqueNames
+        .map((name) => listOption(name, name, uniqueNames.indexOf(name)))
         .toList();
 
     // If no saved searches, add a placeholder
@@ -2911,11 +3220,20 @@ class SearchScreenState extends State<SearchScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => _showSaveSearchDialog(),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text("New", style: TextStyle(fontSize: 14)),
+                onPressed: () {
+                  // If a search is selected, update it; otherwise prompt for new name
+                  if (_selectedSavedSearch != null && _selectedSavedSearch!.isNotEmpty) {
+                    // Save under the currently selected name
+                    _updateSavedSearch(_selectedSavedSearch!);
+                  } else {
+                    // No selection, prompt for new name
+                    _showSaveSearchDialog();
+                  }
+                },
+                icon: const Icon(Icons.save, size: 18),
+                label: const Text("Save", style: TextStyle(fontSize: 14)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -2927,15 +3245,31 @@ class SearchScreenState extends State<SearchScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _savedSearchNames.isNotEmpty &&
-                        _selectedSavedSearch != null &&
-                        _selectedSavedSearch!.isNotEmpty
-                    ? () => _updateSavedSearch(_selectedSavedSearch!)
-                    : null,
-                icon: const Icon(Icons.save, size: 18),
-                label: const Text("Save", style: TextStyle(fontSize: 14)),
+                onPressed: () async {
+                  // Clear all filters and reset search
+                  await _resetAllFiltersAndSearch();
+                  // Find the saved searches filter and clear its value
+                  final savesFilter = widget.filteringOptions.firstWhere(
+                    (f) => f.classification == CatClassification.saves,
+                    orElse: () => widget.filteringOptions.first,
+                  );
+                  // Clear selected saved search and dropdown selection
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.remove('lastLoadedSearchName');
+                  
+                  setState(() {
+                    _selectedSavedSearch = null;
+                    _lastLoadedSearchName = null;
+                    // Clear the filter's choosenValue so dropdown shows no selection
+                    if (savesFilter.classification == CatClassification.saves) {
+                      savesFilter.choosenValue = null;
+                    }
+                  });
+                },
+                icon: const Icon(Icons.clear, size: 18),
+                label: const Text("Clear", style: TextStyle(fontSize: 14)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -2973,14 +3307,30 @@ class SearchScreenState extends State<SearchScreen> {
   /// Build dropdown selector specifically for saved searches
   Widget _buildDropdownSelectorForSavedSearches(
       filterOption filter, List<listOption> options) {
-    String? currentValue = _selectedSavedSearch;
-
-    if (currentValue == null &&
-        options.isNotEmpty &&
-        options.first.search.toString().isNotEmpty) {
-      currentValue = options.first.search.toString();
-      _selectedSavedSearch = currentValue;
+    // Filter out empty options and ensure unique values
+    final validOptions = options.where((opt) => opt.search.toString().isNotEmpty).toList();
+    final uniqueOptions = <String, listOption>{};
+    for (var option in validOptions) {
+      final value = option.search.toString();
+      if (!uniqueOptions.containsKey(value)) {
+        uniqueOptions[value] = option;
+      }
     }
+    final finalOptions = uniqueOptions.values.toList();
+    
+    String? currentValue = _selectedSavedSearch;
+    
+    // Ensure currentValue exists in the options, otherwise set to null
+    if (currentValue != null) {
+      final exists = finalOptions.any((opt) => opt.search.toString() == currentValue);
+      if (!exists) {
+        currentValue = null;
+        _selectedSavedSearch = null;
+      }
+    }
+
+    // Don't auto-select first item - let it show hint when no selection
+    // Only auto-select if we have a valid selection that exists in options
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -2995,7 +3345,7 @@ class SearchScreenState extends State<SearchScreen> {
         value: currentValue,
         isExpanded: true,
         underline: const SizedBox.shrink(),
-        items: options.map((option) {
+        items: finalOptions.map((option) {
           return DropdownMenuItem<String>(
             value: option.search.toString(),
             child: Text(
@@ -3059,10 +3409,20 @@ class SearchScreenState extends State<SearchScreen> {
         if (data != null && data.containsKey('savedSearches')) {
           final savedSearches = data['savedSearches'] as Map<String, dynamic>?;
           if (savedSearches != null) {
+            // Remove duplicates and ensure unique names
+            final loadedNames = savedSearches.keys.toSet().toList();
             setState(() {
-              _savedSearchNames = savedSearches.keys.toList();
+              _savedSearchNames = loadedNames;
+              // If currently selected search no longer exists, clear selection
+              // (but only if it's not the name we just saved)
+              if (_selectedSavedSearch != null && 
+                  !_savedSearchNames.contains(_selectedSavedSearch) &&
+                  _lastLoadedSearchName != _selectedSavedSearch) {
+                _selectedSavedSearch = null;
+                _lastLoadedSearchName = null;
+              }
             });
-            print('Loaded ${_savedSearchNames.length} saved searches');
+            print('Loaded ${_savedSearchNames.length} saved searches: $_savedSearchNames');
           }
         }
       }
@@ -3157,11 +3517,42 @@ class SearchScreenState extends State<SearchScreen> {
         return;
       }
 
+      // Get zip code value
+      final zipFilter = widget.filteringOptions.firstWhere(
+        (f) => f.fieldName == 'zipCode',
+        orElse: () => widget.filteringOptions.first,
+      );
+      
+      final zipValue = zipFilter.choosenValue?.toString().trim() ?? 
+          _zipCodeController.text.trim();
+      
+      // Validate zip code before saving (same validation as search screen)
+      final zipValidation = await _validateZipCodeForSave(zipValue);
+      if (!zipValidation['isValid'] as bool) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(zipValidation['errorMessage'] as String),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return; // Don't save if zip code is invalid
+      }
+
       // Get current search state
       final query = controller2.text.trim();
       final Map<String, dynamic> searchData = {
         'query': query,
         'filters': {},
+        'expandedCategories': _serializeExpandedCategories(),
         'timestamp': FieldValue.serverTimestamp(),
       };
 
@@ -3178,7 +3569,16 @@ class SearchScreenState extends State<SearchScreen> {
             searchData['filters']['$fieldName:list'] = filter.choosenListValues;
           }
         } else {
-          if (filter.choosenValue != null &&
+          // Special handling for zipCode: always save it and update globally
+          if (fieldName == 'zipCode') {
+            searchData['filters'][fieldName] = zipValue;
+            
+            // Update global zip code (already validated above)
+            FelineFinderServer.instance.zip = zipValue;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('zipCode', zipValue);
+            print('✅ Updated global zip code to $zipValue when saving search');
+          } else if (filter.choosenValue != null &&
               filter.choosenValue != "" &&
               filter.choosenValue != "Any" &&
               filter.choosenValue != "Any Type") {
@@ -3193,21 +3593,56 @@ class SearchScreenState extends State<SearchScreen> {
         }
       }
 
-      // Save to Firestore
-      await FirebaseFirestore.instance
+      // Save to Firestore - use update to ensure nested structure is created correctly
+      final docRef = FirebaseFirestore.instance
           .collection('adopters')
-          .doc(user.uid)
-          .set({
-        'savedSearches.$name': searchData,
-      }, SetOptions(merge: true));
+          .doc(user.uid);
+      
+      // Get existing savedSearches or create new map
+      final doc = await docRef.get();
+      final existingData = doc.data() ?? {};
+      final existingSearches = existingData['savedSearches'] as Map<String, dynamic>? ?? {};
+      
+      // Add or update the search
+      existingSearches[name] = searchData;
+      
+      print('Saving search "$name" with data: $searchData');
+      print('Total saved searches after add: ${existingSearches.keys.toList()}');
+      
+      // Update the document
+      await docRef.update({
+        'savedSearches': existingSearches,
+      });
+      
+      print('Successfully saved search "$name" to Firestore');
 
-      // Update local list
+      // Find the saved searches filter
+      final savesFilter = widget.filteringOptions.firstWhere(
+        (f) => f.classification == CatClassification.saves,
+        orElse: () => widget.filteringOptions.first,
+      );
+      
+      // Add the new name to the list immediately (before reloading from Firestore)
+      if (!_savedSearchNames.contains(name)) {
+        _savedSearchNames.add(name);
+      }
+      
+      // Reload saved searches list from Firestore to ensure sync
+      await _loadSavedSearches();
+      
+      // Ensure the new name is still in the list after reload (in case it was cleared)
+      if (!_savedSearchNames.contains(name)) {
+        _savedSearchNames.add(name);
+      }
+      
+      // Update local state
       setState(() {
-        if (!_savedSearchNames.contains(name)) {
-          _savedSearchNames.add(name);
-        }
         _selectedSavedSearch = name;
         _lastLoadedSearchName = name; // Track that this search is now loaded
+        // Update the filter's choosenValue so dropdown shows the selection
+        if (savesFilter.classification == CatClassification.saves) {
+          savesFilter.choosenValue = name;
+        }
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -3241,11 +3676,42 @@ class SearchScreenState extends State<SearchScreen> {
         return;
       }
 
+      // Get zip code value
+      final zipFilter = widget.filteringOptions.firstWhere(
+        (f) => f.fieldName == 'zipCode',
+        orElse: () => widget.filteringOptions.first,
+      );
+      
+      final zipValue = zipFilter.choosenValue?.toString().trim() ?? 
+          _zipCodeController.text.trim();
+      
+      // Validate zip code before updating (same validation as search screen)
+      final zipValidation = await _validateZipCodeForSave(zipValue);
+      if (!zipValidation['isValid'] as bool) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(zipValidation['errorMessage'] as String),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return; // Don't update if zip code is invalid
+      }
+
       // Get current search state
       final query = controller2.text.trim();
       final Map<String, dynamic> searchData = {
         'query': query,
         'filters': {},
+        'expandedCategories': _serializeExpandedCategories(),
         'timestamp': FieldValue.serverTimestamp(),
       };
 
@@ -3262,7 +3728,16 @@ class SearchScreenState extends State<SearchScreen> {
             searchData['filters']['$fieldName:list'] = filter.choosenListValues;
           }
         } else {
-          if (filter.choosenValue != null &&
+          // Special handling for zipCode: always save it and update globally
+          if (fieldName == 'zipCode') {
+            searchData['filters'][fieldName] = zipValue;
+            
+            // Update global zip code (already validated above)
+            FelineFinderServer.instance.zip = zipValue;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('zipCode', zipValue);
+            print('✅ Updated global zip code to $zipValue when updating search');
+          } else if (filter.choosenValue != null &&
               filter.choosenValue != "" &&
               filter.choosenValue != "Any" &&
               filter.choosenValue != "Any Type") {
@@ -3277,14 +3752,32 @@ class SearchScreenState extends State<SearchScreen> {
         }
       }
 
-      // Update in Firestore
-      await FirebaseFirestore.instance
+      // Update in Firestore - use update to ensure nested structure is updated correctly
+      final docRef = FirebaseFirestore.instance
           .collection('adopters')
-          .doc(user.uid)
-          .set({
-        'savedSearches.$name': searchData,
-      }, SetOptions(merge: true));
+          .doc(user.uid);
+      
+      // Get existing savedSearches
+      final doc = await docRef.get();
+      final existingData = doc.data() ?? {};
+      final existingSearches = existingData['savedSearches'] as Map<String, dynamic>? ?? {};
+      
+      // Update the search
+      existingSearches[name] = searchData;
+      
+      print('Updating search "$name" with data: $searchData');
+      print('Total saved searches after update: ${existingSearches.keys.toList()}');
+      
+      // Update the document
+      await docRef.update({
+        'savedSearches': existingSearches,
+      });
+      
+      print('Successfully updated search "$name" in Firestore');
 
+      // Reload saved searches list from Firestore to ensure sync
+      await _loadSavedSearches();
+      
       setState(() {
         _lastLoadedSearchName = name; // Update tracking after save
       });
@@ -3346,16 +3839,19 @@ class SearchScreenState extends State<SearchScreen> {
         return;
       }
 
-      final savedSearches = data['savedSearches'] as Map<String, dynamic>;
-      if (!savedSearches.containsKey(name)) {
+      final savedSearches = data['savedSearches'] as Map<String, dynamic>?;
+      if (savedSearches == null || !savedSearches.containsKey(name)) {
+        print('Error: Saved search "$name" not found. Available searches: ${savedSearches?.keys.toList() ?? "none"}');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Saved search not found'),
+          SnackBar(
+            content: Text('Saved search "$name" not found. Available: ${savedSearches?.keys.join(", ") ?? "none"}'),
             backgroundColor: Colors.red,
           ),
         );
         return;
       }
+      
+      print('Loading saved search "$name". Available searches: ${savedSearches.keys.toList()}');
 
       final searchData = savedSearches[name] as Map<String, dynamic>;
 
@@ -3421,6 +3917,11 @@ class SearchScreenState extends State<SearchScreen> {
         controller2.text = searchData['query'] as String;
       }
 
+      // Load expanded categories from saved data
+      if (searchData.containsKey('expandedCategories')) {
+        _deserializeExpandedCategories(searchData['expandedCategories']);
+      }
+
       // Load filters from saved data (overriding the defaults we just set)
       if (searchData.containsKey('filters')) {
         final filters = searchData['filters'] as Map<String, dynamic>;
@@ -3436,34 +3937,69 @@ class SearchScreenState extends State<SearchScreen> {
             if (filters.containsKey('$fieldName:list')) {
               final List<dynamic> savedValues = filters['$fieldName:list'];
               filter.choosenListValues =
-                  savedValues.map((v) => v as int).toList();
+                  savedValues.map((v) => v is int ? v : int.tryParse(v.toString()) ?? 0).toList();
+              print('Loaded list filter $fieldName: ${filter.choosenListValues}');
             }
           } else {
             if (filters.containsKey(fieldName)) {
               final savedValue = filters[fieldName];
               if (savedValue is String) {
                 filter.choosenValue = savedValue;
-                if (fieldName == 'zipCode' && savedValue.isNotEmpty) {
-                  _zipCodeController.text = savedValue;
+                if (fieldName == 'zipCode') {
+                  if (savedValue.isNotEmpty) {
+                    // Use saved zip code and update globally
+                    _zipCodeController.text = savedValue;
+                    FelineFinderServer.instance.zip = savedValue;
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('zipCode', savedValue);
+                    print('Loaded zip code from saved search: $savedValue');
+                  } else {
+                    // Zip code is blank, get from adopter's location
+                    await _loadZipCodeFromLocation(filter);
+                  }
                 }
+                print('Loaded single filter $fieldName: $savedValue');
               } else if (savedValue is bool) {
                 filter.choosenValue = savedValue;
+                print('Loaded bool filter $fieldName: $savedValue');
               } else if (savedValue is int) {
                 filter.choosenValue = savedValue;
+                print('Loaded int filter $fieldName: $savedValue');
+              } else {
+                // Convert to string as fallback
+                filter.choosenValue = savedValue.toString();
+                print('Loaded filter $fieldName (converted to string): ${filter.choosenValue}');
               }
             }
           }
         }
       }
 
+      // Find the saved searches filter and update its value
+      final savesFilter = widget.filteringOptions.firstWhere(
+        (f) => f.classification == CatClassification.saves,
+        orElse: () => widget.filteringOptions.first,
+      );
+      
+      // Save the loaded search name to SharedPreferences for persistence
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('lastLoadedSearchName', name);
+      
       setState(() {
         _lastLoadedSearchName = name; // Track which search is now loaded
+        _selectedSavedSearch = name; // Keep the search selected
+        // Update the filter's choosenValue so dropdown shows the selection
+        if (savesFilter.classification == CatClassification.saves) {
+          savesFilter.choosenValue = name;
+        }
       });
 
+      // Filters are now loaded - user must press "Find Cats" button to execute search
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Search "$name" loaded successfully'),
-          backgroundColor: Colors.green,
+          content: Text('Search "$name" loaded. Press "Find Cats" to search.'),
+          backgroundColor: Colors.blue,
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
@@ -3640,9 +4176,11 @@ class SearchScreenState extends State<SearchScreen> {
         'savedSearches.$name': FieldValue.delete(),
       });
 
-      // Update local list
+      // Reload saved searches list from Firestore to ensure sync
+      await _loadSavedSearches();
+      
+      // Update local state
       setState(() {
-        _savedSearchNames.remove(name);
         if (_selectedSavedSearch == name) {
           _selectedSavedSearch = null;
         }
@@ -3683,7 +4221,9 @@ class SearchScreenState extends State<SearchScreen> {
 
     print("=== GENERATING FILTERS ===");
     print("Processing ${widget.filteringOptions.length} filter options");
+    print("Query text: ${controller2.text}");
     for (var item in widget.filteringOptions) {
+      print("Processing filter: ${item.name} (${item.fieldName}), list: ${item.list}, choosenValue: ${item.choosenValue}, choosenListValues: ${item.choosenListValues}");
       if (item.classification == CatClassification.saves) {
         continue;
       }
@@ -3715,12 +4255,15 @@ class SearchScreenState extends State<SearchScreen> {
               updatedSince = 3;
               date = date.subtract(const Duration(days: 365));
             }
+            // Format date as ISO 8601 with zero-padding (YYYY-MM-DDTHH:mm:ssZ)
+            final formattedDate = "${date.year.toString().padLeft(4, '0')}-"
+                "${date.month.toString().padLeft(2, '0')}-"
+                "${date.day.toString().padLeft(2, '0')}T00:00:00Z";
+            // Date filters may require criteria as a single string, not an array
             filters.add(Filters(
                 fieldName: "animals.updatedDate",
-                operation: "greaterthan",
-                criteria: [
-                  "${date.year}-${date.month}-${date.day}T00:00:00Z"
-                ]));
+                operation: "greaterthan",  // API requires all lowercase
+                criteria: formattedDate));  // Try single string instead of array
           } else {
             updatedSince = 4;
           }
@@ -3728,53 +4271,86 @@ class SearchScreenState extends State<SearchScreen> {
         continue;
       }
       if (item.list) {
+        // Skip if no values selected or list is empty
+        if (item.choosenListValues.isEmpty) {
+          continue;
+        }
+        
         // Special handling for breed filters
         if (item.classification == CatClassification.breed) {
-          // Check if "Any" is selected (value 0)
-          if (!item.choosenListValues.contains(0) &&
-              item.choosenListValues.isNotEmpty) {
-            List<String> breedIds = [];
-            for (var breedRid in item.choosenListValues) {
-              // Find breed by rid (values are stored as rid)
-              try {
-                final breed = breeds.firstWhere((b) => b.rid == breedRid);
-                breedIds.add(breed.rid.toString());
-              } catch (e) {
-                print('⚠️ Breed with RID $breedRid not found for filter');
-              }
-            }
-            if (breedIds.isNotEmpty) {
-              filters.add(Filters(
-                  fieldName: item.fieldName,
-                  operation: "equals",
-                  criteria: breedIds));
+          // Check if "Any" is selected (value 0) - skip if only "Any" is selected
+          final nonAnyValues = item.choosenListValues.where((v) => v != 0).toList();
+          if (nonAnyValues.isEmpty) {
+            // Only "Any" is selected, skip this filter
+            continue;
+          }
+          
+          // Process only non-"Any" values
+          List<String> breedIds = [];
+          for (var breedRid in nonAnyValues) {
+            // Find breed by rid (values are stored as rid)
+            try {
+              final breed = breeds.firstWhere((b) => b.rid == breedRid);
+              breedIds.add(breed.rid.toString());
+            } catch (e) {
+              print('⚠️ Breed with RID $breedRid not found for filter');
             }
           }
+          if (breedIds.isNotEmpty) {
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "equals",
+                criteria: breedIds));
+          }
         } else {
-          // Check if "Any" option is selected (skip if so)
-          var anyOption = item.options.isNotEmpty
-              ? item.options.firstWhere(
-                  (opt) => opt.search == "Any" || opt.search == "Any Type",
-                  orElse: () => item.options.last,
-                )
-              : item.options
-                  .first; // Fallback - should not happen due to earlier checks
+          // Find the "Any" option value if it exists
+          int? anyOptionValue;
+          try {
+            final anyOption = item.options.firstWhere(
+              (opt) => opt.search == "Any" || opt.search == "Any Type",
+            );
+            anyOptionValue = anyOption.value;
+          } catch (e) {
+            // No "Any" option found, which is fine
+            anyOptionValue = null;
+          }
 
-          if (!item.choosenListValues.contains(anyOption.value)) {
-            List<String> OptionsList = [];
-            for (var choosenValue in item.choosenListValues) {
-              OptionsList.add(item.options
-                  .where((element) => element.value == choosenValue)
-                  .first
-                  .search
-                  .toString());
+          // Filter out "Any" values from the list
+          final nonAnyValues = anyOptionValue != null
+              ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
+              : item.choosenListValues;
+
+          // Skip if only "Any" was selected (no non-"Any" values)
+          if (nonAnyValues.isEmpty) {
+            print("Skipping filter ${item.fieldName}: only 'Any' selected or empty");
+            continue;
+          }
+
+          // Process selected values (excluding "Any")
+          List<String> OptionsList = [];
+          for (var choosenValue in nonAnyValues) {
+            try {
+              final option = item.options.firstWhere(
+                (element) => element.value == choosenValue,
+              );
+              // Double-check: Skip if this option is "Any" or "Any Type" (shouldn't happen, but safety check)
+              if (option.search == "Any" || option.search == "Any Type") {
+                print("Skipping 'Any' option in ${item.fieldName}");
+                continue;
+              }
+              OptionsList.add(option.search.toString());
+            } catch (e) {
+              print('⚠️ Option with value $choosenValue not found for filter ${item.fieldName}: $e');
             }
-            if (OptionsList.isNotEmpty) {
-              filters.add(Filters(
-                  fieldName: item.fieldName,
-                  operation: "equals",
-                  criteria: OptionsList));
-            }
+          }
+          if (OptionsList.isNotEmpty) {
+            print("Adding list filter: ${item.fieldName} = $OptionsList");
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "equals",
+                criteria: OptionsList));
+          } else {
+            print("No valid options for filter ${item.fieldName} after processing");
           }
         }
       } else {
@@ -3828,5 +4404,149 @@ class SearchScreenState extends State<SearchScreen> {
           "Filter: ${filter.fieldName} ${filter.operation} ${filter.criteria}");
     }
     return filters;
+  }
+
+  /// Save filters to SharedPreferences for persistence
+  Future<void> _saveFiltersToPrefs(List<Filters> filters) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final filtersJson = filters.map((f) => {
+        'fieldName': f.fieldName,
+        'operation': f.operation,
+        'criteria': f.criteria,
+      }).toList();
+      await prefs.setString('lastSearchFiltersList', jsonEncode(filtersJson));
+      print('✅ Saved ${filters.length} filters to SharedPreferences');
+    } catch (e) {
+      print('Error saving filters to SharedPreferences: $e');
+    }
+  }
+
+  /// Serialize expanded categories to a format that can be saved
+  Map<String, dynamic> _serializeExpandedCategories() {
+    final Map<String, dynamic> serialized = {};
+    _expandedCategories.forEach((key, value) {
+      // Convert enum keys to string, keep string keys as-is
+      if (key is CatClassification) {
+        serialized['classification_${key.toString()}'] = value;
+      } else if (key is String) {
+        serialized['string_$key'] = value;
+      } else {
+        serialized[key.toString()] = value;
+      }
+    });
+    return serialized;
+  }
+
+  /// Deserialize expanded categories from saved data
+  void _deserializeExpandedCategories(dynamic savedCategories) {
+    if (savedCategories == null || savedCategories is! Map) return;
+    
+    final Map<String, dynamic> categoriesMap = savedCategories as Map<String, dynamic>;
+    
+    setState(() {
+      categoriesMap.forEach((key, value) {
+        if (key.startsWith('classification_')) {
+          // Extract enum name and find matching CatClassification
+          final enumName = key.replaceFirst('classification_', '');
+          try {
+            final classification = CatClassification.values.firstWhere(
+              (e) => e.toString() == enumName,
+            );
+            _expandedCategories[classification] = value as bool;
+          } catch (e) {
+            print('Could not find CatClassification for $enumName');
+          }
+        } else if (key.startsWith('string_')) {
+          // Extract string key
+          final stringKey = key.replaceFirst('string_', '');
+          _expandedCategories[stringKey] = value as bool;
+        } else {
+          // Fallback: try to use key as-is
+          _expandedCategories[key] = value as bool;
+        }
+      });
+    });
+    print('✅ Restored ${categoriesMap.length} expanded categories');
+  }
+
+  /// Load zip code from adopter's location if zip code is blank
+  Future<void> _loadZipCodeFromLocation(filterOption zipFilter) async {
+    try {
+      // Get current location
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        // Location services not enabled, use server's current zip if available
+        final serverZip = FelineFinderServer.instance.zip;
+        if (serverZip != "?" && serverZip.isNotEmpty) {
+          zipFilter.choosenValue = serverZip;
+          _zipCodeController.text = serverZip;
+          _zipCodeValidated = true;
+          _zipCodeIsValid = true;
+          return;
+        }
+      } else {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+
+        if (permission == LocationPermission.deniedForever ||
+            permission == LocationPermission.denied) {
+          // Permission denied, use server's current zip if available
+          final serverZip = FelineFinderServer.instance.zip;
+          if (serverZip != "?" && serverZip.isNotEmpty) {
+            zipFilter.choosenValue = serverZip;
+            _zipCodeController.text = serverZip;
+            _zipCodeValidated = true;
+            _zipCodeIsValid = true;
+            return;
+          }
+        } else {
+          // Get current position
+          Position position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+            ),
+          );
+
+          // Get placemark from coordinates
+          List<Placemark> placemarks = await placemarkFromCoordinates(
+            position.latitude,
+            position.longitude,
+          );
+
+          if (placemarks.isNotEmpty &&
+              placemarks.first.postalCode != null) {
+            final currentZip = placemarks.first.postalCode!;
+            zipFilter.choosenValue = currentZip;
+            _zipCodeController.text = currentZip;
+
+            // Validate and save zip code globally
+            final isValid = await FelineFinderServer.instance
+                .isZipCodeValid(currentZip);
+            _zipCodeValidated = isValid != null;
+            _zipCodeIsValid = isValid;
+
+            if (isValid == true) {
+              FelineFinderServer.instance.zip = currentZip;
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('zipCode', currentZip);
+              print('✅ Loaded zip code from location: $currentZip');
+            } else if (isValid == null) {
+              print('Network error during ZIP code detection from location');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading zip code from location: $e');
+      // Fallback to server's current zip if available
+      final serverZip = FelineFinderServer.instance.zip;
+      if (serverZip != "?" && serverZip.isNotEmpty) {
+        zipFilter.choosenValue = serverZip;
+        _zipCodeController.text = serverZip;
+      }
+    }
   }
 }

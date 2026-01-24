@@ -70,21 +70,12 @@ class AdoptGridState extends State<AdoptGrid> {
     controller = ScrollController()..addListener(_scrollListener);
     controller2 = TextEditingController();
 
-    // Default filter: species = cat
-    filters.add(Filters(
-      fieldName: "species.singular",
-      operation: "equals",
-      criteria: ["cat"],
-    ));
-    filters_backup.add(Filters(
-      fieldName: "species.singular",
-      operation: "equals",
-      criteria: ["cat"],
-    ));
-
     RescueGroupApi = AppConfig.rescueGroupsApiKey;
 
     () async {
+      // Load saved filters from SharedPreferences first
+      await _loadFiltersFromPrefs();
+      
       try {
         String user = await server.getUser();
         favorites = await server.getFavorites(user);
@@ -113,6 +104,58 @@ class AdoptGridState extends State<AdoptGrid> {
         });
       }
     }();
+  }
+
+  /// Load filters from SharedPreferences
+  Future<void> _loadFiltersFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final filtersJsonString = prefs.getString('lastSearchFiltersList');
+      
+      if (filtersJsonString != null && filtersJsonString.isNotEmpty) {
+        final filtersJson = jsonDecode(filtersJsonString) as List<dynamic>;
+        filters = filtersJson.map((f) => Filters(
+          fieldName: f['fieldName'] as String,
+          operation: f['operation'] as String,
+          criteria: f['criteria'],
+        )).toList();
+        
+        // Create backup copy
+        filters_backup = filters.map((f) => Filters(
+          fieldName: f.fieldName,
+          operation: f.operation,
+          criteria: f.criteria,
+        )).toList();
+        
+        print('✅ Loaded ${filters.length} filters from SharedPreferences');
+      } else {
+        // Default filter: species = cat (if no saved filters)
+        filters.add(Filters(
+          fieldName: "species.singular",
+          operation: "equals",
+          criteria: ["cat"],
+        ));
+        filters_backup.add(Filters(
+          fieldName: "species.singular",
+          operation: "equals",
+          criteria: ["cat"],
+        ));
+        print('No saved filters found, using default filter');
+      }
+    } catch (e) {
+      print('Error loading filters from SharedPreferences: $e');
+      // Default filter: species = cat (on error)
+      filters.add(Filters(
+        fieldName: "species.singular",
+        operation: "equals",
+        criteria: ["cat"],
+      ));
+      filters_backup.add(Filters(
+        fieldName: "species.singular",
+        operation: "equals",
+        criteria: ["cat"],
+      ));
+    }
   }
 
 @override
@@ -269,18 +312,158 @@ Future<String> _getZip() async {
 Future<void> askForZip() async {
   var zip = await openDialog();
   if (zip == null || zip.isEmpty) {
-    zip = AppConfig.defaultZipCode;
+    // If blank, try to get from adopter's location
+    zip = await _getZipFromLocation();
+    if (zip == null || zip.isEmpty) {
+      zip = AppConfig.defaultZipCode;
+    }
   }
-  setState(() {
-    server.zip = zip!;
-  });
-  SharedPreferences prefs = await _prefs;
-  prefs.setString("zipCode", zip);
-  // Reload pets with new zip
-  tiles = [];
-  loadedPets = 0;
-  maxPets = -1;
-  getPets();
+  
+  final zipTrimmed = zip!.trim();
+  
+  // Validate zip code (same validation as search screen)
+  if (zipTrimmed.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ZIP code cannot be blank. Please enter a valid ZIP code.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+  
+  if (zipTrimmed.length < 5) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ZIP code must be 5 digits.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+  
+  if (zipTrimmed.length != 5) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ZIP code must be exactly 5 digits.'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+  
+  // Validate with server (same as search screen)
+  try {
+    final isValid = await server.isZipCodeValid(zipTrimmed);
+    
+    if (isValid == true) {
+      // Valid - update globally
+      setState(() {
+        server.zip = zipTrimmed;
+      });
+      SharedPreferences prefs = await _prefs;
+      prefs.setString("zipCode", zipTrimmed);
+      
+      // Reload pets with new zip
+      tiles = [];
+      loadedPets = 0;
+      maxPets = -1;
+      getPets();
+    } else if (isValid == null) {
+      // Network error
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.wifi_off, color: Colors.white),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Network error. Please check your internet connection and try again.',
+                  maxLines: 2,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } else {
+      // Invalid zip code
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('ZIP code "$zipTrimmed" is not valid. Please enter a valid US ZIP code.'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error validating ZIP code: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+// ----------------------------------------------------------------------
+//                         GET ZIP CODE FROM LOCATION
+// ----------------------------------------------------------------------
+Future<String> _getZipFromLocation() async {
+  try {
+    // Get current location
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return AppConfig.defaultZipCode;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.deniedForever ||
+        permission == LocationPermission.denied) {
+      return AppConfig.defaultZipCode;
+    }
+
+    // Get current position
+    Position position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      ),
+    );
+
+    // Get placemark from coordinates
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    if (placemarks.isNotEmpty &&
+        placemarks.first.postalCode != null) {
+      final zip = placemarks.first.postalCode!;
+      // Update globally
+      server.zip = zip;
+      SharedPreferences prefs = await _prefs;
+      await prefs.setString("zipCode", zip);
+      return zip;
+    }
+  } catch (e) {
+    print('Error getting zip code from location: $e');
+  }
+  return AppConfig.defaultZipCode;
 }
 
 // ----------------------------------------------------------------------
@@ -390,25 +573,58 @@ void getPets() async {
     }
   }
 
+  // Filter out any invalid filters before sending to API
   List<Map> filtersJson = filters
+      .where((f) => 
+          f.fieldName != null && 
+          f.fieldName!.isNotEmpty &&
+          f.operation != null &&
+          f.operation!.isNotEmpty &&
+          f.criteria != null)
       .map((f) => {
             "fieldName": f.fieldName,
             "operation": f.operation,
             "criteria": f.criteria
           })
       .toList();
+  
+  print('📋 Prepared ${filtersJson.length} filters for API');
+  for (var filter in filtersJson) {
+    print('  Filter: ${filter['fieldName']} ${filter['operation']} ${filter['criteria']}');
+  }
+
+  // Validate zip code before sending to API
+  String zipCode = server.zip;
+  if (zipCode.isEmpty || zipCode == "?" || zipCode.length != 5) {
+    // Use default zip code if current one is invalid
+    zipCode = AppConfig.defaultZipCode;
+    print('⚠️ Invalid zip code "$server.zip", using default: $zipCode');
+  }
 
   Map<String, dynamic> data = {
     "data": {
       "filterRadius": {
         "miles": globals.distance,
-        "postalcode": server.zip,
+        "postalcode": zipCode,
       },
       "filters": filtersJson,
     }
   };
+  
+  print('📤 Sending request with zip code: $zipCode, filters: ${filtersJson.length}');
 
-  var requestBody = json.encode(RescueGroupsQuery.fromJson(data).toJson());
+  // Convert to RescueGroupsQuery to ensure proper structure
+  var query = RescueGroupsQuery.fromJson(data);
+  var requestBody = json.encode(query.toJson());
+  
+  // Debug: Print the actual request body being sent
+  print('📦 Request body: $requestBody');
+  print('📦 Request structure check:');
+  print('  - FilterRadius: miles=${query.data.filterRadius.miles}, postalcode=${query.data.filterRadius.postalcode}');
+  print('  - Filters count: ${query.data.filters.length}');
+  for (var filter in query.data.filters) {
+    print('  - Filter: ${filter.fieldName} ${filter.operation} ${filter.criteria}');
+  }
 
   final encodedUrl = url.replaceAll('[', '%5B').replaceAll(']', '%5D');
 
@@ -422,6 +638,22 @@ void getPets() async {
   );
 
   if (response.statusCode != 200) {
+    print('❌ API Error: Status ${response.statusCode}');
+    print('Response body: ${response.body}');
+    print('Request zip code: $zipCode');
+    print('Request filters: ${filtersJson.length}');
+    
+    // Show user-friendly error message
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading pets. Please try again.'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+    
     throw Exception("Failed to load pets: ${response.body}");
   }
 

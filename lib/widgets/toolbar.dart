@@ -310,10 +310,11 @@ class ToolBar extends StatelessWidget {
     }
     
     // Schedule button appears first if email is available
-    if (detail.email != null && detail.email?.trim() != "") {
-      toolsList.add(Tool(
-          tool: toolType.schedule, detail: detail, shelterData: shelterDetail));
-    }
+    // TEMPORARILY DISABLED FOR VERSION 1 - Will be re-enabled after v1 release
+    // if (detail.email != null && detail.email?.trim() != "") {
+    //   toolsList.add(Tool(
+    //       tool: toolType.schedule, detail: detail, shelterData: shelterDetail));
+    // }
     
     if (detail.phoneNumber?.trim() != "" && detail.phoneNumber != null) {
       toolsList.add(Tool(

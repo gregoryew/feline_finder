@@ -65,6 +65,10 @@ class AppConfig {
   static const String placeholderImageUrl =
       'https://via.placeholder.com/200x90.png?text=Cat+Image+Not+Available';
 
+  // App Store URLs
+  // Update this with your actual Bitly link once created: bit.ly/FelineFinder
+  static const String appStoreUrl = 'https://bit.ly/FelineFinder';
+
   // Other configuration constants can be added here
   static const String defaultZipCode = '94043';
   static const int defaultDistance = 1000;

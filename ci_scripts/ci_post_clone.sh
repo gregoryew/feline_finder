@@ -21,7 +21,8 @@ pod repo update
 
 echo "🍫 Installing CocoaPods dependencies..."
 cd ios
-pod install
+# Use --repo-update to ensure specs are fresh and handle version conflicts
+pod install --repo-update
 cd ..
 
 echo "✅ Setup complete!"

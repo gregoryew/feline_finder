@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+
+echo "🔧 Setting up Flutter for Xcode Cloud..."
+
+# Navigate to the Flutter project directory
+cd "$CI_WORKSPACE"
+
+# Get Flutter dependencies
+echo "📦 Getting Flutter dependencies..."
+flutter pub get
+
+# Precache iOS artifacts (generates Generated.xcconfig)
+echo "📱 Precaching iOS artifacts..."
+flutter precache --ios
+
+# Install CocoaPods dependencies
+echo "🍫 Installing CocoaPods dependencies..."
+cd ios
+pod install
+cd ..
+
+echo "✅ Setup complete!"

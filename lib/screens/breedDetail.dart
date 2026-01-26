@@ -24,6 +24,7 @@ import '../widgets/youtube-video-row.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import '../theme.dart';
 import '../widgets/design_system.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum WidgetMarker { adopt, videos, stats, info }
 
@@ -49,6 +50,15 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
   late WidgetMarker selectedWidgetMarker;
   late String BreedDescription = "";
   List<Playlist> playlists = [];
+  bool _quotaExceeded = false;
+  
+  // Cache for playlists to avoid repeated API calls (in-memory cache)
+  static final Map<String, List<Playlist>> _playlistCache = {};
+  static final Map<String, bool> _quotaExceededCache = {};
+  
+  // Firestore collection for YouTube playlists
+  static const String _firestoreCollection = 'youtube_playlists';
+  static const int _cacheExpiryDays = 7; // Refresh cache after 7 days
   final maxValues = [5, 5, 5, 5, 5, 5, 5, 5, 4, 5, 5, 11, 6, 3, 12];
   late AnimationController _glowController;
   late AnimationController _fadeController;
@@ -224,20 +234,202 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
   }
 
   Future<void> getPlaylists() async {
-    final String url =
-        'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=49&playlistId=${widget.breed.playListID}&key=${Constants.YOU_TUBE_API_KEY}';
-    Uri u = Uri.parse(url);
-    var response = await http.get(u);
-    if (response.statusCode == 200) {
-      var jsonResponse = convert.jsonDecode(response.body);
+    // Check if playListID is empty or invalid
+    if (widget.breed.playListID.isEmpty) {
+      print('⚠️ No playlist ID for breed: ${widget.breed.name}');
       setState(() {
-        playlists = jsonResponse['items'].map<Playlist>((item) {
-          return Playlist.fromJson(item);
-        }).toList();
-        playlists.removeWhere((x) => x.title == "Private video");
+        playlists = [];
       });
-    } else {
-      print('I should handle this error better: ${response.statusCode}.');
+      return;
+    }
+    
+    final cacheKey = widget.breed.playListID;
+    
+    // 1. Check in-memory cache first (fastest)
+    if (_playlistCache.containsKey(cacheKey)) {
+      print('📺 Using in-memory cached playlist for ${widget.breed.name}');
+      setState(() {
+        playlists = _playlistCache[cacheKey]!;
+        _quotaExceeded = _quotaExceededCache[cacheKey] ?? false;
+      });
+      return;
+    }
+    
+    // 2. Check Firestore cache (persistent across app restarts)
+    try {
+      final firestoreDoc = await FirebaseFirestore.instance
+          .collection(_firestoreCollection)
+          .doc(cacheKey)
+          .get();
+      
+      if (firestoreDoc.exists) {
+        final data = firestoreDoc.data()!;
+        final lastUpdated = (data['lastUpdated'] as Timestamp).toDate();
+        final daysSinceUpdate = DateTime.now().difference(lastUpdated).inDays;
+        final quotaExceeded = data['quotaExceeded'] as bool? ?? false;
+        
+        // Use Firestore cache if it's not expired and quota wasn't exceeded
+        if (daysSinceUpdate < _cacheExpiryDays && !quotaExceeded) {
+          final videosData = data['videos'] as List<dynamic>? ?? [];
+          final cachedPlaylists = videosData.map((item) {
+            final videoMap = item as Map<String, dynamic>;
+            // Reconstruct Playlist from Firestore format
+            return Playlist(
+              id: videoMap['id'] as String? ?? '',
+              title: videoMap['title'] as String? ?? '',
+              image: videoMap['image'] as String? ?? '',
+              description: videoMap['description'] as String? ?? '',
+              videoId: videoMap['videoId'] as String? ?? '',
+            );
+          }).toList();
+          
+          // Update in-memory cache
+          _playlistCache[cacheKey] = cachedPlaylists;
+          _quotaExceededCache[cacheKey] = false;
+          
+          print('📺 Using Firestore cached playlist for ${widget.breed.name} (${daysSinceUpdate} days old)');
+          setState(() {
+            playlists = cachedPlaylists;
+            _quotaExceeded = false;
+          });
+          return;
+        } else if (quotaExceeded) {
+          print('⚠️ Quota exceeded flag in Firestore, skipping API call');
+          _quotaExceededCache[cacheKey] = true;
+          setState(() {
+            playlists = [];
+            _quotaExceeded = true;
+          });
+          return;
+        } else {
+          print('📺 Firestore cache expired (${daysSinceUpdate} days), fetching fresh data');
+        }
+      }
+    } catch (e) {
+      print('⚠️ Error reading from Firestore cache: $e, will try API');
+    }
+    
+    // 3. Check if quota was exceeded in memory cache
+    if (_quotaExceededCache.containsKey(cacheKey) && _quotaExceededCache[cacheKey] == true) {
+      print('⚠️ Quota exceeded for this playlist, skipping API call');
+      setState(() {
+        playlists = [];
+        _quotaExceeded = true;
+      });
+      return;
+    }
+    
+    try {
+      final String url =
+          'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=49&playlistId=${widget.breed.playListID}&key=${Constants.YOU_TUBE_API_KEY}';
+      print('📺 Fetching YouTube playlist: ${widget.breed.playListID} for ${widget.breed.name}');
+      Uri u = Uri.parse(url);
+      var response = await http.get(u);
+      
+      if (response.statusCode == 200) {
+        var jsonResponse = convert.jsonDecode(response.body);
+        
+        // Check if items exist in response
+        if (jsonResponse['items'] != null && jsonResponse['items'] is List) {
+          final loadedPlaylists = (jsonResponse['items'] as List).map<Playlist>((item) {
+            return Playlist.fromJson(item);
+          }).toList();
+          loadedPlaylists.removeWhere((x) => x.title == "Private video");
+          
+          // Cache the result in memory
+          _playlistCache[cacheKey] = loadedPlaylists;
+          _quotaExceededCache[cacheKey] = false;
+          
+          // Save to Firestore for persistent caching
+          try {
+            final videosJson = loadedPlaylists.map((playlist) {
+              return {
+                'id': playlist.id,
+                'title': playlist.title,
+                'image': playlist.image,
+                'description': playlist.description,
+                'videoId': playlist.videoId,
+              };
+            }).toList();
+            
+            await FirebaseFirestore.instance
+                .collection(_firestoreCollection)
+                .doc(cacheKey)
+                .set({
+              'videos': videosJson,
+              'lastUpdated': Timestamp.now(),
+              'quotaExceeded': false,
+              'playlistId': cacheKey,
+            }, SetOptions(merge: true));
+            
+            print('✅ Saved playlist to Firestore cache');
+          } catch (e) {
+            print('⚠️ Error saving to Firestore cache: $e');
+          }
+          
+          setState(() {
+            playlists = loadedPlaylists;
+            _quotaExceeded = false;
+          });
+          print('✅ Loaded ${playlists.length} videos for ${widget.breed.name}');
+        } else {
+          print('⚠️ No items in playlist response for ${widget.breed.name}');
+          setState(() {
+            playlists = [];
+          });
+        }
+      } else if (response.statusCode == 403) {
+        // Check if it's a quota exceeded error
+        bool isQuotaExceeded = false;
+        try {
+          var errorJson = convert.jsonDecode(response.body);
+          if (errorJson['error'] != null && 
+              errorJson['error']['errors'] != null &&
+              errorJson['error']['errors'].isNotEmpty &&
+              errorJson['error']['errors'][0]['reason'] == 'quotaExceeded') {
+            isQuotaExceeded = true;
+            print('❌ YouTube API quota exceeded. Videos will be unavailable until quota resets.');
+          } else {
+            print('❌ YouTube API error: ${response.statusCode} - ${response.body}');
+          }
+        } catch (e) {
+          print('❌ YouTube API error: ${response.statusCode} - ${response.body}');
+        }
+        // Cache the quota exceeded status
+        if (isQuotaExceeded) {
+          _quotaExceededCache[cacheKey] = true;
+          
+          // Save quota exceeded status to Firestore
+          try {
+            await FirebaseFirestore.instance
+                .collection(_firestoreCollection)
+                .doc(cacheKey)
+                .set({
+              'quotaExceeded': true,
+              'lastUpdated': Timestamp.now(),
+              'playlistId': cacheKey,
+            }, SetOptions(merge: true));
+            print('✅ Saved quota exceeded status to Firestore');
+          } catch (e) {
+            print('⚠️ Error saving quota status to Firestore: $e');
+          }
+        }
+        
+        setState(() {
+          playlists = [];
+          _quotaExceeded = isQuotaExceeded;
+        });
+      } else {
+        print('❌ YouTube API error: ${response.statusCode} - ${response.body}');
+        setState(() {
+          playlists = [];
+        });
+      }
+    } catch (e) {
+      print('❌ Error fetching YouTube playlist for ${widget.breed.name}: $e');
+      setState(() {
+        playlists = [];
+      });
     }
   }
 
@@ -483,13 +675,34 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                               ),
                           ),
                           child: Center(
-                            child: Text(
-                              "No Cat Videos Available.",
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                              ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _quotaExceeded 
+                                      ? "YouTube API quota exceeded."
+                                      : "No Cat Videos Available.",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                if (_quotaExceeded)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      "Videos will be available after quota resets.",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.white70,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         )
@@ -595,104 +808,96 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                   var userPreference = (widget.breed.stats[index].isPercent && userSliderValue > 0)
                       ? userSliderValue.toDouble() / maxValues[index].toDouble()
                       : (widget.breed.stats[index].isPercent ? 0.0 : 1.0);
-                          if (statPrecentage < userPreference) {
-                            return LayoutBuilder(
-                              builder: (context, constraints) {
-                                // Ensure we have a valid maxWidth, default to screen width if unbounded
-                                final double availableWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-                                    ? constraints.maxWidth
-                                    : MediaQuery.of(context).size.width - 32; // Account for padding
-                                return ClipRect(
-                                  child: SizedBox(
-                                    width: availableWidth,
-                                    child: Stack(
-                                      children: <Widget>[
-                                        bar(1.0, BarType.backgroundBar, availableWidth),
-                                        bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, availableWidth),
-                                        Positioned(
-                                          child: bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, availableWidth),
-                                        ),
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      "         " +
-                                          widget.breed.stats[index].name +
-                                          ': ' +
-                                  Question.questions[index]
-                                      .choices[widget.breed.stats[index].value
-                                                  .toInt()]
-                                              .name,
-                                      style: const TextStyle(
-                                          fontSize: 16.0,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          } else {
-                            return LayoutBuilder(
-                              builder: (context, constraints) {
-                                // Ensure we have a valid maxWidth, default to screen width if unbounded
-                                final double availableWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-                                    ? constraints.maxWidth
-                                    : MediaQuery.of(context).size.width - 32; // Account for padding
-                                return ClipRect(
-                                  child: SizedBox(
-                                    width: availableWidth,
-                                    child: Stack(
-                                      children: <Widget>[
-                                        bar(1.0, BarType.backgroundBar, availableWidth),
-                                        bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, availableWidth),
-                                        Positioned(
-                                          child: bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, availableWidth),
-                                        ),
+                  
+                  // Determine which bar is shorter
+                  final bool isEqual = (statPrecentage - userPreference).abs() < 0.001; // Use small epsilon for float comparison
+                  final bool userPrefIsShorter = userPreference < statPrecentage;
+                  final bool catTraitIsShorter = statPrecentage < userPreference;
+                  
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Ensure we have a valid maxWidth, default to screen width if unbounded
+                      final double availableWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+                          ? constraints.maxWidth
+                          : MediaQuery.of(context).size.width - 32; // Account for padding
+                      
+                      return ClipRect(
+                        child: SizedBox(
+                          width: availableWidth,
+                          child: Stack(
+                            children: <Widget>[
+                              // Background bar (always full width)
+                              bar(1.0, BarType.backgroundBar, availableWidth),
+                              
+                              // Longer bar goes on bottom
+                              if (isEqual)
+                                // When equal, show user preference bar
+                                bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, availableWidth)
+                              else if (userPrefIsShorter)
+                                // User pref is shorter, so cat trait (longer) goes on bottom
+                                bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, availableWidth)
+                              else
+                                // Cat trait is shorter, so user pref (longer) goes on bottom
+                                bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, availableWidth),
+                              
+                              // Shorter bar goes on top (or user pref when equal)
+                              if (isEqual)
+                                // Already shown above, but we need the bullseye
+                                const SizedBox.shrink()
+                              else if (userPrefIsShorter)
+                                // User pref is shorter, so it goes on top
                                 Positioned(
-                                  left: 13,
-                                  top: 4,
-                          child: Text(statPrecentage == userPreference &&
-                                          (widget.breed.stats[index].isPercent)
-                                      ? "🎯"
-                                      : ""),
+                                  child: bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, availableWidth),
+                                )
+                              else
+                                // Cat trait is shorter, so it goes on top
+                                Positioned(
+                                  child: bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, availableWidth),
                                 ),
-                                Positioned.fill(
-                                  child: Row(
-                                    children: <Widget>[
-                                      Align(
+                              
+                              // Bullseye when equal (to the left of the bar)
+                              if (isEqual && widget.breed.stats[index].isPercent)
+                                Positioned(
+                                  left: -30, // Position to the left of the bar
+                                  top: 4,
+                                  child: const Text("🎯"),
+                                ),
+                              
+                              // Text label
+                              Positioned.fill(
+                                child: Row(
+                                  children: <Widget>[
+                                    Expanded(
+                                      child: Align(
                                         alignment: Alignment.center,
                                         child: Text(
                                           "         " +
                                               widget.breed.stats[index].name +
                                               ': ' +
-                                      Question.questions[index]
-                                          .choices[widget.breed.stats[index].value
-                                                      .toInt()]
-                                                  .name,
+                                              Question.questions[index]
+                                                  .choices[widget.breed.stats[index].value
+                                                              .toInt()]
+                                                          .name,
                                           style: const TextStyle(
                                               fontSize: 16.0,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600),
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600),
                                           textAlign: TextAlign.center,
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ),
+                                    ),
                                   ],
                                 ),
-                                  ),
-                                );
-                              },
-                            );
-                          }
-                        },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
                       ),
                     ],
                   ),

@@ -46,16 +46,10 @@ class petDetail extends StatefulWidget {
 }
 
 class petDetailState extends State<petDetail>
-    with RouteAware, TickerProviderStateMixin {
+    with RouteAware {
   PetDetailData? petDetailInstance;
-  late AnimationController _sparkleController;
-  late Animation<double> _sparkleAnimation;
-  late AnimationController _favoriteAnimationController;
-  late Animation<Offset> _favoritePositionAnimation;
   Shelter? shelterDetailInstance;
   bool isFavorited = false;
-  bool _showFavoriteAnimation = false;
-  int _favoriteAnimationKey = 0; // Key to force GIF reload
   int selectedImage = 0;
   late String userID;
   String? rescueGroupApi = "";
@@ -93,49 +87,6 @@ class petDetailState extends State<petDetail>
 
   @override
   void initState() {
-    _sparkleController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
-    _sparkleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _sparkleController,
-      curve: Curves.easeOut,
-    ));
-
-    // Initialize favorite animation controller
-    _favoriteAnimationController = AnimationController(
-      duration: const Duration(seconds: 6), // 1 second to center + 4 seconds wait + 1 second to bottom
-      vsync: this,
-    );
-    
-    // Animation: start at top (off-screen), move to center, wait, then drop to bottom
-    _favoritePositionAnimation = TweenSequence<Offset>([
-      // Phase 1: Drop to center (1 second)
-      TweenSequenceItem(
-        tween: Tween<Offset>(
-          begin: const Offset(0, -1.5), // Start above screen
-          end: const Offset(0, 0), // Center of screen
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 1.0,
-      ),
-      // Phase 2: Wait at center (4 seconds)
-      TweenSequenceItem(
-        tween: ConstantTween<Offset>(const Offset(0, 0)),
-        weight: 4.0,
-      ),
-      // Phase 3: Drop to bottom (1 second)
-      TweenSequenceItem(
-        tween: Tween<Offset>(
-          begin: const Offset(0, 0), // Center
-          end: const Offset(0, 2.0), // Bottom of screen (off-screen)
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 1.0,
-      ),
-    ]).animate(_favoriteAnimationController);
-
     String user = "";
     bool favorited = false;
 
@@ -170,37 +121,7 @@ class petDetailState extends State<petDetail>
     _controller.removeListener(_scrollListener);
     _controller.dispose();
     _pageController.dispose();
-    _sparkleController.dispose();
-    _favoriteAnimationController.dispose();
     super.dispose();
-  }
-
-  void _startFavoriteAnimation() {
-    // Stop any ongoing animation first
-    _favoriteAnimationController.stop();
-    
-    setState(() {
-      _showFavoriteAnimation = false; // Hide first to ensure rebuild
-      _favoriteAnimationKey++; // Increment key to force GIF reload
-    });
-    
-    // Small delay to ensure the widget tree updates
-    Future.delayed(const Duration(milliseconds: 50), () {
-      if (mounted) {
-        setState(() {
-          _showFavoriteAnimation = true;
-        });
-        _favoriteAnimationController.reset();
-        _favoriteAnimationController.forward().then((_) {
-          // After animation completes, hide the widget
-          if (mounted) {
-            setState(() {
-              _showFavoriteAnimation = false;
-            });
-          }
-        });
-      }
-    });
   }
 
   void getShelterDetail(String orgID) async {
@@ -402,12 +323,26 @@ class petDetailState extends State<petDetail>
                   setState(() {
                     isFavorited = true;
                   });
-
-                  _sparkleController.reset();
-                  _sparkleController.forward();
                   
-                  // Trigger favorite animation
-                  _startFavoriteAnimation();
+                  // Show snackbar when cat is favorited
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Saved! Return to main screen to see saves tab.',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.blue,
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).size.height * 0.1,
+                        left: 16,
+                        right: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  );
                 }
                 print("Set changed to $isFavorited");
               },
@@ -470,23 +405,6 @@ class petDetailState extends State<petDetail>
                             ),
                           ],
                         ),
-                        if (isFavorited)
-                          AnimatedBuilder(
-                            animation: _sparkleAnimation,
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: _sparkleAnimation.value,
-                                child: Opacity(
-                                  opacity: 1.0 - _sparkleAnimation.value,
-                                  child: const Icon(
-                                    Icons.auto_awesome,
-                                    color: Colors.yellow,
-                                    size: 20,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
                       ],
                     ),
                   ),
@@ -744,39 +662,7 @@ class petDetailState extends State<petDetail>
           ),
         ),
       ),
-          // Favorite animation overlay
-          if (_showFavoriteAnimation)
-            _buildFavoriteAnimation(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFavoriteAnimation() {
-    return IgnorePointer(
-      ignoring: true, // Don't block touches
-      child: SlideTransition(
-        position: _favoritePositionAnimation,
-        child: Align(
-          alignment: Alignment.center,
-          child: Container(
-            width: 200,
-            height: 200,
-            child: Image.asset(
-              'assets/Animation/screens/favorite.gif',
-              key: ValueKey('favorite_gif_$_favoriteAnimationKey'), // Force reload with unique key
-              fit: BoxFit.contain,
-              cacheWidth: null, // Don't cache width
-              cacheHeight: null, // Don't cache height
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.favorite, size: 50, color: Colors.pink),
-                );
-              },
-            ),
-          ),
-        ),
       ),
     );
   }

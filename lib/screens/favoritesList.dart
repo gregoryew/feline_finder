@@ -288,8 +288,8 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: InkWell(
-                                        onTap: () {
-                                          Navigator.push(
+                                        onTap: () async {
+                                          await Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) => petDetail(
@@ -297,6 +297,8 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
                                               ),
                                             ),
                                           );
+                                          // Refresh favorites list when returning from detail screen
+                                          _loadFavorites();
                                         },
                                         borderRadius: BorderRadius.circular(12),
                                         child: Padding(

@@ -259,15 +259,6 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       // Adopt tab is now at index 0
       return <Widget>[
         GoldCircleIconButton(
-          icon: Icons.favorite,
-          isSelected: true, // Always show red
-          onTap: () {
-            // Navigate to favorites tab (index 3)
-            _onItemTapped(3);
-          },
-        ),
-        const SizedBox(width: 14),
-        GoldCircleIconButton(
           icon: Icons.search,
           onTap: () {
             AdoptionGridKey.currentState!.search();

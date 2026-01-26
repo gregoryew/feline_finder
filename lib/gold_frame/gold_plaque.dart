@@ -53,22 +53,29 @@ class GoldPlaque extends StatelessWidget {
         horizontal: _horizontalPadding,
         vertical: _verticalPadding,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: widgets != null
-            ? widgets!
-            : lines!.map((line) {
-                return Text(
-                  line,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: _textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                );
-              }).toList(),
+      child: ClipRect(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: widgets != null
+              ? widgets!.map((widget) => ClipRect(child: widget)).toList()
+              : lines!.map((line) {
+                  return ClipRect(
+                    child: Text(
+                      line,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: _textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.clip,
+                      maxLines: 2,
+                      softWrap: true,
+                    ),
+                  );
+                }).toList(),
+        ),
       ),
     );
   }

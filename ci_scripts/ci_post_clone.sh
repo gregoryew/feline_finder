@@ -16,6 +16,9 @@ echo "📱 Precaching iOS artifacts..."
 flutter precache --ios
 
 # Install CocoaPods dependencies
+echo "🍫 Updating CocoaPods specs repository..."
+pod repo update
+
 echo "🍫 Installing CocoaPods dependencies..."
 cd ios
 pod install

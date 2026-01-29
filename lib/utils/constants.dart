@@ -2,5 +2,5 @@ import '../config.dart';
 
 class Constants {
   //
-  static const String YOU_TUBE_API_KEY = AppConfig.youTubeApiKey;
+  static String get YOU_TUBE_API_KEY => AppConfig.youTubeApiKey;
 }

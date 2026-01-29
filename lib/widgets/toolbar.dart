@@ -8,6 +8,7 @@ import '../ExampleCode/petDetailData.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import '../config.dart';
 import 'package:uuid/uuid.dart';
 import 'schedule_appointment.dart';
 import '../theme.dart';
@@ -28,7 +29,7 @@ class Tool extends StatelessWidget {
       required this.shelterData})
       : super(key: key);
 
-  get apiKey => "AIzaSyBNEcaJtpfNh1ako5P_XexuILvjnPlscdE";
+  get apiKey => AppConfig.googleMapsApiKey;
 
   Widget _buildCircularIcon(
       BuildContext context, IconData iconData, Color iconColor) {

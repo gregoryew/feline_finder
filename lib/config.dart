@@ -6,15 +6,74 @@ class AppConfig {
   static const String rescueGroupsApiKey = 'eqXAy6VJ';
 
   // YouTube API Configuration
-  static const String youTubeApiKey = 'AIzaSyBGj_Duj__ivCxJ2ya3ilkVfEzX1ZSRlpE';
+  // SECURITY: Use environment variable or --dart-define to avoid committing keys to git
+  // Option 1: flutter run --dart-define=YOUTUBE_API_KEY=your-key
+  // Option 2: export YOUTUBE_API_KEY=your-key (then flutter run)
+  static String get youTubeApiKey {
+    // First try --dart-define (for builds, most secure)
+    const keyFromDefine = String.fromEnvironment('YOUTUBE_API_KEY');
+    if (keyFromDefine.isNotEmpty) {
+      return keyFromDefine;
+    }
+    
+    // Then try system environment variable (for development)
+    if (!kIsWeb) {
+      final keyFromEnv = Platform.environment['YOUTUBE_API_KEY'];
+      if (keyFromEnv != null && keyFromEnv.isNotEmpty) {
+        return keyFromEnv;
+      }
+    }
+    
+    // Fallback: Return empty string if not set
+    return '';
+  }
 
   // Google Maps API Configuration (used in toolbar)
-  static const String googleMapsApiKey =
-      'AIzaSyBNEcaJtpfNh1ako5P_XexuILvjnPlscdE';
+  // SECURITY: Use environment variable or --dart-define to avoid committing keys to git
+  // Option 1: flutter run --dart-define=GOOGLE_MAPS_API_KEY=your-key
+  // Option 2: export GOOGLE_MAPS_API_KEY=your-key (then flutter run)
+  static String get googleMapsApiKey {
+    // First try --dart-define (for builds, most secure)
+    const keyFromDefine = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+    if (keyFromDefine.isNotEmpty) {
+      return keyFromDefine;
+    }
+    
+    // Then try system environment variable (for development)
+    if (!kIsWeb) {
+      final keyFromEnv = Platform.environment['GOOGLE_MAPS_API_KEY'];
+      if (keyFromEnv != null && keyFromEnv.isNotEmpty) {
+        return keyFromEnv;
+      }
+    }
+    
+    // Fallback: Return empty string if not set
+    return '';
+  }
 
   // Gemini AI API Configuration
   // Get from: https://aistudio.google.com/app/apikey
-  static const String geminiApiKey = 'AIzaSyCW9hT-FVf1Xsj4eXHMPZrMeRGgRz4pTzQ';
+  // SECURITY: Use environment variable or --dart-define to avoid committing keys to git
+  // Option 1: flutter run --dart-define=GEMINI_API_KEY=your-key
+  // Option 2: export GEMINI_API_KEY=your-key (then flutter run)
+  static String get geminiApiKey {
+    // First try --dart-define (for builds, most secure)
+    const keyFromDefine = String.fromEnvironment('GEMINI_API_KEY');
+    if (keyFromDefine.isNotEmpty) {
+      return keyFromDefine;
+    }
+    
+    // Then try system environment variable (for development)
+    if (!kIsWeb) {
+      final keyFromEnv = Platform.environment['GEMINI_API_KEY'];
+      if (keyFromEnv != null && keyFromEnv.isNotEmpty) {
+        return keyFromEnv;
+      }
+    }
+    
+    // Fallback: Return empty string if not set (will show warning in service)
+    return '';
+  }
 
   // Email Service Configuration
   // Option 1: Use Postmark API directly (requires POSTMARK_SERVER_TOKEN)

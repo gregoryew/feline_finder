@@ -13,32 +13,52 @@ class SearchAIService {
   static Duration get _timeout => const Duration(seconds: 10);
   late GenerativeModel _model;
   bool _initialized = false;
+  int _currentModelIndex = 0;
+  static const List<String> _modelCandidates = [
+    'gemini-2.0-flash-exp', // Preferred: was working well for query understanding
+    'gemini-2.0-flash',     // Fallback 1: stable version of 2.0
+    'gemini-2.5-flash',     // Fallback 2: newer stable version (recommended)
+    'gemini-1.5-pro',       // Fallback 3: more capable but slower
+    'gemini-1.5-flash',     // Fallback 4: faster but less capable
+  ];
 
   void initialize() {
     if (!_initialized) {
-      const apiKey = AppConfig.geminiApiKey;
-      if (apiKey.isEmpty || apiKey == 'YOUR_GEMINI_API_KEY_HERE') {
-        print('⚠️ Warning: Gemini API key not configured in config.dart');
+      final apiKey = AppConfig.geminiApiKey;
+      if (apiKey.isEmpty) {
+        print('⚠️ Warning: Gemini API key not configured');
+        print('⚠️ Set it using one of these methods:');
+        print('   1. flutter run --dart-define=GEMINI_API_KEY=your-key');
+        print('   2. export GEMINI_API_KEY=your-key (then flutter run)');
         print('⚠️ Search AI features will not work without a valid API key');
         return;
       }
 
-      try {
-        // Using gemini-2.0-flash-exp - this model was working well for query understanding
-        // Alternative: gemini-1.5-pro (more capable but slower), gemini-1.5-flash (faster but less capable)
-        _model = GenerativeModel(
-          model: 'gemini-2.0-flash-exp', // Using 2.0 as it fixed issues previously
-          apiKey: apiKey,
-        );
-        _initialized = true;
-        print('✅ SearchAIService initialized with model: gemini-2.0-flash-exp');
-
-        // List available models on initialization (async, don't wait)
-        _listAvailableModels(apiKey);
-      } catch (e) {
-        print('❌ Failed to initialize SearchAIService: $e');
-        print('⚠️ Try using a different model name or check your API key');
-        _initialized = false;
+      // Try models in order of preference, with fallback if experimental is phased out
+      for (int i = 0; i < _modelCandidates.length; i++) {
+        final modelName = _modelCandidates[i];
+        try {
+          _model = GenerativeModel(
+            model: modelName,
+            apiKey: apiKey,
+          );
+          _currentModelIndex = i;
+          _initialized = true;
+          print('✅ SearchAIService initialized with model: $modelName');
+          
+          // List available models on initialization (async, don't wait)
+          _listAvailableModels(apiKey);
+          break; // Success, exit the loop
+        } catch (e) {
+          print('⚠️ Failed to initialize with $modelName: $e');
+          if (i == _modelCandidates.length - 1) {
+            // Last model failed, give up
+            print('❌ All model candidates failed. Search AI features will not work.');
+            print('⚠️ Check your API key and network connection');
+            _initialized = false;
+          }
+          // Continue to next model candidate
+        }
       }
     }
   }
@@ -86,7 +106,7 @@ class SearchAIService {
   }
 
   /// Parse natural language search with comprehensive error handling
-  Future<Map<String, dynamic>> parseSearchQuery(String query) async {
+  Future<Map<String, dynamic>> parseSearchQuery(String query, {int retryCount = 0}) async {
     // Edge case: Empty or whitespace-only query
     if (query.trim().isEmpty) {
       return _emptyResponse();
@@ -590,23 +610,72 @@ IMPORTANT - Handling OR conditions:
     } on Exception catch (e) {
       print('Error parsing search query: $e');
 
-      // If model error, suggest checking API key permissions
+      // If model error, try next model in fallback list
       final errorMsg = e.toString();
+      
+      // CRITICAL: If API key is leaked/invalid, stop immediately - no point retrying
+      if (errorMsg.contains('leaked') || errorMsg.contains('API key was reported')) {
+        print('');
+        print('🚨 CRITICAL: API KEY ISSUE DETECTED');
+        print('Your API key was reported as leaked or invalid.');
+        print('⚠️ You MUST regenerate your API key before the AI search will work.');
+        print('📝 Steps to fix:');
+        print('   1. Go to: https://aistudio.google.com/app/apikey');
+        print('   2. Delete the old API key');
+        print('   3. Create a new API key');
+        print('   4. Update the key in config.dart');
+        print('');
+        return _emptyResponse();
+      }
+      
       if (errorMsg.contains('not found') ||
-          errorMsg.contains('not supported')) {
+          errorMsg.contains('not supported') ||
+          errorMsg.contains('permission denied') ||
+          errorMsg.contains('API key')) {
         print('');
         print('⚠️ MODEL ERROR DETECTED');
-        print('The model name may not be available for your API key.');
-        print('Possible solutions:');
-        print('1. Check your API key has access to Gemini models');
-        print(
-            '2. Try regenerating your API key from: https://aistudio.google.com/app/apikey');
-        print(
-            '3. Ensure Generative Language API is enabled in Google Cloud Console');
-        print(
-            '4. Try changing the model name in search_ai_service.dart line 33');
-        print(
-            '   Try: gemini-2.0-flash-exp, gemini-1.5-pro, or gemini-1.5-flash');
+        print('Current model: ${_modelCandidates[_currentModelIndex]}');
+        
+        // Try next model in fallback list
+        if (_currentModelIndex < _modelCandidates.length - 1) {
+          final nextModelIndex = _currentModelIndex + 1;
+          final nextModelName = _modelCandidates[nextModelIndex];
+          print('🔄 Attempting fallback to: $nextModelName');
+          
+          try {
+            final apiKey = AppConfig.geminiApiKey;
+            _model = GenerativeModel(
+              model: nextModelName,
+              apiKey: apiKey,
+            );
+            _currentModelIndex = nextModelIndex;
+            print('✅ Switched to model: $nextModelName');
+            print('🔄 Retrying query with new model...');
+            
+            // Retry the query with the new model (prevent infinite recursion)
+            if (retryCount < _modelCandidates.length - 1) {
+              return await parseSearchQuery(query, retryCount: retryCount + 1);
+            } else {
+              print('⚠️ Max retries reached, returning empty response');
+              return _emptyResponse();
+            }
+          } catch (retryError) {
+            print('❌ Fallback model also failed: $retryError');
+            if (nextModelIndex == _modelCandidates.length - 1) {
+              print('❌ All model candidates exhausted.');
+              print('Possible solutions:');
+              print('1. Check your API key has access to Gemini models');
+              print('2. Try regenerating your API key from: https://aistudio.google.com/app/apikey');
+              print('3. Ensure Generative Language API is enabled in Google Cloud Console');
+            }
+          }
+        } else {
+          print('❌ All model candidates failed.');
+          print('Possible solutions:');
+          print('1. Check your API key has access to Gemini models');
+          print('2. Try regenerating your API key from: https://aistudio.google.com/app/apikey');
+          print('3. Ensure Generative Language API is enabled in Google Cloud Console');
+        }
         print('');
       }
 

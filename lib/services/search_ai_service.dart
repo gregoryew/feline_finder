@@ -24,15 +24,14 @@ class SearchAIService {
       }
 
       try {
-        // Use gemini-1.5-flash (stable, fast, recommended for production)
-        // Alternative: gemini-1.5-pro (more capable but slower)
-        // Note: gemini-2.0-flash-exp was experimental and may not be available
+        // Using gemini-2.0-flash-exp - this model was working well for query understanding
+        // Alternative: gemini-1.5-pro (more capable but slower), gemini-1.5-flash (faster but less capable)
         _model = GenerativeModel(
-          model: 'gemini-1.5-flash', // Stable, production-ready model
+          model: 'gemini-2.0-flash-exp', // Using 2.0 as it fixed issues previously
           apiKey: apiKey,
         );
         _initialized = true;
-        print('✅ SearchAIService initialized with model: gemini-1.5-flash');
+        print('✅ SearchAIService initialized with model: gemini-2.0-flash-exp');
 
         // List available models on initialization (async, don't wait)
         _listAvailableModels(apiKey);
@@ -453,7 +452,9 @@ class SearchAIService {
 ''';
 
     const systemPrompt = '''
-You are a cat adoption search assistant. Parse the user's natural language query and return ONLY valid JSON with filter values.
+You are a cat adoption search assistant. Your job is to carefully understand the user's natural language query and extract all relevant search filters and location information.
+
+IMPORTANT: Pay close attention to what the user is asking for. Understand the intent behind their words, not just keywords.
 
 Use this schema structure:
 $schemaDefinition
@@ -528,6 +529,23 @@ IMPORTANT - Handling OR conditions:
        10. If uncertain about a value, omit it rather than guessing
        11. For OR conditions with list filters, return an array: ["Value1", "Value2"]
        12. For AND conditions or single requirements, return a string: "Value"
+       
+       KEYWORD MAPPING EXAMPLES (understand user intent):
+       - "kitten", "baby cat", "young cat" → ageGroup: "Baby"
+       - "calm", "quiet", "low energy", "laid back", "relaxed" → energyLevel: "Low"
+       - "active", "energetic", "high energy", "playful" → energyLevel: "High"
+       - "black cat", "black" → colorDetails: "Black"
+       - "white cat", "white" → colorDetails: "White"
+       - "gray cat", "grey cat", "gray" → colorDetails: "Gray"
+       - "affectionate", "cuddly", "snuggly", "lap cat" → affectionate: "Yes"
+       - "friendly", "sociable" → newPeopleReaction: "Friendly"
+       - "good with dogs", "dog friendly" → isDogsOk: "Yes"
+       - "good with kids", "family friendly" → isKidsOk: "Yes"
+       
+       EXAMPLE QUERIES:
+       - "I want a calm black kitten" → {"filters": {"ageGroup": "Baby", "energyLevel": "Low", "colorDetails": "Black"}}
+       - "show me friendly white cats" → {"filters": {"newPeopleReaction": "Friendly", "colorDetails": "White"}}
+       - "active Persian cats near me" → {"location": {"distance": "20"}, "filters": {"breed": "Persian", "energyLevel": "High"}}
 ''';
 
     try {

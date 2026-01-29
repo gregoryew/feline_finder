@@ -24,15 +24,15 @@ class SearchAIService {
       }
 
       try {
-        // Try gemini-2.0-flash-exp first (latest), fallback to gemini-1.5-flash if not available
-        // Other options: gemini-1.5-pro (more capable), gemini-1.5-flash (stable)
+        // Use gemini-1.5-flash (stable, fast, recommended for production)
+        // Alternative: gemini-1.5-pro (more capable but slower)
+        // Note: gemini-2.0-flash-exp was experimental and may not be available
         _model = GenerativeModel(
-          model:
-              'gemini-2.0-flash-exp', // Using 2.0 as it fixed issues previously
+          model: 'gemini-1.5-flash', // Stable, production-ready model
           apiKey: apiKey,
         );
         _initialized = true;
-        print('✅ SearchAIService initialized with model: gemini-2.0-flash-exp');
+        print('✅ SearchAIService initialized with model: gemini-1.5-flash');
 
         // List available models on initialization (async, don't wait)
         _listAvailableModels(apiKey);

@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:geocoding/geocoding.dart';
@@ -25,8 +27,17 @@ class SearchAIService {
   void initialize() {
     if (!_initialized) {
       final apiKey = AppConfig.geminiApiKey;
+      
       if (apiKey.isEmpty) {
+        // Debug: Print environment variable values when key is missing
+        const keyFromDefine = String.fromEnvironment('GEMINI_API_KEY');
+        final keyFromEnv = !kIsWeb ? Platform.environment['GEMINI_API_KEY'] : null;
+        
         print('⚠️ Warning: Gemini API key not configured');
+        print('🔍 DEBUG - Environment variable check:');
+        print('   String.fromEnvironment("GEMINI_API_KEY"): "${keyFromDefine.isEmpty ? "empty" : (keyFromDefine.length > 15 ? keyFromDefine.substring(0, 15) + "..." : keyFromDefine)}"');
+        print('   Platform.environment["GEMINI_API_KEY"]: "${keyFromEnv == null ? "null" : (keyFromEnv.isEmpty ? "empty" : (keyFromEnv.length > 15 ? keyFromEnv.substring(0, 15) + "..." : keyFromEnv))}"');
+        print('   Final apiKey from AppConfig: "${apiKey.isEmpty ? "empty" : (apiKey.length > 15 ? apiKey.substring(0, 15) + "..." : apiKey)}"');
         print('⚠️ Set it using one of these methods:');
         print('   1. flutter run --dart-define=GEMINI_API_KEY=your-key');
         print('   2. export GEMINI_API_KEY=your-key (then flutter run)');

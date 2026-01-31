@@ -185,12 +185,15 @@ All API keys managed in one place:
 ```dart
 class AppConfig {
   static const String rescueGroupsApiKey = 'eqXAy6VJ';
-  static const String youTubeApiKey = 'AIzaSyBGj_Duj__ivCxJ2ya3ilkVfEzX1ZSRlpE';
-  static const String googleMapsApiKey = 'AIzaSyBNEcaJtpfNh1ako5P_XexuILvjnPlscdE';
+  static String get youTubeApiKey => /* from YOUTUBE_API_KEY env var */;
+  static String get googleMapsApiKey => /* from GOOGLE_MAPS_API_KEY env var */;
+  static String get geminiApiKey => /* from GEMINI_API_KEY env var */;
   static const String defaultZipCode = '94043';
   static const int defaultDistance = 1000; // miles
 }
 ```
+
+**Note**: API keys are now loaded from environment variables to prevent git exposure.
 
 **External Services:**
 - RescueGroups API: Pet listings

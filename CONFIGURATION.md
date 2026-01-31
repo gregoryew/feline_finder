@@ -6,11 +6,27 @@ The app uses a centralized configuration system. All API keys and configuration 
 
 ### Current Configuration
 
-- **RescueGroups API Key**: `eqXAy6VJ`
-- **YouTube API Key**: `AIzaSyBGj_Duj__ivCxJ2ya3ilkVfEzX1ZSRlpE`
-- **Google Maps API Key**: `AIzaSyBNEcaJtpfNh1ako5P_XexuILvjnPlscdE`
+- **RescueGroups API Key**: `eqXAy6VJ` (public API key)
+- **YouTube API Key**: Set via `YOUTUBE_API_KEY` environment variable
+- **Google Maps API Key**: Set via `GOOGLE_MAPS_API_KEY` environment variable
+- **Gemini API Key**: Set via `GEMINI_API_KEY` environment variable
 - **Default Zip Code**: `94043`
 - **Default Distance**: `1000` miles
+
+### Setting API Keys
+
+API keys are now loaded from environment variables to prevent exposure in git:
+
+```bash
+export GEMINI_API_KEY=your-key
+export YOUTUBE_API_KEY=your-key
+export GOOGLE_MAPS_API_KEY=your-key
+```
+
+Or use `--dart-define` for builds:
+```bash
+flutter run --dart-define=GEMINI_API_KEY=key1 --dart-define=YOUTUBE_API_KEY=key2 --dart-define=GOOGLE_MAPS_API_KEY=key3
+```
 
 ### External Service URLs
 

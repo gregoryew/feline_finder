@@ -150,7 +150,7 @@ class SearchAIService {
       "description": "Restrict search results to cats of a specific breed.",
       "options": [],
       "keywords": {
-        "positive": ["breed", "ragdoll", "siamese", "persian", "maine coon"],
+        "positive": ["breed", "ragdoll", "siamese", "persian", "maine coon", "calico"],
         "negative": ["any breed", "all breeds"]
       }
     },
@@ -190,24 +190,6 @@ class SearchAIService {
         "negative": ["not long-haired", "no coat preference"]
       }
     },
-    "affectionate": {
-      "field": "animals.affectionate",
-      "description": "How loving or people-oriented the cat is.",
-      "options": ["Yes", "No", "Any"],
-      "keywords": {
-        "positive": ["affectionate", "cuddly", "snuggly", "lap cat", "friendly"],
-        "negative": ["independent", "aloof", "not cuddly", "distant"]
-      }
-    },
-    "playful": {
-      "field": "animals.playful",
-      "description": "How much the cat enjoys playing and interaction.",
-      "options": ["Yes", "No", "Any"],
-      "keywords": {
-        "positive": ["playful", "active", "energetic", "likes toys"],
-        "negative": ["lazy", "not playful", "calm"]
-      }
-    },
     "energyLevel": {
       "field": "animals.energyLevel",
       "description": "Overall activity or energy level.",
@@ -224,24 +206,6 @@ class SearchAIService {
       "keywords": {
         "positive": ["active", "energetic", "busy", "alert"],
         "negative": ["inactive", "sedentary", "relaxed"]
-      }
-    },
-    "exerciseNeeds": {
-      "field": "animals.exerciseNeeds",
-      "description": "Amount of exercise or playtime typically required.",
-      "options": ["Not Required", "Low", "Medium", "High", "Any"],
-      "keywords": {
-        "positive": ["needs play", "needs activity", "active cat"],
-        "negative": ["low energy", "not active", "couch cat"]
-      }
-    },
-    "vocalLevel": {
-      "field": "animals.vocalLevel",
-      "description": "How vocal or talkative the cat is.",
-      "options": ["Quiet", "Some", "Lots", "Any"],
-      "keywords": {
-        "positive": ["quiet", "silent", "soft meow"],
-        "negative": ["talkative", "loud", "chatty"]
       }
     },
     "newPeopleReaction": {
@@ -289,15 +253,6 @@ class SearchAIService {
         "negative": ["not good with kids", "no children"]
       }
     },
-    "ownerExperience": {
-      "field": "animals.ownerExperience",
-      "description": "How experienced an owner should be with cats or breeds.",
-      "options": ["None", "Species", "Breed", "Any"],
-      "keywords": {
-        "positive": ["experienced", "knows cats", "familiar with breed"],
-        "negative": ["first-time owner", "new to cats"]
-      }
-    },
     "indoorOutdoor": {
       "field": "animals.indoorOutdoor",
       "description": "Indicates whether the cat should stay indoors, outdoors, or both.",
@@ -310,7 +265,7 @@ class SearchAIService {
     "colorDetails": {
       "field": "animals.colorDetails",
       "description": "Primary or secondary color pattern of the cat's coat.",
-      "options": ["Black","Black and White","Tuxedo","Blue","Gray","Brown","Brown Tabby","Calico","Cream","Ivory","Silver Tabby","Red Tabby","Spotted","Tan","Fawn","Tortoiseshell","White","Any"],
+      "options": ["Black","Black and White","Tuxedo","Blue","Gray","Brown","Brown Tabby","Cream","Ivory","Silver Tabby","Red Tabby","Spotted","Tan","Fawn","Tortoiseshell","White","Any"],
       "keywords": {
         "positive": ["black cat","gray cat","white cat","tuxedo","tabby"],
         "negative": ["no color preference"]
@@ -352,51 +307,6 @@ class SearchAIService {
         "negative": ["no shedding preference"]
       }
     },
-    "hypoallergenic": {
-      "field": "animals.hypoallergenic",
-      "description": "Indicates if the cat produces fewer allergens.",
-      "options": ["Yes","No","Any"],
-      "keywords": {
-        "positive": ["hypoallergenic","good for allergies","allergy friendly"],
-        "negative": ["not hypoallergenic","allergenic"]
-      }
-    },
-    "hasAllergies": {
-      "field": "animals.hasAllergies",
-      "description": "Indicates if the cat has known allergies.",
-      "options": ["Yes","No","Any"],
-      "keywords": {
-        "positive": ["cat has allergies","food allergy","special care"],
-        "negative": ["no allergies"]
-      }
-    },
-    "hearingImpaired": {
-      "field": "animals.hearingImpaired",
-      "description": "Indicates if the cat is partially or fully deaf.",
-      "options": ["Yes","No","Any"],
-      "keywords": {
-        "positive": ["deaf","hearing loss"],
-        "negative": ["normal hearing"]
-      }
-    },
-    "ongoingMedical": {
-      "field": "animals.ongoingMedical",
-      "description": "Whether the cat requires ongoing medical treatment.",
-      "options": ["Yes","No","Any"],
-      "keywords": {
-        "positive": ["medical needs","requires medication","special care"],
-        "negative": ["healthy","no medical needs"]
-      }
-    },
-    "specialDiet": {
-      "field": "animals.specialDiet",
-      "description": "Whether the cat requires a specific diet.",
-      "options": ["Yes","No","Any"],
-      "keywords": {
-        "positive": ["special diet","prescription food","dietary restriction"],
-        "negative": ["normal diet","no special diet"]
-      }
-    },
     "isAltered": {
       "field": "animals.altered",
       "description": "Whether the cat has been spayed or neutered.",
@@ -406,15 +316,6 @@ class SearchAIService {
         "negative": ["intact","not altered"]
       }
     },
-    "isDeclawed": {
-      "field": "animals.declawed",
-      "description": "Whether the cat has been declawed.",
-      "options": ["Yes","No","Any"],
-      "keywords": {
-        "positive": ["declawed"],
-        "negative": ["clawed","has claws"]
-      }
-    },
     "isMicrochipped": {
       "field": "animals.isMicrochipped",
       "description": "Whether the cat has an identification microchip.",
@@ -422,15 +323,6 @@ class SearchAIService {
       "keywords": {
         "positive": ["microchipped","has chip"],
         "negative": ["no chip","not microchipped"]
-      }
-    },
-    "isBreedMixed": {
-      "field": "animals.breedMixed",
-      "description": "Whether the cat is a mix of multiple breeds.",
-      "options": ["Yes","No","Any"],
-      "keywords": {
-        "positive": ["mixed breed","domestic mix"],
-        "negative": ["purebred"]
       }
     },
     "isSpecialNeeds": {
@@ -460,22 +352,121 @@ class SearchAIService {
         "negative": ["all","any","no preference"]
       }
     },
-    "obedienceTraining": {
-      "field": "animals.obedienceTraining",
-      "description": "Level of obedience training the cat has received.",
-      "options": ["Needs","Basic","Well","Any"],
+    "affectionate": {
+      "field": "animals.description",
+      "description": "Whether the cat is described in its profile as loving, cuddly, or people-oriented.",
+      "options": ["Yes"],
       "keywords": {
-        "positive": ["needs training","basic training","well trained","trained"],
-        "negative": ["no training preference"]
+        "positive": ["affectionate","loving","cuddly","snuggly","friendly","devoted","social","socialable","socializable","socialize","socialized","socializing"],
+        "negative": ["independent","aloof","not cuddly"]
       }
     },
-    "earType": {
-      "field": "animals.earType",
-      "description": "Shape or condition of the cat's ears.",
-      "options": ["Cropped","Droopy","Erect","Long","Missing","Notched","Rose","Semi-erect","Tipped","Natural/Uncropped","Any"],
+    "independentAloof": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as independent, aloof, or preferring to keep to itself.",
+      "options": ["Yes"],
       "keywords": {
-        "positive": ["cropped ears","droopy ears","erect ears","folded ears","straight ears"],
-        "negative": ["no ear preference"]
+        "positive": ["independent","aloof","standoffish","distant","unfriendly","unapproachable","uncommunicative"],
+        "negative": ["social","clingy","needy"]
+      }
+    },
+    "calmness": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as calm, quiet, or relaxed in temperament.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["calm","quiet","laid back","relaxed"],
+        "negative": ["hyper","high strung","nervous"]
+      }
+    },
+    "gentleness": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as gentle, soft, or sweet-natured.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["gentle","gentleness","soft","sweet","mild","kind"],
+        "negative": ["rough","feisty","aggressive"]
+      }
+    },
+    "lapCat": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as a lap cat or as loving to sit on laps.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["lap cat","on your lap","loves laps"],
+        "negative": ["not a lap cat","doesn't like laps"]
+      }
+    },
+    "playful": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as playful, energetic, or enjoying activity and play.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["playful","energetic","lively","active","pounces","toys","zoomies"],
+        "negative": ["sedentary","lazy","low energy"]
+      }
+    },
+    "likesToys": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as liking or playing with toys.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["toys","plays with toys","chews toys","loves toys"],
+        "negative": ["ignores toys","not interested in toys"]
+      }
+    },
+    "outgoing": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as outgoing, friendly, or social with people.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["outgoing","friendly","social","socialable","socializable","socialize","socialized","socializing"],
+        "negative": ["shy","reserved","withdrawn"]
+      }
+    },
+    "mischievous": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as mischievous, curious, or prone to getting into things.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["mischievous","curious","explores","gets into things","trouble"],
+        "negative": ["well behaved","docile","boring"]
+      }
+    },
+    "adultSexesOk": {
+      "field": "animals.adultSexesOk",
+      "description": "Whether the cat is suitable for homes with only men, only women, or all adults.",
+      "options": ["All","Men Only","Women Only","Any"],
+      "keywords": {
+        "positive": ["men only","women only","all adults","prefers men","prefers women"],
+        "negative": ["no preference"]
+      }
+    },
+    "eventempered": {
+      "field": "animals.eventempered",
+      "description": "Whether the cat is described as even-tempered, calm, or steady in temperament.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["even-tempered","even tempered","calm","steady","mellow","easygoing"],
+        "negative": ["moody","reactive","high strung"]
+      }
+    },
+    "needsCompanionAnimal": {
+      "field": "animals.NeedsCompanionAnimal",
+      "description": "Whether the cat needs or wants a companion animal.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["companion cat","needs companion","wants companion","wants company","needs a friend"],
+        "negative": ["independent","prefers to be alone"]
+      }
+    },
+    "timidShy": {
+      "field": "animals.description",
+      "description": "Whether the cat is described as timid, shy, or cautious with people.",
+      "options": ["Yes","Any"],
+      "keywords": {
+        "positive": ["shy","timid","fearful","reserved","skittish","nervous","hesitant"],
+        "negative": ["bold","confident","outgoing"]
       }
     }
   }
@@ -546,7 +537,7 @@ IMPORTANT - Handling OR conditions:
        Rules:
        1. Only include filters that are explicitly mentioned or can be inferred from the query
        2. Use "Any" or omit the field if not specified
-       3. For breed, match breed names exactly (e.g., "Persian", "Siamese", "Maine Coon")
+       3. For breed, match breed names exactly (e.g., "Persian", "Siamese", "Maine Coon", "Calico"). Calico is a BREED, not a color—always use breed: "Calico", never colorDetails for "calico"
        4. For location, extract ZIP code, city name, or distance if mentioned. Location can appear as:
           - ZIP codes: "in 90210", "zip code 94040", "near 10001", "cats in ZIP 12345"
           - City names: "cats in Los Angeles", "near New York", "San Francisco area", "around Chicago"
@@ -568,6 +559,7 @@ IMPORTANT - Handling OR conditions:
        - "black cat", "black" → colorDetails: "Black"
        - "white cat", "white" → colorDetails: "White"
        - "gray cat", "grey cat", "gray" → colorDetails: "Gray"
+       - "calico", "calico cat" → breed: "Calico" (Calico is a breed, not a color)
        - "affectionate", "cuddly", "snuggly", "lap cat" → affectionate: "Yes"
        - "friendly", "sociable" → newPeopleReaction: "Friendly"
        - "good with dogs", "dog friendly" → isDogsOk: "Yes"
@@ -577,6 +569,7 @@ IMPORTANT - Handling OR conditions:
        - "I want a calm black kitten" → {"filters": {"ageGroup": "Baby", "energyLevel": "Low", "colorDetails": "Black"}}
        - "show me friendly white cats" → {"filters": {"newPeopleReaction": "Friendly", "colorDetails": "White"}}
        - "active Persian cats near me" → {"location": {"distance": "20"}, "filters": {"breed": "Persian", "energyLevel": "High"}}
+       - "calico cats", "I want a calico" → {"filters": {"breed": "Calico"}}
 ''';
 
     try {

@@ -144,10 +144,25 @@ class _BreedList extends State<BreedList> {
                                         bottom: 8.0, // Keep original bottom padding
                                       ),
                                       child: Center(
-                                        child: Image(
-                                          image: AssetImage(
-                                            "assets/Cartoon/${letters[keys[subSubMenuIndex]]![index].pictureHeadShotName.replaceAll(' ', '_')}.png"),
+                                        child: Image.asset(
+                                          "assets/Cartoon/${letters[keys[subSubMenuIndex]]![index].pictureHeadShotName.replaceAll(' ', '_')}.png",
                                           fit: BoxFit.contain,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            // Debug: print the path that failed
+                                            final imagePath = "assets/Cartoon/${letters[keys[subSubMenuIndex]]![index].pictureHeadShotName.replaceAll(' ', '_')}.png";
+                                            print("❌ Failed to load image: $imagePath for breed: ${letters[keys[subSubMenuIndex]]![index].name}");
+                                            return Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[300],
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(
+                                                Icons.pets,
+                                                color: Colors.white,
+                                                size: 48,
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ),
                                     ),

@@ -80,35 +80,19 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: GradientAppBar(
-        title: "Select Breeds",
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context, selectedBreeds);
-            },
-            child: const Text(
-              "Done",
-              style: TextStyle(
-                color: AppTheme.offWhite,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Container(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        Navigator.pop(context, selectedBreeds);
+      },
+      child: Scaffold(
+        appBar: GradientAppBar(
+          title: "Select Breeds",
+        ),
+        body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.deepPurple.withOpacity(0.1),
-              AppTheme.offWhite,
-            ],
-          ),
+          color: AppTheme.royalPurple,
         ),
         child: Column(
           children: [
@@ -131,31 +115,47 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                 children: [
                   const Icon(
                     Icons.pets,
-                    color: AppTheme.deepPurple,
+                    color: Colors.white,
                     size: 24,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       anySelected
-                          ? "Any breed selected"
+                          ? "Select one or more breeds"
                           : "${selectedBreeds.length} breed${selectedBreeds.length == 1 ? '' : 's'} selected",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.deepPurple,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                   if (!anySelected)
-                    TextButton(
+                    OutlinedButton(
                       onPressed: () {
                         setState(() {
                           anySelected = true;
                           selectedBreeds = [0];
                         });
                       },
-                      child: const Text("Clear All"),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppTheme.goldBase, width: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20), // Pill shape
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        minimumSize: const Size(0, 32), // Small height
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        "Clear All",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -213,35 +213,69 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _filteredBreeds.length + 1, // +1 for "Any" option
+                itemCount: _filteredBreeds.length,
                 itemBuilder: (context, index) {
-                  if (index == 0) {
-                    // "Any" option
-                    return _buildAnyOption();
-                  } else {
-                    // Breed option
-                    final breed = _filteredBreeds[index - 1];
-                    return _buildBreedOption(breed);
-                  }
+                  final breed = _filteredBreeds[index];
+                  return _buildBreedOption(breed);
                 },
+              ),
+            ),
+
+            // Done button - always visible at bottom
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: AppTheme.purpleGradient,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context, selectedBreeds);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.goldBase,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: const Text(
+                      "Done",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
         ),
       ),
+      ),
     );
   }
 
   Widget _buildAnyOption() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _toggleBreed(0),
-          borderRadius: BorderRadius.circular(12),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _toggleBreed(0),
+        borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: anySelected ? null : AppTheme.purpleGradient,
               color: anySelected ? AppTheme.deepPurple : null,
@@ -262,8 +296,8 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
               children: [
                 // Any icon
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
                     gradient: anySelected ? null : AppTheme.purpleGradient,
                     color: anySelected ? AppTheme.offWhite : null,
@@ -272,29 +306,21 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                   child: Icon(
                     Icons.all_inclusive,
                     color: anySelected ? const Color(0xFF2196F3) : const Color(0xFF2196F3),
-                    size: 32,
+                    size: 28,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         "Any Breed",
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                           color: anySelected ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Show all breeds",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color:
-                              anySelected ? Colors.white70 : Colors.grey[600],
                         ),
                       ),
                     ],
@@ -303,19 +329,29 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                 if (anySelected)
                   const Icon(
                     Icons.check_circle,
-                    color: AppTheme.offWhite,
-                    size: 24,
+                    color: AppTheme.deepPurple,
+                    size: 20,
                   ),
               ],
             ),
           ),
-        ),
       ),
     );
   }
 
   Widget _buildBreedOption(Breed breed) {
     bool isSelected = selectedBreeds.contains(breed.rid);
+
+    // Gold gradient for selected breeds
+    final goldGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        AppTheme.goldHighlight,
+        AppTheme.goldBase,
+        AppTheme.goldShadow,
+      ],
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -327,21 +363,37 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFF2196F3).withValues(alpha: 0.1)
-                  : Colors.white,
+              // Gold gradient for selected, white for unselected
+              gradient: isSelected ? goldGradient : null,
+              color: isSelected ? null : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? const Color(0xFF2196F3) : Colors.grey[300]!,
-                width: isSelected ? 2 : 1,
+                color: isSelected ? AppTheme.goldBase : Colors.grey[300]!,
+                width: isSelected ? 3 : 1, // Thicker border when selected
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              boxShadow: isSelected 
+                ? [
+                    // Golden glow effect
+                    BoxShadow(
+                      color: AppTheme.goldBase.withValues(alpha: 0.5),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 2),
+                    ),
+                    BoxShadow(
+                      color: AppTheme.goldBase.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 0),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
             ),
             child: Row(
               children: [
@@ -352,13 +404,19 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     color: Colors.grey[300],
+                    // Add border to image when selected
+                    border: isSelected 
+                      ? Border.all(color: Colors.white, width: 2)
+                      : null,
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
-                      'assets/Cartoon/${breed.name.replaceAll(' ', '_')}.png',
+                      'assets/Cartoon/${breed.pictureHeadShotName.replaceAll(' ', '_')}.png',
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
+                        final imagePath = 'assets/Cartoon/${breed.pictureHeadShotName.replaceAll(' ', '_')}.png';
+                        print("❌ Failed to load image: $imagePath for breed: ${breed.name} (pictureHeadShotName: ${breed.pictureHeadShotName})");
                         return Icon(
                           Icons.pets,
                           color: Colors.white,
@@ -377,19 +435,25 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
                         breed.name,
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color:
-                              isSelected ? const Color(0xFF2196F3) : Colors.black87,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                          color: isSelected ? Colors.white : Colors.black87,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (isSelected)
-                  const Icon(
-                    Icons.check_circle,
-                    color: AppTheme.deepPurple,
-                    size: 20,
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: AppTheme.goldBase,
+                      size: 24, // Larger checkmark
+                    ),
                   ),
               ],
             ),

@@ -616,7 +616,11 @@ void getPets() async {
   // Convert to RescueGroupsQuery to ensure proper structure
   var query = RescueGroupsQuery.fromJson(data);
   var requestBody = json.encode(query.toJson());
-  
+
+  // Pretty-print the cats-for-adoption rescue groups query JSON to terminal
+  final prettyJson = const JsonEncoder.withIndent('  ').convert(query.toJson());
+  print('🐱 Cats for adoption rescue groups query (pretty JSON):\n$prettyJson');
+
   // Debug: Print the actual request body being sent
   print('📦 Request body: $requestBody');
   print('📦 Request structure check:');

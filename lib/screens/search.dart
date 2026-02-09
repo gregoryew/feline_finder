@@ -3033,6 +3033,8 @@ class SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
+    // Back button behavior: Cancel (exits without searching)
+    // "Find Cats" button: Saves and performs search
     return Scaffold(
       appBar: SearchScreenStyle.appBar(),
       resizeToAvoidBottomInset:

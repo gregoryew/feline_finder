@@ -42,7 +42,7 @@ class SearchScreenStyle {
   static AppBar appBar() {
     return AppBar(
       title: const Text(
-        'Find Your Perfect Cat',
+        'Find Purrfect Cat',
         style: TextStyle(
           color: gold,
           fontWeight: FontWeight.w600,

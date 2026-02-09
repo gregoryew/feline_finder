@@ -14,7 +14,7 @@
       "description": "Restrict search results to cats of a specific breed.",
       "options": [],
       "keywords": {
-        "positive": ["breed", "ragdoll", "siamese", "persian", "maine coon"],
+        "positive": ["breed", "ragdoll", "siamese", "persian", "maine coon", "calico"],
         "negative": ["any breed", "all breeds"]
       }
     },
@@ -174,7 +174,7 @@
     "colorDetails": {
       "field": "animals.colorDetails",
       "description": "Primary or secondary color pattern of the cat's coat.",
-      "options": ["Black","Black and White","Tuxedo","Blue","Gray","Brown","Brown Tabby","Calico","Cream","Ivory","Silver Tabby","Red Tabby","Spotted","Tan","Fawn","Tortoiseshell","White","Any"],
+      "options": ["Black","Black and White","Tuxedo","Blue","Gray","Brown","Brown Tabby","Cream","Ivory","Silver Tabby","Red Tabby","Spotted","Tan","Fawn","Tortoiseshell","White","Any"],
       "keywords": {
         "positive": ["black cat","gray cat","white cat","tuxedo","tabby"],
         "negative": ["no color preference"]

@@ -384,6 +384,7 @@ List<filterOption> filteringOptions = [
   ),
   filterOption(
        "Likes to vocalize",
+       "",
        "animals.vocalLevel",
        false,
        true,
@@ -401,7 +402,8 @@ List<filterOption> filteringOptions = [
   ),
   filterOption(
       "Affectionate",
-      "animals.description",
+      "",
+      "animals.descriptionText",
       true,
       false,
       CatClassification.personality,
@@ -413,21 +415,21 @@ List<filterOption> filteringOptions = [
       [],
       false,
       FilterType.simple,
-      ['affectionate', 'loving', 'cuddly', 'snuggly', 'friendly', 'devoted', 'social', 'socialable', 'socializable', 'socialize', 'socialized', 'socializing', 'socialized', 'socializing']
+      synonyms: ['affectionate', 'loving', 'cuddly', 'snuggly', 'friendly', 'devoted', 'social', 'socialable', 'socializable', 'socialize', 'socialized', 'socializing', 'socialized', 'socializing']
   ),
   filterOption(
     "Even-tempered",
-    ""
-    "animals.eventempered", 
+    "",
+    "animals.evenTempered",
     false,
-    true,
+    false,
     CatClassification.personality,
     22,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes", "Yes", 0), listOption("Any", "Any", 1)],
     [],
-    false, 
+    false,
     FilterType.advanced
-  )
+  ),
   filterOption(
        "Housetrained",
        "",
@@ -448,58 +450,58 @@ List<filterOption> filteringOptions = [
   filterOption(
     "Independent/aloof",
     "",
-    "animals.description",
+    "animals.descriptionText",
     false,
     false, 
     CatClassification.personality,
     24,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
-    false, 
+    false,
     FilterType.advanced,
-    ['independent', 'aloof', 'standoffish', 'distant', 'unfriendly', 'unapproachable', 'uncommunicative', 'unfriendly', 'unapproachable', 'uncommunicative']
+    synonyms: ['independent', 'aloof', 'standoffish', 'distant', 'unfriendly', 'unapproachable', 'uncommunicative', 'unfriendly', 'unapproachable', 'uncommunicative']
   ),
   filterOption(
     "Calmness",
     "", 
-    "animals.description", 
+    "animals.descriptionText", 
     false,
     false,
     CatClassification.personality,
     25, 
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
-    false, 
+    false,
     FilterType.advanced,
-    ['calm', 'quiet', 'laid back', 'relaxed']
-  ),  
+    synonyms: ['calm', 'quiet', 'laid back', 'relaxed']
+  ),
   filterOption(
     "Gentleness", 
     "",
-    "animals.description",
+    "animals.descriptionText",
     false,
     false,
     CatClassification.personality,
     26,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
-    false, 
+    false,
     FilterType.advanced,
-    ['gentle', 'gentleness', 'soft', 'sweet', 'mild', 'kind']
+    synonyms: ['gentle', 'gentleness', 'soft', 'sweet', 'mild', 'kind']
   ),
   filterOption(
     "Lap Cat",
     "", 
-    "animals.description",
+    "animals.descriptionText",
     false,
     false,
     CatClassification.personality,
     27,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
     false,
     FilterType.advanced,
-    ['lap cat', 'on your lap', 'loves laps']
+    synonyms: ['lap', 'lap cat', 'on your lap', 'loves laps']
   ),
   filterOption(
     "Companion Cat?",
@@ -509,81 +511,81 @@ List<filterOption> filteringOptions = [
     false, 
     CatClassification.personality,
     28,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
     false,
     FilterType.advanced,
-    ['companion cat', 'needs companion', 'wants companion', 'wants company']
+    synonyms: ['companion cat', 'needs companion', 'wants companion', 'wants company']
   ),
   filterOption(
     "Playful",
     "", 
-    "animals.description", 
+    "animals.descriptionText", 
     false,
     false, 
     CatClassification.personality,
     29,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
     false,
     FilterType.advanced,
-    ['playful', 'energetic', 'lively', 'active', 'pounces', 'toys', 'zoomies']
+    synonyms: ['playful', 'energetic', 'lively', 'active', 'pounces', 'toys', 'zoomies']
   ),
   filterOption(
     "Likes toys",
     "", 
-    "animals.description", 
+    "animals.descriptionText", 
     false,
     false, 
     CatClassification.personality,
     30,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
-    false, 
+    false,
     FilterType.advanced,
-    ['toys', 'plays with toys', 'chews toys', 'loves toys']
+    synonyms: ['toys', 'plays with toys', 'chews toys', 'loves toys']
   ),
   filterOption(
     "Timid / shy",
     "",
-    "animals.description", 
+    "animals.descriptionText", 
     false,
     false,
     CatClassification.personality,
     31,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
     false,
     FilterType.advanced,
-    ['shy', 'timid', 'fearful', 'reserved', 'skittish', 'nervous', 'hesitant']
+    synonyms: ['shy', 'timid', 'fearful', 'reserved', 'skittish', 'nervous', 'hesitant']
   ),
   filterOption(
     "outgoing",
     "",
-    "animals.description", 
+    "animals.descriptionText",
     false,
     false,
     CatClassification.personality,
     32,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
     false,
-    FilterType.advanced
-    ['outgoing', 'friendly', 'social', 'socialable', 'socializable', 'socialize', 'socialized', 'socializing']
+    FilterType.advanced,
+    synonyms: ['outgoing', 'friendly', 'social', 'socialable', 'socializable', 'socialize', 'socialized', 'socializing']
   ),
   filterOption(
-    "mischievous",
+    "curious",
     "",
-    "animals.description", 
+    "animals.descriptionText",
     false,
     false,
     CatClassification.personality,
     33,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)][],
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
     [],
     false,
-    FilterType.advanced
-    ['mischievous', 'curious', 'explores', 'gets into things', 'trouble']
+    FilterType.advanced,
+    synonyms: ['mischievous', 'curious', 'explores', 'gets into things', 'trouble']
   ),
   //physical
   filterOption(
@@ -596,23 +598,18 @@ List<filterOption> filteringOptions = [
       34,
       [
         listOption("Black", "Black", 0),
-        listOption("Brown Tabby", "Brown Tabby", 1),
         listOption("Gray", "Gray", 2),
         listOption("Brown/Choc", "Brown or Chocolate", 3),
         listOption("B&W", "Black and White", 4),
-        listOption("Tuxedo", "Tuxedo", 5),
         listOption("Blue", "Blue", 6),
         listOption("Salt & Pep", "Salt & Pepper", 7),
         listOption("Cream", "Cream", 8),
         listOption("Ivory", "Ivory", 9),
-        listOption(
-            "Gray Blue or Silver Tabby", "Gray Blue or Silver Tabby", 10),
-        listOption("Red Tabby", "Red Tabby", 10),
+        listOption("Red", "Red Tabby", 10),
         listOption("Spotted Tabby/Leopard Spotted",
             "Spotted Tabby/Leopard Spotted", 11),
         listOption("Tan", "Tan", 12),
         listOption("Fawn", "Fawn", 13),
-        listOption("Tortoiseshell", "Tortoiseshell", 14),
         listOption("White", "White", 15),
         listOption("Any", "Any", 16)
       ],

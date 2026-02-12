@@ -35,6 +35,14 @@ class FelineFinderServer {
   final _sliderValue = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   List<int> get sliderValue => _sliderValue;
 
+  /// PersonalityFit screen uses its own slider storage so it doesn't conflict with Fit.
+  final Map<int, int> _personalityFitSliderValue = {};
+  int getPersonalityFitSliderValue(int questionId) =>
+      _personalityFitSliderValue[questionId] ?? 0;
+  void setPersonalityFitSliderValue(int questionId, int value) {
+    _personalityFitSliderValue[questionId] = value;
+  }
+
   String _userID = "";
 
   CatClassification? whichCategory = CatClassification.basic;

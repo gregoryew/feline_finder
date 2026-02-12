@@ -66,6 +66,7 @@ dependencies:
   flutter_svg: ^2.2.3
   gif: ^2.3.0
   webview_flutter: ^4.13.1
+  video_player: ^2.10.1
 
 dev_dependencies:
   flutter_test:
@@ -164,4 +165,5 @@ flutter:
     - assets/Fit_Examples/Zodicat/
     - assets/frame/
     - assets/splash/
+    - assets/cat_types/
     - .env

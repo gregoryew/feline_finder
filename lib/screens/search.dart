@@ -17,6 +17,13 @@ import '../theme.dart';
 import '../widgets/design_system.dart';
 import 'search_screen_style.dart';
 
+/// Result of [generateFilters]: the API filters list and the filterprocessing string (1-based indices, e.g. "1 AND (2 OR 3 OR 4) AND 5").
+class FilterResult {
+  final List<Filters> filters;
+  final String filterprocessing;
+  FilterResult(this.filters, this.filterprocessing);
+}
+
 class SearchScreen extends StatefulWidget {
   final Map<CatClassification, List<filterOption>> categories;
   final List<filterOption> filteringOptions;
@@ -51,7 +58,10 @@ class SearchScreenState extends State<SearchScreen> {
   // Track which categories are expanded (supports both CatClassification and string keys)
   final Map<dynamic, bool> _expandedCategories = {};
   // Track which specific option values are being highlighted
-  final Map<String, dynamic> _highlightedOptions = {}; // Key: "fieldName:value"
+  final Map<String, dynamic> _highlightedOptions = {}; // Key: "filterKey:value"
+
+  /// Unique key per filter (avoids duplicate keys when multiple filters share fieldName e.g. animals.description).
+  String _filterKeyFor(filterOption filter) => '${filter.fieldName}::${filter.name}';
   // Track ZIP code validation state
   bool _zipCodeValidated = false;
   bool? _zipCodeIsValid;
@@ -99,9 +109,9 @@ class SearchScreenState extends State<SearchScreen> {
     // Check if search animation should be shown (first time this session)
     _checkAndShowSearchAnimation();
 
-    // Initialize keys for all filters and categories
+    // Initialize keys for all filters and categories (unique per filter to avoid duplicate keys)
     for (var filter in widget.filteringOptions) {
-      _filterKeys[filter.fieldName] = GlobalKey();
+      _filterKeys[_filterKeyFor(filter)] = GlobalKey();
     }
 
     // Initialize keys and expansion state for all categories
@@ -429,24 +439,25 @@ class SearchScreenState extends State<SearchScreen> {
             continue;
           }
 
-          final fieldName = filter.fieldName;
+          final key = filter.name;
+          final listKey = '${filter.name}:list';
 
           if (filter.list) {
-            // Load list filter values
-            if (savedFilters.containsKey('$fieldName:list')) {
-              final List<dynamic> savedValues = savedFilters['$fieldName:list'];
+            // Load list filter values (key by name)
+            if (savedFilters.containsKey(listKey)) {
+              final List<dynamic> savedValues = savedFilters[listKey];
               filter.choosenListValues =
                   savedValues.map((v) => v as int).toList();
             }
           } else {
-            // Load single value
-            if (savedFilters.containsKey(fieldName)) {
-              final savedValue = savedFilters[fieldName];
+            // Load single value (key by name)
+            if (savedFilters.containsKey(key)) {
+              final savedValue = savedFilters[key];
               // Handle different types (String, bool, int)
               if (savedValue is String) {
                 filter.choosenValue = savedValue;
                 // Also update ZIP code controller if this is the zipCode filter
-                if (fieldName == 'zipCode' && savedValue.isNotEmpty) {
+                if (filter.fieldName == 'zipCode' && savedValue.isNotEmpty) {
                   _zipCodeController.text = savedValue;
                 }
               } else if (savedValue is bool) {
@@ -456,7 +467,7 @@ class SearchScreenState extends State<SearchScreen> {
               } else {
                 filter.choosenValue = savedValue.toString();
                 // Also update ZIP code controller if this is the zipCode filter
-                if (fieldName == 'zipCode' &&
+                if (filter.fieldName == 'zipCode' &&
                     savedValue.toString().isNotEmpty) {
                   _zipCodeController.text = savedValue.toString();
                 }
@@ -491,26 +502,27 @@ class SearchScreenState extends State<SearchScreen> {
           continue;
         }
 
-        final fieldName = filter.fieldName;
+        final key = filter.name;
+        final listKey = '${filter.name}:list';
 
         if (filter.list) {
-          // Save list filter values
+          // Save list filter values (key by name)
           if (filter.choosenListValues.isNotEmpty) {
-            filtersToSave['$fieldName:list'] = filter.choosenListValues;
+            filtersToSave[listKey] = filter.choosenListValues;
           }
         } else {
-          // Save single value (skip if null, empty, or "Any")
+          // Save single value (skip if null, empty, or "Any") (key by name)
           if (filter.choosenValue != null &&
               filter.choosenValue != "" &&
               filter.choosenValue != "Any" &&
               filter.choosenValue != "Any Type") {
             // Convert to appropriate type for JSON
             if (filter.choosenValue is bool) {
-              filtersToSave[fieldName] = filter.choosenValue;
+              filtersToSave[key] = filter.choosenValue;
             } else if (filter.choosenValue is int) {
-              filtersToSave[fieldName] = filter.choosenValue;
+              filtersToSave[key] = filter.choosenValue;
             } else {
-              filtersToSave[fieldName] = filter.choosenValue.toString();
+              filtersToSave[key] = filter.choosenValue.toString();
             }
           }
         }
@@ -633,7 +645,8 @@ class SearchScreenState extends State<SearchScreen> {
         filter.filterType == filterType &&
         filter.classification != CatClassification.breed &&
         filter.classification != CatClassification.sort &&
-        filter.classification != CatClassification.saves).toList();
+        filter.classification != CatClassification.saves &&
+        filter.classification != CatClassification.personality).toList();
 
     if (filterType == FilterType.simple) {
       final breedFilters = widget.filteringOptions
@@ -776,7 +789,7 @@ class SearchScreenState extends State<SearchScreen> {
   Widget _buildFilterRow(
       filterOption filter, CatClassification classification) {
     final isAnimating = _isFilterAnimating(filter);
-    final filterKey = _filterKeys[filter.fieldName];
+    final filterKey = _filterKeys[_filterKeyFor(filter)];
 
     return Container(
       key: filterKey,
@@ -1077,7 +1090,7 @@ class SearchScreenState extends State<SearchScreen> {
           bool isAnyOption =
               option.search == "Any" || option.search == "Any Type";
 
-          final highlightKey = '${filter.fieldName}:${option.value}';
+          final highlightKey = '${_filterKeyFor(filter)}:${option.value}';
           final isHighlighted = _highlightedOptions.containsKey(highlightKey);
 
           final bool active = isSelected || isHighlighted;
@@ -1175,12 +1188,12 @@ class SearchScreenState extends State<SearchScreen> {
         currentValue = filter.options.first.search;
       }
 
-      final highlightKey = '${filter.fieldName}:$currentValue';
+      final highlightKey = '${_filterKeyFor(filter)}:$currentValue';
       final isHighlighted =
           _highlightedOptions.containsKey(highlightKey) ||
               (currentValueStr != null &&
                   _highlightedOptions
-                      .containsKey('${filter.fieldName}:$currentValueStr'));
+                      .containsKey('${_filterKeyFor(filter)}:$currentValueStr'));
 
       return AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -1234,7 +1247,7 @@ class SearchScreenState extends State<SearchScreen> {
 
             items: filter.options.map((option) {
               final optionHighlightKey =
-                  '${filter.fieldName}:${option.value}';
+                  '${_filterKeyFor(filter)}:${option.value}';
               final isOptionHighlighted =
                   _highlightedOptions.containsKey(optionHighlightKey);
 
@@ -1318,16 +1331,16 @@ class SearchScreenState extends State<SearchScreen> {
               print("=== FIND CATS BUTTON PRESSED ===");
               // Save search state before navigating
               await _saveSearchState();
-              var filters = generateFilters();
-              print("Generated ${filters.length} filters");
+              var result = generateFilters();
+              print("Generated ${result.filters.length} filters, filterprocessing: ${result.filterprocessing}");
               
               // Save filters to SharedPreferences for persistence
-              await _saveFiltersToPrefs(filters);
+              await _saveFiltersToPrefs(result.filters);
               
-              Navigator.pop(context, filters);
+              Navigator.pop(context, result);
             } catch (e) {
               print("Error in Find Cats button: $e");
-              Navigator.pop(context, []);
+              Navigator.pop(context, null);
             }
           },
           icon: const Icon(Icons.search, color: Colors.white),
@@ -1968,15 +1981,15 @@ class SearchScreenState extends State<SearchScreen> {
       }
     }
 
-    // Field name mapping with validation
+    // Field name mapping with validation (AI schema key -> searchPageConfig fieldName)
     final fieldNameMapping = {
       'breed': 'animals.breedPrimaryId',
       'sizeGroup': 'animals.sizeGroup',
       'ageGroup': 'animals.ageGroup',
       'sex': 'animals.sex',
       'coatLength': 'animals.coatLength',
-      'affectionate': 'animals.affectionate',
-      'playful': 'animals.playful',
+      'affectionate': 'animals.descriptionText',
+      'playful': 'animals.descriptionText',
       'energyLevel': 'animals.energyLevel',
       'activityLevel': 'animals.activityLevel',
       'exerciseNeeds': 'animals.exerciseNeeds',
@@ -2000,13 +2013,39 @@ class SearchScreenState extends State<SearchScreen> {
       'hearingImpaired': 'animals.hearingImpaired',
       'ongoingMedical': 'animals.ongoingMedical',
       'specialDiet': 'animals.specialDiet',
-      'isAltered': 'animals.altered',
+      'isAltered': 'animals.isAltered',
       'isDeclawed': 'animals.declawed',
       'isMicrochipped': 'animals.isMicrochipped',
-      'isBreedMixed': 'animals.breedMixed',
+      'isBreedMixed': 'animals.isBreedMixed',
       'isSpecialNeeds': 'animals.isSpecialNeeds',
       'isCurrentVaccinations': 'animals.isCurrentVaccinations',
       'updatedDate': 'animals.updatedDate',
+      // Personality / description-based and other added schema keys
+      'independentAloof': 'animals.descriptionText',
+      'calmness': 'animals.descriptionText',
+      'gentleness': 'animals.descriptionText',
+      'lapCat': 'animals.descriptionText',
+      'likesToys': 'animals.descriptionText',
+      'outgoing': 'animals.descriptionText',
+      'curious': 'animals.descriptionText',
+      'timidShy': 'animals.descriptionText',
+      'adultSexesOk': 'animals.adultSexesOk',
+      'evenTempered': 'animals.evenTempered',
+      'needsCompanionAnimal': 'animals.NeedsCompanionAnimal',
+    };
+
+    // When multiple filters share the same fieldName (e.g. animals.description), pick by filter name
+    final aiFieldToFilterName = <String, String>{
+      'affectionate': 'Affectionate',
+      'playful': 'Playful',
+      'independentAloof': 'Independent/aloof',
+      'calmness': 'Calmness',
+      'gentleness': 'Gentleness',
+      'lapCat': 'Lap Cat',
+      'likesToys': 'Likes toys',
+      'outgoing': 'outgoing',
+      'curious': 'curious',
+      'timidShy': 'Timid / shy',
     };
 
     // Process each filter with comprehensive error handling
@@ -2032,8 +2071,10 @@ class SearchScreenState extends State<SearchScreen> {
               return;
             }
 
+            final filterName = aiFieldToFilterName[aiField];
             final filter = widget.filteringOptions.firstWhere(
-              (f) => f.fieldName == fieldName,
+              (f) => f.fieldName == fieldName &&
+                  (filterName == null || f.name == filterName),
               orElse: () => filterOption('', '', '', false, false,
                   CatClassification.basic, 0, [], [], false, FilterType.simple),
             );
@@ -2169,9 +2210,11 @@ class SearchScreenState extends State<SearchScreen> {
             return;
           }
 
-          // Edge case: Filter not found in filteringOptions
+          // Edge case: Filter not found in filteringOptions (use filter name when multiple share fieldName)
+          final filterName = aiFieldToFilterName[aiField];
           final filter = widget.filteringOptions.firstWhere(
-            (f) => f.fieldName == fieldName,
+            (f) => f.fieldName == fieldName &&
+                (filterName == null || f.name == filterName),
             orElse: () => filterOption('', '', '', false, false,
                 CatClassification.basic, 0, [], [], false, FilterType.simple),
           );
@@ -2243,9 +2286,22 @@ class SearchScreenState extends State<SearchScreen> {
       print('✅ All filters applied successfully!');
     }
 
-    // Update UI to show applied filters
+    // Update UI to show applied filters and expand any section that has applied filters
     setState(() {
-      // Force rebuild to ensure filter values are visible
+      for (final filter in filtersToUpdate) {
+        if (filter.classification == CatClassification.personality) {
+          _expandedCategories[CatClassification.personality] = true;
+        } else if (filter.classification == CatClassification.sort) {
+          _expandedCategories[CatClassification.sort] = true;
+        } else if (filter.classification == CatClassification.saves) {
+          _expandedCategories[CatClassification.saves] = true;
+        }
+        if (filter.filterType == FilterType.simple) {
+          _expandedCategories['${FilterType.simple}_category'] = true;
+        } else if (filter.filterType == FilterType.advanced) {
+          _expandedCategories['${FilterType.advanced}_category'] = true;
+        }
+      }
     });
 
     // Save search state after filters are applied
@@ -2259,12 +2315,12 @@ class SearchScreenState extends State<SearchScreen> {
       // Generate filters and navigate back
       try {
         print("=== GENERATING FILTERS FOR DIRECT NAVIGATION ===");
-        var filters = generateFilters();
-        print("Generated ${filters.length} filters");
-        Navigator.pop(context, filters);
+        var result = generateFilters();
+        print("Generated ${result.filters.length} filters");
+        Navigator.pop(context, result);
       } catch (e) {
         print("Error in direct navigation: $e");
-        Navigator.pop(context, []);
+        Navigator.pop(context, null);
       }
       return;
     }
@@ -2832,7 +2888,7 @@ class SearchScreenState extends State<SearchScreen> {
     // Animate each filter one by one
     for (int i = 0; i < filters.length; i++) {
       final filter = filters[i];
-      final filterKey = filter.fieldName;
+      final filterKey = _filterKeyFor(filter);
       final classification = filter.classification;
       final filterType = filter.filterType;
       
@@ -3026,7 +3082,7 @@ class SearchScreenState extends State<SearchScreen> {
 
   /// Check if a filter is currently being animated
   bool _isFilterAnimating(filterOption filter) {
-    return _animatingFilters[filter.fieldName] ?? false;
+    return _animatingFilters[_filterKeyFor(filter)] ?? false;
   }
 
   @override
@@ -3064,6 +3120,8 @@ class SearchScreenState extends State<SearchScreen> {
                   _buildFilterCategoryByType("Core", Icons.star, FilterType.simple, true),
                   // Advanced Fields (initially collapsed)
                   _buildFilterCategoryByType("Advanced", Icons.tune, FilterType.advanced, false),
+                  // Personality (filters with CatClassification.personality)
+                  _buildFilterCategory("Personality", Icons.psychology, CatClassification.personality),
                   // Location & Sort (separate section)
                   _buildFilterCategory(
                       "Location & Sort", Icons.sort, CatClassification.sort),
@@ -3558,22 +3616,23 @@ class SearchScreenState extends State<SearchScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       };
 
-      // Save all filter values
+      // Save all filter values (key by name)
       for (var filter in widget.filteringOptions) {
         if (filter.classification == CatClassification.saves) {
           continue;
         }
 
-        final fieldName = filter.fieldName;
+        final key = filter.name;
+        final listKey = '${filter.name}:list';
 
         if (filter.list) {
           if (filter.choosenListValues.isNotEmpty) {
-            searchData['filters']['$fieldName:list'] = filter.choosenListValues;
+            searchData['filters'][listKey] = filter.choosenListValues;
           }
         } else {
           // Special handling for zipCode: always save it and update globally
-          if (fieldName == 'zipCode') {
-            searchData['filters'][fieldName] = zipValue;
+          if (filter.fieldName == 'zipCode') {
+            searchData['filters'][key] = zipValue;
             
             // Update global zip code (already validated above)
             FelineFinderServer.instance.zip = zipValue;
@@ -3585,11 +3644,11 @@ class SearchScreenState extends State<SearchScreen> {
               filter.choosenValue != "Any" &&
               filter.choosenValue != "Any Type") {
             if (filter.choosenValue is bool) {
-              searchData['filters'][fieldName] = filter.choosenValue;
+              searchData['filters'][key] = filter.choosenValue;
             } else if (filter.choosenValue is int) {
-              searchData['filters'][fieldName] = filter.choosenValue;
+              searchData['filters'][key] = filter.choosenValue;
             } else {
-              searchData['filters'][fieldName] = filter.choosenValue.toString();
+              searchData['filters'][key] = filter.choosenValue.toString();
             }
           }
         }
@@ -3717,22 +3776,23 @@ class SearchScreenState extends State<SearchScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       };
 
-      // Save all filter values
+      // Save all filter values (key by name)
       for (var filter in widget.filteringOptions) {
         if (filter.classification == CatClassification.saves) {
           continue;
         }
 
-        final fieldName = filter.fieldName;
+        final key = filter.name;
+        final listKey = '${filter.name}:list';
 
         if (filter.list) {
           if (filter.choosenListValues.isNotEmpty) {
-            searchData['filters']['$fieldName:list'] = filter.choosenListValues;
+            searchData['filters'][listKey] = filter.choosenListValues;
           }
         } else {
           // Special handling for zipCode: always save it and update globally
-          if (fieldName == 'zipCode') {
-            searchData['filters'][fieldName] = zipValue;
+          if (filter.fieldName == 'zipCode') {
+            searchData['filters'][key] = zipValue;
             
             // Update global zip code (already validated above)
             FelineFinderServer.instance.zip = zipValue;
@@ -3744,11 +3804,11 @@ class SearchScreenState extends State<SearchScreen> {
               filter.choosenValue != "Any" &&
               filter.choosenValue != "Any Type") {
             if (filter.choosenValue is bool) {
-              searchData['filters'][fieldName] = filter.choosenValue;
+              searchData['filters'][key] = filter.choosenValue;
             } else if (filter.choosenValue is int) {
-              searchData['filters'][fieldName] = filter.choosenValue;
+              searchData['filters'][key] = filter.choosenValue;
             } else {
-              searchData['filters'][fieldName] = filter.choosenValue.toString();
+              searchData['filters'][key] = filter.choosenValue.toString();
             }
           }
         }
@@ -3924,7 +3984,7 @@ class SearchScreenState extends State<SearchScreen> {
         _deserializeExpandedCategories(searchData['expandedCategories']);
       }
 
-      // Load filters from saved data (overriding the defaults we just set)
+      // Load filters from saved data (key by name)
       if (searchData.containsKey('filters')) {
         final filters = searchData['filters'] as Map<String, dynamic>;
 
@@ -3933,21 +3993,22 @@ class SearchScreenState extends State<SearchScreen> {
             continue;
           }
 
-          final fieldName = filter.fieldName;
+          final key = filter.name;
+          final listKey = '${filter.name}:list';
 
           if (filter.list) {
-            if (filters.containsKey('$fieldName:list')) {
-              final List<dynamic> savedValues = filters['$fieldName:list'];
+            if (filters.containsKey(listKey)) {
+              final List<dynamic> savedValues = filters[listKey];
               filter.choosenListValues =
                   savedValues.map((v) => v is int ? v : int.tryParse(v.toString()) ?? 0).toList();
-              print('Loaded list filter $fieldName: ${filter.choosenListValues}');
+              print('Loaded list filter ${filter.name}: ${filter.choosenListValues}');
             }
           } else {
-            if (filters.containsKey(fieldName)) {
-              final savedValue = filters[fieldName];
+            if (filters.containsKey(key)) {
+              final savedValue = filters[key];
               if (savedValue is String) {
                 filter.choosenValue = savedValue;
-                if (fieldName == 'zipCode') {
+                if (filter.fieldName == 'zipCode') {
                   if (savedValue.isNotEmpty) {
                     // Use saved zip code and update globally
                     _zipCodeController.text = savedValue;
@@ -3960,17 +4021,17 @@ class SearchScreenState extends State<SearchScreen> {
                     await _loadZipCodeFromLocation(filter);
                   }
                 }
-                print('Loaded single filter $fieldName: $savedValue');
+                print('Loaded single filter ${filter.name}: $savedValue');
               } else if (savedValue is bool) {
                 filter.choosenValue = savedValue;
-                print('Loaded bool filter $fieldName: $savedValue');
+                print('Loaded bool filter ${filter.name}: $savedValue');
               } else if (savedValue is int) {
                 filter.choosenValue = savedValue;
-                print('Loaded int filter $fieldName: $savedValue');
+                print('Loaded int filter ${filter.name}: $savedValue');
               } else {
                 // Convert to string as fallback
                 filter.choosenValue = savedValue.toString();
-                print('Loaded filter $fieldName (converted to string): ${filter.choosenValue}');
+                print('Loaded filter ${filter.name} (converted to string): ${filter.choosenValue}');
               }
             }
           }
@@ -4015,7 +4076,7 @@ class SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  /// Get current search state as a Map (for comparison)
+  /// Get current search state as a Map (for comparison; keys are filter names)
   Map<String, dynamic> _getCurrentSearchState() {
     final query = controller2.text.trim();
     final Map<String, dynamic> currentState = {
@@ -4028,11 +4089,12 @@ class SearchScreenState extends State<SearchScreen> {
         continue;
       }
 
-      final fieldName = filter.fieldName;
+      final key = filter.name;
+      final listKey = '${filter.name}:list';
 
       if (filter.list) {
         if (filter.choosenListValues.isNotEmpty) {
-          currentState['filters']['$fieldName:list'] = filter.choosenListValues;
+          currentState['filters'][listKey] = filter.choosenListValues;
         }
       } else {
         if (filter.choosenValue != null &&
@@ -4040,11 +4102,11 @@ class SearchScreenState extends State<SearchScreen> {
             filter.choosenValue != "Any" &&
             filter.choosenValue != "Any Type") {
           if (filter.choosenValue is bool) {
-            currentState['filters'][fieldName] = filter.choosenValue;
+            currentState['filters'][key] = filter.choosenValue;
           } else if (filter.choosenValue is int) {
-            currentState['filters'][fieldName] = filter.choosenValue;
+            currentState['filters'][key] = filter.choosenValue;
           } else {
-            currentState['filters'][fieldName] = filter.choosenValue.toString();
+            currentState['filters'][key] = filter.choosenValue.toString();
           }
         }
       }
@@ -4214,12 +4276,17 @@ class SearchScreenState extends State<SearchScreen> {
     _showSaveSearchDialog();
   }
 
-  List<Filters> generateFilters() {
+  FilterResult generateFilters() {
     DateTime date = DateTime.now();
 
     List<Filters> filters = [];
+    List<String> segments = [];
+    int index = 1; // 1-based filter index for filterprocessing
+
     filters.add(Filters(
-        fieldName: "species.singular", operation: "equals", criteria: ["cat"]));
+        fieldName: "species.singular", operation: "equal", criteria: ["cat"]));
+    segments.add("$index");
+    index++;
 
     print("=== GENERATING FILTERS ===");
     print("Processing ${widget.filteringOptions.length} filter options");
@@ -4257,15 +4324,15 @@ class SearchScreenState extends State<SearchScreen> {
               updatedSince = 3;
               date = date.subtract(const Duration(days: 365));
             }
-            // Format date as ISO 8601 with zero-padding (YYYY-MM-DDTHH:mm:ssZ)
             final formattedDate = "${date.year.toString().padLeft(4, '0')}-"
                 "${date.month.toString().padLeft(2, '0')}-"
                 "${date.day.toString().padLeft(2, '0')}T00:00:00Z";
-            // Date filters may require criteria as a single string, not an array
             filters.add(Filters(
                 fieldName: "animals.updatedDate",
-                operation: "greaterthan",  // API requires all lowercase
-                criteria: formattedDate));  // Try single string instead of array
+                operation: "greaterthan",
+                criteria: formattedDate));
+            segments.add("$index");
+            index++;
           } else {
             updatedSince = 4;
           }
@@ -4273,24 +4340,42 @@ class SearchScreenState extends State<SearchScreen> {
         continue;
       }
       if (item.list) {
-        // Skip if no values selected or list is empty
         if (item.choosenListValues.isEmpty) {
           continue;
         }
-        
-        // Special handling for breed filters
-        if (item.classification == CatClassification.breed) {
-          // Check if "Any" is selected (value 0) - skip if only "Any" is selected
-          final nonAnyValues = item.choosenListValues.where((v) => v != 0).toList();
-          if (nonAnyValues.isEmpty) {
-            // Only "Any" is selected, skip this filter
-            continue;
+        // List filter with synonyms: add one filter per synonym (contains), OR group
+        if (item.synonyms.isNotEmpty) {
+          int? anyOptionValue;
+          try {
+            final anyOption = item.options.firstWhere(
+              (opt) => opt.search == "Any" || opt.search == "Any Type",
+            );
+            anyOptionValue = anyOption.value;
+          } catch (e) {
+            anyOptionValue = null;
           }
-          
-          // Process only non-"Any" values
+          final nonAnyValues = anyOptionValue != null
+              ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
+              : item.choosenListValues;
+          if (nonAnyValues.isEmpty) continue;
+          final orIndices = <String>[];
+          for (var synonym in item.synonyms) {
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "contains",
+                criteria: synonym));
+            orIndices.add("$index");
+            index++;
+          }
+          segments.add("(${orIndices.join(" OR ")})");
+          continue;
+        }
+        // No synonyms: existing list logic
+        if (item.classification == CatClassification.breed) {
+          final nonAnyValues = item.choosenListValues.where((v) => v != 0).toList();
+          if (nonAnyValues.isEmpty) continue;
           List<String> breedIds = [];
           for (var breedRid in nonAnyValues) {
-            // Find breed by rid (values are stored as rid)
             try {
               final breed = breeds.firstWhere((b) => b.rid == breedRid);
               breedIds.add(breed.rid.toString());
@@ -4301,11 +4386,12 @@ class SearchScreenState extends State<SearchScreen> {
           if (breedIds.isNotEmpty) {
             filters.add(Filters(
                 fieldName: item.fieldName,
-                operation: "equals",
+                operation: "equal",
                 criteria: breedIds));
+            segments.add("$index");
+            index++;
           }
         } else {
-          // Find the "Any" option value if it exists
           int? anyOptionValue;
           try {
             final anyOption = item.options.firstWhere(
@@ -4313,29 +4399,21 @@ class SearchScreenState extends State<SearchScreen> {
             );
             anyOptionValue = anyOption.value;
           } catch (e) {
-            // No "Any" option found, which is fine
             anyOptionValue = null;
           }
-
-          // Filter out "Any" values from the list
           final nonAnyValues = anyOptionValue != null
               ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
               : item.choosenListValues;
-
-          // Skip if only "Any" was selected (no non-"Any" values)
           if (nonAnyValues.isEmpty) {
             print("Skipping filter ${item.fieldName}: only 'Any' selected or empty");
             continue;
           }
-
-          // Process selected values (excluding "Any")
           List<String> OptionsList = [];
           for (var choosenValue in nonAnyValues) {
             try {
               final option = item.options.firstWhere(
                 (element) => element.value == choosenValue,
               );
-              // Double-check: Skip if this option is "Any" or "Any Type" (shouldn't happen, but safety check)
               if (option.search == "Any" || option.search == "Any Type") {
                 print("Skipping 'Any' option in ${item.fieldName}");
                 continue;
@@ -4349,63 +4427,72 @@ class SearchScreenState extends State<SearchScreen> {
             print("Adding list filter: ${item.fieldName} = $OptionsList");
             filters.add(Filters(
                 fieldName: item.fieldName,
-                operation: "equals",
+                operation: "equal",
                 criteria: OptionsList));
+            segments.add("$index");
+            index++;
           } else {
             print("No valid options for filter ${item.fieldName} after processing");
           }
         }
       } else {
-        // Handle different value types
+        // Single-value filter
         dynamic value = item.choosenValue;
-
-        // Skip if value is null, empty, or explicitly "Any"
         if (value == null ||
             value == "" ||
             value == "Any" ||
             value == "Any Type") {
           continue;
         }
-
-        // Convert value to string for additional checks
         String stringValue = value.toString().trim();
-
-        // Skip if string value is empty or matches "Any" (case-insensitive)
         if (stringValue.isEmpty ||
             stringValue.toLowerCase() == "any" ||
             stringValue.toLowerCase() == "any type") {
           continue;
         }
-
-        // Check if the value corresponds to an "Any" option in the options list
         if (item.options.isNotEmpty) {
-          // Find the option that matches the chosen value
           var matchingOption = item.options.firstWhere(
             (opt) => opt.value == value || opt.search == stringValue,
             orElse: () => item.options.first,
           );
-
-          // If the matching option is "Any" or "Any Type", skip this filter
           if (matchingOption.search == "Any" ||
               matchingOption.search == "Any Type") {
             continue;
           }
         }
-
+        // Single-value WITH synonyms: add one filter per synonym (contains), OR group
+        if (item.synonyms.isNotEmpty) {
+          final orIndices = <String>[];
+          for (var synonym in item.synonyms) {
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "contains",
+                criteria: synonym));
+            orIndices.add("$index");
+            index++;
+          }
+          segments.add("(${orIndices.join(" OR ")})");
+          continue;
+        }
+        // No synonyms: one equals filter
         print("Adding filter: ${item.fieldName} = $stringValue");
         filters.add(Filters(
             fieldName: item.fieldName,
-            operation: "equals",
+            operation: "equal",
             criteria: [stringValue]));
+        segments.add("$index");
+        index++;
       }
     }
+    final filterprocessing = segments.join(" AND ");
     print("=== FINAL FILTERS ===");
     print("Total filters: ${filters.length}");
+    print("Filterprocessing: $filterprocessing");
     for (var filter in filters) {
       print(
           "Filter: ${filter.fieldName} ${filter.operation} ${filter.criteria}");
     }
-    return filters;
+    return FilterResult(filters, filterprocessing);
   }
 
   /// Save filters to SharedPreferences for persistence

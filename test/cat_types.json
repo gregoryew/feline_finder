@@ -1,0 +1,190 @@
+{
+    "overall_prompt": "Create a high-quality digital illustration of Felix, a cute cartoon tuxedo cat mascot with cream-and-black fur, big shiny eyes, a soft rounded face, a small oversized red nose, and Pixar-like warm shading. Felix must look like the same consistent character in every image (same facial proportions, fur pattern, nose shape, eye style). Style: modern polished cartoon mascot, clean outlines, warm soft lighting, professional app illustration. Composition: centered character, square format, simple colorful background with subtle props, no text, no watermark, no logos, no UI elements. The only differences between images should be Felix’s expression, pose, outfit/props, and background elements to match the type theme.",
+    "types": [
+    {
+    "name": "Professional Napper",
+    "description": "A calm, low-energy cat who loves sleeping and relaxing most of the day.",
+    "tagline": "Sleep first, everything else later.",
+    "prompt": "Felix sleeping peacefully on a fluffy pillow with a cozy blanket, eyes closed, tiny smile, warm sun rays through a window, soft plush textures, tranquil cozy vibe."
+    },
+    {
+    "name": "Lap Legend",
+    "description": "A devoted cuddle companion who loves sitting on laps and being close to people.",
+    "tagline": "Your lap is home.",
+    "prompt": "Felix curled up happily on a person’s lap under a soft blanket, floating heart accents, warm living-room feel, relaxed cuddly expression."
+    },
+    {
+    "name": "Zen Companion",
+    "description": "An easygoing, peaceful cat that adapts well to calm homes and routines.",
+    "tagline": "Calm vibes only.",
+    "prompt": "Felix sitting calmly in a meditation pose on a cushion, gentle glowing aura, a couple of plants and candles nearby, serene balanced atmosphere."
+    },
+    {
+    "name": "Old Soul",
+    "description": "A mature, thoughtful cat with a steady temperament and gentle presence.",
+    "tagline": "Wise beyond their whiskers.",
+    "prompt": "Felix wearing simple reading glasses, sitting in a comfy armchair with an open book, warm lamplight, cozy vintage study vibe, thoughtful gentle expression."
+    },
+    {
+    "name": "Quiet Shadow",
+    "description": "A low-profile cat who stays nearby without demanding attention.",
+    "tagline": "Always near, never loud.",
+    "prompt": "Felix resting quietly in a dim corner near a window at night, soft moonlight and shadows, calm reserved expression, quiet protective vibe."
+    },
+    
+    {
+    "name": "Zoomie Rocket",
+    "description": "A high-energy cat who loves running, jumping, and nonstop movement.",
+    "tagline": "Fueled by pure chaos.",
+    "prompt": "Felix sprinting at full speed with playful motion blur, excited wide eyes, dynamic action pose, streaks of speed lines and scattered toys behind."
+    },
+    {
+    "name": "Parkour Cat",
+    "description": "An athletic climber who turns furniture into an obstacle course.",
+    "tagline": "The floor is optional.",
+    "prompt": "Felix mid-leap between shelves and a cat tree, athletic pose, confident grin, home obstacle-course vibe with tasteful props like shelves and platforms."
+    },
+    {
+    "name": "Toy Addict",
+    "description": "A playful cat obsessed with toys, games, and interactive play.",
+    "tagline": "Playtime is serious business.",
+    "prompt": "Felix pouncing on a feather wand and surrounded by yarn balls and toy mice, super excited expression, playful clutter, energetic fun vibe."
+    },
+    {
+    "name": "Chaos Sprite",
+    "description": "A mischievous whirlwind of energy who keeps life entertaining.",
+    "tagline": "May cause laughter.",
+    "prompt": "Felix in the middle of playful mischief: papers flying, a tipped plant (no mess too realistic), wide mischievous grin, comedic chaotic energy."
+    },
+    {
+    "name": "Forever Kitten",
+    "description": "A youthful, playful cat who never quite grows out of kitten behavior.",
+    "tagline": "Young at heart forever.",
+    "prompt": "Felix looking extra cute and youthful, chasing bubbles and batting at a ribbon, bright cheerful background, innocent playful expression."
+    },
+    
+    {
+    "name": "Velcro Cat",
+    "description": "An extremely affectionate cat who wants to be with you at all times.",
+    "tagline": "Personal space is overrated.",
+    "prompt": "Felix clinging lovingly to a person’s leg with big affectionate eyes, tiny hearts floating, cozy home vibe, sweet attached posture."
+    },
+    {
+    "name": "Cuddle Ambassador",
+    "description": "A friendly cat who bonds easily with people and enjoys affection.",
+    "tagline": "Certified hug expert.",
+    "prompt": "Felix giving a big hug with open paws, friendly welcoming smile, soft warm background, gentle sparkles suggesting friendliness."
+    },
+    {
+    "name": "Welcome Committee",
+    "description": "A social cat who happily greets guests and new experiences.",
+    "tagline": "Nice to meet you!",
+    "prompt": "Felix standing by an open front door, waving a paw in greeting, bright entryway, cheerful welcoming expression, subtle confetti-like sparkles."
+    },
+    {
+    "name": "Therapy Cat",
+    "description": "An emotionally intuitive cat who provides comfort and reassurance.",
+    "tagline": "Always knows when you need them.",
+    "prompt": "Felix gently comforting someone (only hands/arms implied, no detailed human face), soft glowing light, calm compassionate eyes, warm soothing atmosphere."
+    },
+    {
+    "name": "Heart Healer",
+    "description": "A deeply bonded companion who forms strong emotional connections.",
+    "tagline": "Love, delivered daily.",
+    "prompt": "Felix placing a paw over a glowing heart icon near the chest, tender smile, warm radiating light, peaceful affectionate mood."
+    },
+    
+    {
+    "name": "Solo Artist",
+    "description": "An independent cat who enjoys companionship on their own terms.",
+    "tagline": "Together, separately.",
+    "prompt": "Felix in a tiny art studio painting on a canvas, wearing a little beret, focused independent expression, tasteful art props like palette and brush."
+    },
+    {
+    "name": "Dignified Observer",
+    "description": "A calm, confident cat who prefers to watch rather than participate.",
+    "tagline": "Poised and unbothered.",
+    "prompt": "Felix sitting upright with regal posture on a cushion, calm confident face, minimalist elegant room vibe, subtle crown-like glow (not literal crown)."
+    },
+    {
+    "name": "Window Philosopher",
+    "description": "A thoughtful cat who enjoys quietly observing the world.",
+    "tagline": "Contemplating life, bird by bird.",
+    "prompt": "Felix gazing thoughtfully out a window at birds outside, gentle daylight, reflective mood, soft background with a windowsill and plant."
+    },
+    {
+    "name": "Private Thinker",
+    "description": "A reserved, sensitive cat who bonds slowly but deeply.",
+    "tagline": "Trust takes time.",
+    "prompt": "Felix sitting in a quiet nook with a small notebook and pencil nearby, thoughtful cautious expression, soft muted cozy lighting, intimate safe vibe."
+    },
+    {
+    "name": "Gentle Hermit",
+    "description": "A shy but sweet cat who thrives in quiet, predictable environments.",
+    "tagline": "Soft-hearted and cautious.",
+    "prompt": "Felix peeking shyly from inside a cozy cat cave with blankets, gentle eyes, warm safe atmosphere, minimal props, comforting vibe."
+    },
+    
+    {
+    "name": "Drama Monarch",
+    "description": "A highly expressive cat who makes sure their feelings are known.",
+    "tagline": "Every moment is a performance.",
+    "prompt": "Felix on a small theater stage under a spotlight with velvet curtains, dramatic pose and expression, theatrical flair, playful spotlight glow."
+    },
+    {
+    "name": "Opinionated Roommate",
+    "description": "A vocal cat with strong preferences and plenty to say about them.",
+    "tagline": "I have notes.",
+    "prompt": "Felix standing with paw raised as if making a point, animated talkative expression, a few comic-style speech-bubble shapes but WITHOUT any text, lively apartment vibe."
+    },
+    {
+    "name": "Soap Opera Star",
+    "description": "An affectionate but dramatic cat who feels everything intensely.",
+    "tagline": "Tears, cuddles, repeat.",
+    "prompt": "Felix holding a tiny tissue, teary-eyed dramatic expression, soft dramatic lighting, cozy scene, comedic melodrama tone."
+    },
+    {
+    "name": "Mood Ring Cat",
+    "description": "A sensitive cat whose emotions can change quickly with their environment.",
+    "tagline": "Feeling everything, always.",
+    "prompt": "Felix surrounded by shifting colored glows (like mood lighting), face showing mixed emotions, swirling gradient background, expressive but still cute."
+    },
+    {
+    "name": "Attention Magnet",
+    "description": "A charismatic cat who loves being noticed and admired.",
+    "tagline": "Eyes on me, please.",
+    "prompt": "Felix posing confidently as if for photos, soft camera-flash sparkles, playful celebrity vibe, confident smile, tasteful glam without realism."
+    },
+    
+    {
+    "name": "Routine Master",
+    "description": "A structured cat who thrives on schedules and predictability.",
+    "tagline": "On time, every time.",
+    "prompt": "Felix checking a neat schedule board with a big clock nearby (no readable text), organized desk, calm focused expression, tidy structured vibe."
+    },
+    {
+    "name": "Puzzle Pro",
+    "description": "A clever cat who enjoys problem-solving and mental challenges.",
+    "tagline": "Brains before brawn.",
+    "prompt": "Felix solving a puzzle feeder toy, focused smart eyes, pieces arranged neatly, bright curious background, problem-solving energy."
+    },
+    {
+    "name": "Social Learner",
+    "description": "An adaptable cat who learns quickly from people and other pets.",
+    "tagline": "Always picking things up.",
+    "prompt": "Felix watching and mimicking a simple trick with friendly silhouettes of another pet nearby, curious engaged expression, classroom-like friendly vibe."
+    },
+    {
+    "name": "Explorer Brain",
+    "description": "A curious cat driven by discovery and new experiences.",
+    "tagline": "What’s over there?",
+    "prompt": "Felix wearing a tiny explorer backpack and holding a little map and binoculars, adventurous grin, light outdoorsy background with paths and plants."
+    },
+    {
+    "name": "Little Professor",
+    "description": "An intelligent, observant cat who seems to understand everything.",
+    "tagline": "Quietly brilliant.",
+    "prompt": "Felix wearing glasses in front of a chalkboard with simple shapes and lines (no text), teaching pose with a pointer, confident intelligent expression."
+    }
+    ]
+    }

@@ -17,6 +17,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
 import '/screens/fit.dart';
+import '/screens/personality_fit.dart';
 import '/screens/favoritesList.dart';
 import '/widgets/gold/gold_circle_icon_button.dart';
 
@@ -209,6 +210,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late GlobalObjectKey<AdoptGridState> AdoptionGridKey;
   late GlobalObjectKey<FitState> FitScreenKey = GlobalObjectKey<FitState>(this);
+  late GlobalObjectKey<PersonalityFitState> PersonalityFitScreenKey = GlobalObjectKey<PersonalityFitState>(this);
   late AnimationController _sparkleController;
   late Animation<double> _sparkleAnimation;
 
@@ -243,8 +245,9 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   List<Widget> get pages => <Widget>[
     AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton), // Index 0 - Adopt a cat (first tab)
     Fit(key: FitScreenKey), // Index 1 - Fit (second tab)
-    BreedList(title: "Breed List"), // Index 2 - Breed info (third tab)
-    const FavoritesListScreen() // Index 3 - Saved/Favorites (fourth tab)
+    PersonalityFit(key: PersonalityFitScreenKey), // Index 2 - Personality Fit
+    BreedList(title: "Breed List"), // Index 3 - Breed info
+    const FavoritesListScreen() // Index 4 - Saved/Favorites
   ];
 
 // 9
@@ -273,6 +276,17 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
           icon: Icons.share,
           onTap: () {
             FitScreenKey.currentState?.shareFitScreen();
+          },
+        ),
+        const SizedBox(width: 15),
+      ];
+    } else if (selectedIndex == 2) {
+      // Personality Fit screen - add share button
+      return <Widget>[
+        GoldCircleIconButton(
+          icon: Icons.share,
+          onTap: () {
+            PersonalityFitScreenKey.currentState?.sharePersonalityFitScreen();
           },
         ),
         const SizedBox(width: 15),
@@ -482,6 +496,42 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   child: _selectedIndex == 2
                       ? Text(
+                          '✨',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: AppTheme.goldBase,
+                          ),
+                        )
+                      : ColorFiltered(
+                          colorFilter: ColorFilter.matrix([
+                            0.2126, 0.7152, 0.0722, 0, 0, // Red channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Green channel
+                            0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
+                            0, 0, 0, 1, 0, // Alpha channel
+                          ]),
+                          child: Text(
+                            '✨',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
+                ),
+                label: 'Personality',
+              ),
+              BottomNavigationBarItem(
+                backgroundColor: Colors.white,
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 3
+                        ? AppTheme.deepPurple.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
+                  ),
+                  child: _selectedIndex == 3
+                      ? Text(
                           '🐱',
                           style: TextStyle(
                             fontSize: 24,
@@ -511,12 +561,12 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _selectedIndex == 3
+                    color: _selectedIndex == 4
                         ? AppTheme.deepPurple.withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
-                  child: _selectedIndex == 3
+                  child: _selectedIndex == 4
                       ? Text(
                           '🏷️',
                           style: TextStyle(

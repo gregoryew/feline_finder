@@ -147,11 +147,78 @@ class SearchAIService {
   "filters": {
     "breed": {
       "field": "animals.breedPrimaryId",
-      "description": "Restrict search results to cats of a specific breed.",
+      "description": "Restrict search results to cats of a specific breed. Match by breed name OR by personality/behavior sayings in personalitySayings. When a trait/saying matches MORE THAN ONE breed, return breed as an ARRAY of ALL matching breeds (e.g. 'dog-like' matches Ragdoll, Maine Coon, Bobtail, Norwegian Forest, Ocicat → breed: [\"Ragdoll\", \"Maine Coon\", \"Bobtail\", \"Norwegian Forest\", \"Ocicat\"]). When only one breed matches, return a string.",
       "options": [],
       "keywords": {
-        "positive": ["breed", "ragdoll", "siamese", "persian", "maine coon", "calico"],
+        "positive": ["Abyssinian","American Curl","American Shorthair","American Wirehair","Applehead Siamese","Balinese","Bengal","Birman","Bobtail","Bombay","British Shorthair","Burmese","Burmilla","Calico","Canadian Hairless","Chartreux","Chausie","Chinchilla","Cornish Rex","Cymric","Devon Rex","Dilute Calico","Dilute Tortoiseshell","Domestic Long-hair","Domestic Medium-hair","Domestic Short-hair","Egyptian Mau","Exotic Shorthair","Extra-Toes Cat","Havana","Himalayan","Japanese Bobtail","Javanese","Korat","LaPerm","Maine Coon","Manx","Munchkin","Nebelung","Norwegian Forest","Ocicat","Oriental","Persian","Pixie-Bob","Ragamuffin","Ragdoll","Russian Blue","Savannah","Scottish Fold","Selkirk Rex","Siamese","Siberian","Silver","Singapura","Snowshoe","Somali","Sphynx","Tabby","Toyger","Tonkinese","Torbie","Tortoiseshell","Turkish Angora","Turkish Van","Tuxedo"],
         "negative": ["any breed", "all breeds"]
+      },
+      "personalitySayings": {
+        "Abyssinian": ["active", "curious", "social", "dog-like affection", "not lap cat", "ticked coat"],
+        "American Curl": ["playful", "affectionate", "curled ears", "seeks attention", "family cat"],
+        "American Shorthair": ["adaptable", "steady", "easygoing", "working cat", "good with kids"],
+        "American Wirehair": ["gentle", "playful", "quiet", "wiry coat", "rare breed"],
+        "Applehead Siamese": ["playful", "affectionate", "round head", "vocal", "applehead"],
+        "Balinese": ["playful", "affectionate", "vocal", "long coat", "intelligent"],
+        "Bengal": ["active", "confident", "wild look", "spotted", "leopard-like"],
+        "Birman": ["affectionate", "gentle", "sacred cat", "white gloves", "blue eyes"],
+        "Bobtail": ["playful", "dog-like", "short tail", "adaptable", "bold"],
+        "Bombay": ["social", "affectionate", "panther look", "black coat", "lap cat"],
+        "British Shorthair": ["calm", "placid", "British Blue", "stocky", "slow to mature"],
+        "Burmese": ["social", "playful", "vocal", "muscular", "people-oriented"],
+        "Burmilla": ["sweet", "medium build", "silver coat", "makeup lining"],
+        "Calico": ["three colors", "white orange black", "playful", "affectionate"],
+        "Canadian Hairless": ["hairless", "Sphynx-like", "playful", "warm to touch"],
+        "Chartreux": ["quiet", "smiling cat", "blue-grey", "bond with one person", "hunter"],
+        "Chausie": ["lively", "outgoing", "athletic", "jungle cat look", "large ears"],
+        "Chinchilla": ["fluffy", "silver coat", "gentle", "round eyes", "Persian type"],
+        "Cornish Rex": ["Greyhound of cats", "curly coat", "playful", "warm environment", "slender"],
+        "Cymric": ["tailless", "longhair Manx", "sturdy", "double coat", "breeches"],
+        "Devon Rex": ["pixie look", "monkey in a cat suit", "large ears", "wavy coat", "playful", "social"],
+        "Dilute Calico": ["soft colors", "pastel calico", "playful", "affectionate"],
+        "Dilute Tortoiseshell": ["muted tortie", "dilute colors", "playful", "affectionate"],
+        "Domestic Long-hair": ["longhair", "fluffy", "mixed breed", "varied personality"],
+        "Domestic Medium-hair": ["medium coat", "mixed breed", "playful", "affectionate"],
+        "Domestic Short-hair": ["shorthair", "mixed breed", "adaptable", "varied"],
+        "Egyptian Mau": ["spotted", "fastest cat", "scarab marking", "green eyes", "natural spots"],
+        "Exotic Shorthair": ["Persian face", "short coat", "gentle", "round face", "quiet"],
+        "Extra-Toes Cat": ["polydactyl", "extra toes", "playful", "Hemingway cat"],
+        "Havana": ["Havana Brown", "warm brown", "friendly", "moderate activity", "rare"],
+        "Himalayan": ["Persian type", "pointed", "blue eyes", "calm", "longhair"],
+        "Japanese Bobtail": ["bobtail", "rabbit tail", "lucky cat", "calico", "folklore"],
+        "Javanese": ["silky coat", "intelligent", "affectionate", "point colors", "Balinese relative"],
+        "Korat": ["good luck cat", "silver-blue", "affectionate", "vocal", "heart-shaped face"],
+        "LaPerm": ["curly coat", "rex", "affectionate", "active", "outgoing", "hypoallergenic"],
+        "Maine Coon": ["gentle giant", "dog-like", "large", "social", "fluffy", "hunting"],
+        "Manx": ["tailless", "no tail", "hunter", "sociable", "active", "round head"],
+        "Munchkin": ["short legs", "dwarf", "playful", "outgoing", "small stature"],
+        "Nebelung": ["longhair Russian Blue", "blue-grey", "mild", "reserved", "rare"],
+        "Norwegian Forest": ["dog-like", "sociable", "playful", "long coat", "forest cat"],
+        "Ocicat": ["spotted", "dog-like", "trainable", "fetch", "leash", "no wild DNA"],
+        "Oriental": ["intelligent", "playful", "social", "slender", "vocal", "bond with owner"],
+        "Persian": ["calm", "lap cat", "long coat", "flat face", "doll face", "quiet"],
+        "Pixie-Bob": ["bobcat look", "short tail", "chirp", "intelligent", "social", "polydactyl"],
+        "Ragamuffin": ["large", "affectionate", "docile", "sweet expression", "soft coat"],
+        "Ragdoll": ["go limp when picked up", "goes limp when held", "docile", "placid", "puppy cat", "dog-like", "follows you room to room", "floppy"],
+        "Russian Blue": ["quiet", "reserved", "green eyes", "blue-grey", "shy with strangers"],
+        "Savannah": ["tall", "spotted", "serval look", "intelligent", "active", "large ears"],
+        "Scottish Fold": ["folded ears", "owl face", "sweet", "calm", "round"],
+        "Selkirk Rex": ["curly coat", "placid", "affectionate", "cuddly", "robust"],
+        "Siamese": ["Meezer", "vocal", "talkative", "extrovert", "bond with one person", "affectionate", "intelligent", "demanding attention"],
+        "Siberian": ["affectionate", "playful", "hypoallergenic", "forest cat", "fluffy"],
+        "Silver": ["silver coat", "adaptable", "American Shorthair type", "friendly"],
+        "Singapura": ["smallest breed", "large eyes", "playful", "affectionate", "tiny"],
+        "Snowshoe": ["white paws", "pointed", "blue eyes", "Siamese mix", "rare"],
+        "Somali": ["fox-like", "longhair Abyssinian", "energetic", "social", "ticked coat"],
+        "Sphynx": ["hairless", "no fur", "playful", "outgoing", "warm to touch", "wrinkled"],
+        "Tabby": ["striped", "M mark", "classic pattern", "varied personality"],
+        "Toyger": ["tiger stripes", "gentle", "adaptable", "mini tiger", "friendly"],
+        "Tonkinese": ["lively", "Siamese Burmese mix", "aquamarine eyes", "playful", "vocal"],
+        "Torbie": ["tortie and tabby", "adaptable", "varied coat", "friendly"],
+        "Tortoiseshell": ["tortie", "black orange", "fiery", "varied personality", "female"],
+        "Turkish Angora": ["intelligent", "playful", "protective", "bond strongly", "white", "plumed tail"],
+        "Turkish Van": ["Van pattern", "white body", "swimming", "active", "intelligent", "color on head and tail"],
+        "Tuxedo": ["black and white", "formal look", "adaptable", "varied personality"]
       }
     },
     "sizeGroup": {
@@ -265,9 +332,9 @@ class SearchAIService {
     "colorDetails": {
       "field": "animals.colorDetails",
       "description": "Primary or secondary color pattern of the cat's coat.",
-      "options": ["Black","Black and White","Tuxedo","Blue","Gray","Brown","Brown Tabby","Cream","Ivory","Silver Tabby","Red Tabby","Spotted","Tan","Fawn","Tortoiseshell","White","Any"],
+      "options": ["Black","Black and White","Blue","Gray","Brown","Cream","Ivory","Silver","Red","Spotted","Tan","Fawn","Tortoiseshell","White","Any"],
       "keywords": {
-        "positive": ["black cat","gray cat","white cat","tuxedo","tabby"],
+        "positive": ["black cat","gray cat","white cat"],
         "negative": ["no color preference"]
       }
     },
@@ -353,7 +420,7 @@ class SearchAIService {
       }
     },
     "affectionate": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described in its profile as loving, cuddly, or people-oriented.",
       "options": ["Yes"],
       "keywords": {
@@ -362,7 +429,7 @@ class SearchAIService {
       }
     },
     "independentAloof": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described as independent, aloof, or preferring to keep to itself.",
       "options": ["Yes"],
       "keywords": {
@@ -371,7 +438,7 @@ class SearchAIService {
       }
     },
     "calmness": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described as calm, quiet, or relaxed in temperament.",
       "options": ["Yes","Any"],
       "keywords": {
@@ -380,7 +447,7 @@ class SearchAIService {
       }
     },
     "gentleness": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described as gentle, soft, or sweet-natured.",
       "options": ["Yes","Any"],
       "keywords": {
@@ -389,7 +456,7 @@ class SearchAIService {
       }
     },
     "lapCat": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described as a lap cat or as loving to sit on laps.",
       "options": ["Yes","Any"],
       "keywords": {
@@ -398,7 +465,7 @@ class SearchAIService {
       }
     },
     "playful": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described as playful, energetic, or enjoying activity and play.",
       "options": ["Yes","Any"],
       "keywords": {
@@ -407,7 +474,7 @@ class SearchAIService {
       }
     },
     "likesToys": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described as liking or playing with toys.",
       "options": ["Yes","Any"],
       "keywords": {
@@ -416,7 +483,7 @@ class SearchAIService {
       }
     },
     "outgoing": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described as outgoing, friendly, or social with people.",
       "options": ["Yes","Any"],
       "keywords": {
@@ -424,12 +491,12 @@ class SearchAIService {
         "negative": ["shy","reserved","withdrawn"]
       }
     },
-    "mischievous": {
-      "field": "animals.description",
-      "description": "Whether the cat is described as mischievous, curious, or prone to getting into things.",
+    "curious": {
+      "field": "animals.descriptionText",
+      "description": "Whether the cat is described as curious, mischievous, or prone to getting into things.",
       "options": ["Yes","Any"],
       "keywords": {
-        "positive": ["mischievous","curious","explores","gets into things","trouble"],
+        "positive": ["curious","mischievous","explores","gets into things","trouble"],
         "negative": ["well behaved","docile","boring"]
       }
     },
@@ -442,8 +509,8 @@ class SearchAIService {
         "negative": ["no preference"]
       }
     },
-    "eventempered": {
-      "field": "animals.eventempered",
+    "evenTempered": {
+      "field": "animals.evenTempered",
       "description": "Whether the cat is described as even-tempered, calm, or steady in temperament.",
       "options": ["Yes","Any"],
       "keywords": {
@@ -461,7 +528,7 @@ class SearchAIService {
       }
     },
     "timidShy": {
-      "field": "animals.description",
+      "field": "animals.descriptionText",
       "description": "Whether the cat is described as timid, shy, or cautious with people.",
       "options": ["Yes","Any"],
       "keywords": {
@@ -537,7 +604,7 @@ IMPORTANT - Handling OR conditions:
        Rules:
        1. Only include filters that are explicitly mentioned or can be inferred from the query
        2. Use "Any" or omit the field if not specified
-       3. For breed, match breed names exactly (e.g., "Persian", "Siamese", "Maine Coon", "Calico"). Calico is a BREED, not a color—always use breed: "Calico", never colorDetails for "calico"
+       3. For personality (playful, affectionate, calm, curious, etc.): set the matching filter to "Yes" (e.g. playful: "Yes"). Do NOT map "playful cat" or "affectionate cat" to breed—use personality filters. For breed, match by breed name OR when user explicitly asks for a breed by trait (use personalitySayings). When a trait matches MULTIPLE breeds and user asked for breed, return breed as an ARRAY; when only one breed matches, return a string. Calico is a BREED, not a color—always use breed: "Calico", never colorDetails for "calico"
        4. For location, extract ZIP code, city name, or distance if mentioned. Location can appear as:
           - ZIP codes: "in 90210", "zip code 94040", "near 10001", "cats in ZIP 12345"
           - City names: "cats in Los Angeles", "near New York", "San Francisco area", "around Chicago"
@@ -552,24 +619,46 @@ IMPORTANT - Handling OR conditions:
        11. For OR conditions with list filters, return an array: ["Value1", "Value2"]
        12. For AND conditions or single requirements, return a string: "Value"
        
+       PERSONALITY FILTERS (priority when user describes personality):
+       - When the user asks for a cat with a personality trait, set the matching personality filter to "Yes". Do NOT map these to breed.
+       - "playful", "playful cat", "loves to play", "energetic cat", "lively" → playful: "Yes"
+       - "affectionate", "affectionate cat", "cuddly", "snuggly", "loving", "lap cat" → affectionate: "Yes"
+       - "calm", "calm cat", "quiet", "laid back", "relaxed" → calmness: "Yes" (and optionally energyLevel: "Low")
+       - "curious", "curious cat", "mischievous", "gets into things" → curious: "Yes"
+       - "gentle", "gentle cat", "sweet", "soft" → gentleness: "Yes"
+       - "outgoing", "friendly cat", "social cat" → outgoing: "Yes" (or newPeopleReaction: "Friendly" for stranger reaction)
+       - "shy", "timid cat", "reserved" → timidShy: "Yes"
+       - "independent", "aloof" → independentAloof: "Yes"
+       
        KEYWORD MAPPING EXAMPLES (understand user intent):
        - "kitten", "baby cat", "young cat" → ageGroup: "Baby"
-       - "calm", "quiet", "low energy", "laid back", "relaxed" → energyLevel: "Low"
-       - "active", "energetic", "high energy", "playful" → energyLevel: "High"
+       - "calm", "quiet", "low energy", "laid back", "relaxed" (energy only) → energyLevel: "Low"
+       - "active", "high energy" (without personality) → energyLevel: "High"
        - "black cat", "black" → colorDetails: "Black"
        - "white cat", "white" → colorDetails: "White"
        - "gray cat", "grey cat", "gray" → colorDetails: "Gray"
        - "calico", "calico cat" → breed: "Calico" (Calico is a breed, not a color)
-       - "affectionate", "cuddly", "snuggly", "lap cat" → affectionate: "Yes"
-       - "friendly", "sociable" → newPeopleReaction: "Friendly"
+       - "friendly", "sociable" (stranger reaction) → newPeopleReaction: "Friendly"
        - "good with dogs", "dog friendly" → isDogsOk: "Yes"
        - "good with kids", "family friendly" → isKidsOk: "Yes"
        
+       BREED BY PERSONALITY/SAYINGS (use only when user asks for a BREED by trait, not for "I want a playful cat"):
+       - Use breed from personalitySayings when: user names a breed, or asks "what breed", "which breed", "playful breed", "breed that is X". For "I want a playful cat" or "show me affectionate cats", use personality filters (playful: "Yes", affectionate: "Yes"), NOT breed.
+       - When a trait matches ONLY ONE breed: return breed as a string (e.g. "go limp when held" → breed: "Ragdoll", "gentle giant" → breed: "Maine Coon", "Meezer" → breed: "Siamese", "hairless" → breed: "Sphynx", "curled ears" → breed: "American Curl", "folded ears" → breed: "Scottish Fold", "short legs" → breed: "Munchkin", "good luck cat" → breed: "Korat").
+       - When a trait matches MULTIPLE breeds and user is asking for breed: return breed as an ARRAY. Example: "dog-like cat" (breed question) → breed: ["Ragdoll", "Maine Coon", "Bobtail", "Norwegian Forest", "Ocicat"].
+       
        EXAMPLE QUERIES:
-       - "I want a calm black kitten" → {"filters": {"ageGroup": "Baby", "energyLevel": "Low", "colorDetails": "Black"}}
+       - "I want a playful cat" → {"filters": {"playful": "Yes"}}
+       - "show me affectionate cats" → {"filters": {"affectionate": "Yes"}}
+       - "playful and cuddly cat" → {"filters": {"playful": "Yes", "affectionate": "Yes"}}
+       - "I want a calm black kitten" → {"filters": {"ageGroup": "Baby", "calmness": "Yes", "colorDetails": "Black"}}
        - "show me friendly white cats" → {"filters": {"newPeopleReaction": "Friendly", "colorDetails": "White"}}
        - "active Persian cats near me" → {"location": {"distance": "20"}, "filters": {"breed": "Persian", "energyLevel": "High"}}
        - "calico cats", "I want a calico" → {"filters": {"breed": "Calico"}}
+       - "cat that goes limp when you hold it", "I want a ragdoll type", "docile floppy cat" → {"filters": {"breed": "Ragdoll"}}
+       - "gentle giant", "big fluffy cat" (only Maine Coon) → {"filters": {"breed": "Maine Coon"}}
+       - "talkative cat", "Meezer", "cat that bonds with one person" → {"filters": {"breed": "Siamese"}}
+       - "dog-like cat", "cat that acts like a dog" (matches multiple breeds) → {"filters": {"breed": ["Ragdoll", "Maine Coon", "Bobtail", "Norwegian Forest", "Ocicat"]}}
 ''';
 
     try {

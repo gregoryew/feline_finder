@@ -49,6 +49,7 @@ class AdoptGridState extends State<AdoptGrid> {
 
   List<Filters> filters = [];
   List<Filters> filters_backup = [];
+  String? filterprocessing;
   String? RescueGroupApi = "";
 
   late TextEditingController controller2;
@@ -132,12 +133,12 @@ class AdoptGridState extends State<AdoptGrid> {
         // Default filter: species = cat (if no saved filters)
         filters.add(Filters(
           fieldName: "species.singular",
-          operation: "equals",
+          operation: "equal",
           criteria: ["cat"],
         ));
         filters_backup.add(Filters(
           fieldName: "species.singular",
-          operation: "equals",
+          operation: "equal",
           criteria: ["cat"],
         ));
         print('No saved filters found, using default filter');
@@ -147,12 +148,12 @@ class AdoptGridState extends State<AdoptGrid> {
       // Default filter: species = cat (on error)
       filters.add(Filters(
         fieldName: "species.singular",
-        operation: "equals",
+        operation: "equal",
         criteria: ["cat"],
       ));
       filters_backup.add(Filters(
         fieldName: "species.singular",
-        operation: "equals",
+        operation: "equal",
         criteria: ["cat"],
       ));
     }
@@ -494,9 +495,15 @@ void search() async {
     ),
   );
 
-  if (result != null && result.isNotEmpty) {
+  if (result != null) {
     setState(() {
-      filters = result;
+      if (result is FilterResult) {
+        filters = result.filters;
+        filterprocessing = result.filterprocessing;
+      } else if (result is List<Filters>) {
+        filters = result;
+        filterprocessing = null;
+      }
       filters_backup = filters;
       tiles = [];
       loadedPets = 0;
@@ -558,6 +565,7 @@ void getPets() async {
         criteria: globals.listOfFavorites,
       ),
     ];
+    filterprocessing = null;
   } else {
     if (filters.isEmpty ||
         (filters.length == 1 &&
@@ -565,7 +573,7 @@ void getPets() async {
       filters = [
         Filters(
           fieldName: "species.singular",
-          operation: "equals",
+          operation: "equal",
           criteria: ["cat"],
         ),
       ];
@@ -601,6 +609,13 @@ void getPets() async {
     print('⚠️ Invalid zip code "$server.zip", using default: $zipCode');
   }
 
+  // Use state filterProcessing, or default to "1 AND 2 AND ... AND n" when we have multiple filters
+  String? effectiveFilterProcessing = (filterprocessing != null && filterprocessing!.isNotEmpty)
+      ? filterprocessing
+      : (filtersJson.length > 1
+          ? List.generate(filtersJson.length, (i) => (i + 1).toString()).join(' AND ')
+          : null);
+
   Map<String, dynamic> data = {
     "data": {
       "filterRadius": {
@@ -610,8 +625,11 @@ void getPets() async {
       "filters": filtersJson,
     }
   };
-  
-  print('📤 Sending request with zip code: $zipCode, filters: ${filtersJson.length}');
+  if (effectiveFilterProcessing != null && effectiveFilterProcessing.isNotEmpty) {
+    data["data"]["filterProcessing"] = effectiveFilterProcessing;
+  }
+
+  print('📤 Sending request with zip code: $zipCode, filters: ${filtersJson.length}${effectiveFilterProcessing != null ? ", filterProcessing: $effectiveFilterProcessing" : ""}');
 
   // Convert to RescueGroupsQuery to ensure proper structure
   var query = RescueGroupsQuery.fromJson(data);
@@ -626,6 +644,7 @@ void getPets() async {
   print('📦 Request structure check:');
   print('  - FilterRadius: miles=${query.data.filterRadius.miles}, postalcode=${query.data.filterRadius.postalcode}');
   print('  - Filters count: ${query.data.filters.length}');
+  print('  - filterProcessing in body: ${query.data.filterProcessing != null ? "yes (${query.data.filterProcessing})" : "no"}');
   for (var filter in query.data.filters) {
     print('  - Filter: ${filter.fieldName} ${filter.operation} ${filter.criteria}');
   }

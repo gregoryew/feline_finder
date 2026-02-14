@@ -1,15 +1,43 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
+import 'services/key_store_service.dart';
+
 class AppConfig {
   // RescueGroups API Configuration
-  static const String rescueGroupsApiKey = 'eqXAy6VJ';
+  // SECURITY: Prefer runtime KeyStoreService value (fetched from Firestore).
+  // Fallbacks: --dart-define / environment variable (dev).
+  static String get rescueGroupsApiKey {
+    final fromKeyStore = KeyStoreService.instance.getKey('RESCUE_GROUPS_API_KEY');
+    if (fromKeyStore.isNotEmpty) {
+      return fromKeyStore;
+    }
+
+    const keyFromDefine = String.fromEnvironment('RESCUE_GROUPS_API_KEY');
+    if (keyFromDefine.isNotEmpty) {
+      return keyFromDefine;
+    }
+
+    if (!kIsWeb) {
+      final keyFromEnv = Platform.environment['RESCUE_GROUPS_API_KEY'];
+      if (keyFromEnv != null && keyFromEnv.isNotEmpty) {
+        return keyFromEnv;
+      }
+    }
+
+    return '';
+  }
 
   // YouTube API Configuration
   // SECURITY: Use environment variable or --dart-define to avoid committing keys to git
   // Option 1: flutter run --dart-define=YOUTUBE_API_KEY=your-key
   // Option 2: export YOUTUBE_API_KEY=your-key (then flutter run)
   static String get youTubeApiKey {
+    final fromKeyStore = KeyStoreService.instance.getKey('YOUTUBE_API_KEY');
+    if (fromKeyStore.isNotEmpty) {
+      return fromKeyStore;
+    }
+
     // First try --dart-define (for builds, most secure)
     const keyFromDefine = String.fromEnvironment('YOUTUBE_API_KEY');
     if (keyFromDefine.isNotEmpty) {
@@ -33,6 +61,11 @@ class AppConfig {
   // Option 1: flutter run --dart-define=GOOGLE_MAPS_API_KEY=your-key
   // Option 2: export GOOGLE_MAPS_API_KEY=your-key (then flutter run)
   static String get googleMapsApiKey {
+    final fromKeyStore = KeyStoreService.instance.getKey('GOOGLE_MAPS_API_KEY');
+    if (fromKeyStore.isNotEmpty) {
+      return fromKeyStore;
+    }
+
     // First try --dart-define (for builds, most secure)
     const keyFromDefine = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
     if (keyFromDefine.isNotEmpty) {
@@ -57,6 +90,11 @@ class AppConfig {
   // Option 1: flutter run --dart-define=GEMINI_API_KEY=your-key
   // Option 2: export GEMINI_API_KEY=your-key (then flutter run)
   static String get geminiApiKey {
+    final fromKeyStore = KeyStoreService.instance.getKey('GEMINI_API_KEY');
+    if (fromKeyStore.isNotEmpty) {
+      return fromKeyStore;
+    }
+
     // First try --dart-define (for builds, most secure)
     const keyFromDefine = String.fromEnvironment('GEMINI_API_KEY');
     if (keyFromDefine.isNotEmpty) {

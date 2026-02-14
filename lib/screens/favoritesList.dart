@@ -70,7 +70,7 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
       String baseUrl =
           "https://api.rescuegroups.org/v5/public/animals/search/available";
       String url =
-          "$baseUrl?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status"
+          "$baseUrl?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status,descriptionText"
           "&sort=animals.distance&limit=100&page=1";
 
       // Create filter for favorite IDs

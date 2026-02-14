@@ -39,10 +39,10 @@ class SearchScreenStyle {
   ];
 
   // ===== APP BAR =====
-  static AppBar appBar() {
+  static AppBar appBar({List<Widget>? actions}) {
     return AppBar(
       title: const Text(
-        'Find Purrfect Cat',
+        'Search',
         style: TextStyle(
           color: gold,
           fontWeight: FontWeight.w600,
@@ -51,6 +51,7 @@ class SearchScreenStyle {
       backgroundColor: deepPurple,
       elevation: 0,
       iconTheme: const IconThemeData(color: gold),
+      actions: actions,
     );
   }
 
@@ -81,7 +82,7 @@ class SearchScreenStyle {
   }
 
   // ===== SEARCH FIELD =====
-  static InputDecoration searchFieldDecoration(VoidCallback onClear) {
+  static InputDecoration searchFieldDecoration() {
     return InputDecoration(
       hintText: 'What Do You Want In A Cat',
       hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
@@ -98,10 +99,6 @@ class SearchScreenStyle {
         borderSide: const BorderSide(color: gold, width: 2),
       ),
       prefixIcon: const Icon(Icons.search, color: gold),
-      suffixIcon: IconButton(
-        icon: const Icon(Icons.cleaning_services, color: gold),
-        onPressed: onClear,
-      ),
     );
   }
 

@@ -550,6 +550,8 @@ class FitState extends State<Fit> {
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
                       ),
                     ),
                     IconButton(
@@ -569,6 +571,8 @@ class FitState extends State<Fit> {
                     color: Colors.white,
                     height: 1.5,
                   ),
+                  overflow: TextOverflow.clip,
+                  maxLines: 20,
                 ),
                 const SizedBox(height: 24),
                 // Close button
@@ -745,6 +749,8 @@ class FitState extends State<Fit> {
                         child: Text(
                           "${question.name}: ${question.choices[(_sliderValues[question.id] ?? 0.0).round()].name}",
                           style: const TextStyle(fontSize: 13, color: Colors.white),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -977,6 +983,8 @@ class FitState extends State<Fit> {
                         fontWeight: FontWeight.w600,
                       ),
                       textAlign: TextAlign.center,
+                      overflow: TextOverflow.clip,
+                      maxLines: 2,
                     ),
                   ),
                 ),
@@ -1077,6 +1085,8 @@ class FitState extends State<Fit> {
         fontWeight: FontWeight.w600,
         fontSize: AppTheme.fontSizeS,
       ),
+      overflow: TextOverflow.clip,
+      maxLines: 1,
     );
   }
 
@@ -1124,6 +1134,8 @@ class FitState extends State<Fit> {
               fontWeight: FontWeight.w600,
               fontSize: AppTheme.fontSizeS, // Explicit font size to match screen version
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
           ),
           _buildDotIndicator(breed.percentMatch),
         ],
@@ -1520,7 +1532,8 @@ class FitState extends State<Fit> {
                                   decoration: TextDecoration.none,
                                 ),
                                 textAlign: TextAlign.center,
-                                overflow: TextOverflow.visible,
+                                overflow: TextOverflow.clip,
+                                maxLines: 2,
                                 softWrap: true,
                               ),
                             ),

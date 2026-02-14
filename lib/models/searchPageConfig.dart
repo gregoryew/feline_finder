@@ -222,6 +222,23 @@ List<filterOption> filteringOptions = [
       FilterType.advanced
   ),
   filterOption(
+      "Altered",
+      "",
+      "animals.isAltered",
+      true,
+      false,
+      CatClassification.physical,
+      10,
+      [
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
+        listOption("Any", "Any", 2)
+      ],
+      [],
+      false,
+      FilterType.advanced
+  ),
+  filterOption(
        "Current on vaccations",
        "",
        "animals.isCurrentVaccinations",
@@ -680,23 +697,6 @@ List<filterOption> filteringOptions = [
       [],
       false,
       FilterType.advanced
-  ),
-  filterOption(
-      "Altered",
-      "",
-      "animals.isAltered",
-      true,
-      false,
-      CatClassification.physical,
-      38,
-      [
-        listOption("Yes", true, 0),
-        listOption("No", false, 1),
-        listOption("Any", "Any", 2)
-      ],
-      [],
-      false,
-      FilterType.simple
   ),
   filterOption(
       "Microchipped",

@@ -139,6 +139,16 @@ service cloud.firestore {
       // Only allow server/admin to write app config
       allow write: if isServer();
     }
+
+    // Key Store Collection - app-wide API key distribution (in-memory on client)
+    // NOTE: If clients can read these docs, treat the values as public.
+    match /key_store/{keyId} {
+      // Allow authenticated users (including anonymous) to read keys at startup
+      allow read: if request.auth != null;
+
+      // Writes should be server/admin-only (seed via Admin SDK or Console)
+      allow write: if isServer();
+    }
     
     // Deny all other collections by default
     match /{document=**} {

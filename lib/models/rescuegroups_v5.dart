@@ -105,7 +105,9 @@ class DatumAttributes {
             ? null
             : DateTime.parse(json["birthDate"]),
         descriptionHtml: json["descriptionHtml"],
-        descriptionText: json["descriptionText"],
+        descriptionText: json["descriptionText"] is String
+            ? json["descriptionText"] as String
+            : null,
         sizeGroup: json["sizeGroup"] == null
             ? null
             : sizeGroupValues.map![json["sizeGroup"]],

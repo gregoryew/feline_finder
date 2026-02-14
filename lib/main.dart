@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'services/search_ai_service.dart';
+import 'services/key_store_service.dart';
 import 'theme.dart';
 // Import webview platform implementations to ensure they're registered
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
@@ -40,15 +41,6 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     auth = FirebaseAuth.instance;
-
-    // Initialize AI services
-    try {
-      final searchAIService = SearchAIService();
-      searchAIService.initialize();
-    } catch (e) {
-      print('AI service initialization failed: $e');
-      // Continue without AI - search will still work
-    }
   } catch (e) {
     print('Firebase initialization failed: $e');
     // Continue without Firebase for now
@@ -57,6 +49,26 @@ void main() async {
 
   // Initialize authentication
   await _initializeAuth();
+
+  // Seed + load API keys from Firestore (in-memory only)
+  if (auth != null) {
+    try {
+      await KeyStoreService.instance.seedFromDefinesIfEnabled();
+      await KeyStoreService.instance.load();
+    } catch (e) {
+      print('KeyStore initialization failed: $e');
+      // Continue without remote keys
+    }
+  }
+
+  // Initialize AI services (Gemini key may come from KeyStore)
+  try {
+    final searchAIService = SearchAIService();
+    searchAIService.initialize();
+  } catch (e) {
+    print('AI service initialization failed: $e');
+    // Continue without AI - search will still work
+  }
 
   // Reset search animation flag for new app session
   final prefs = await SharedPreferences.getInstance();
@@ -243,11 +255,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   List<Widget> get pages => <Widget>[
-    AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton), // Index 0 - Adopt a cat (first tab)
-    Fit(key: FitScreenKey), // Index 1 - Fit (second tab)
-    PersonalityFit(key: PersonalityFitScreenKey), // Index 2 - Personality Fit
-    BreedList(title: "Breed List"), // Index 3 - Breed info
-    const FavoritesListScreen() // Index 4 - Saved/Favorites
+    PersonalityFit(key: PersonalityFitScreenKey), // Index 0 - Fit (brain/personality)
+    AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton), // Index 1 - Adopt
+    BreedList(title: "Breed List"), // Index 2 - Breeds
+    const FavoritesListScreen(), // Index 3 - Saved
   ];
 
 // 9
@@ -259,34 +270,23 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
 
   List<Widget>? getTrailingButtons(selectedIndex) {
     if (selectedIndex == 0) {
-      // Adopt tab is now at index 0
-      return <Widget>[
-        GoldCircleIconButton(
-          icon: Icons.search,
-          onTap: () {
-            AdoptionGridKey.currentState!.search();
-          },
-        ),
-        const SizedBox(width: 15),
-      ];
-    } else if (selectedIndex == 1) {
-      // Fit screen - add share button
-      return <Widget>[
-        GoldCircleIconButton(
-          icon: Icons.share,
-          onTap: () {
-            FitScreenKey.currentState?.shareFitScreen();
-          },
-        ),
-        const SizedBox(width: 15),
-      ];
-    } else if (selectedIndex == 2) {
-      // Personality Fit screen - add share button
+      // Fit (PersonalityFit) - share button
       return <Widget>[
         GoldCircleIconButton(
           icon: Icons.share,
           onTap: () {
             PersonalityFitScreenKey.currentState?.sharePersonalityFitScreen();
+          },
+        ),
+        const SizedBox(width: 15),
+      ];
+    } else if (selectedIndex == 1) {
+      // Adopt - search button
+      return <Widget>[
+        GoldCircleIconButton(
+          icon: Icons.search,
+          onTap: () {
+            AdoptionGridKey.currentState!.search();
           },
         ),
         const SizedBox(width: 15),
@@ -424,42 +424,6 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                   child: _selectedIndex == 0
                       ? Text(
-                          '🐈',
-                          style: TextStyle(
-                            fontSize: 24,
-                            color: AppTheme.goldBase,
-                          ),
-                        )
-                      : ColorFiltered(
-                          colorFilter: ColorFilter.matrix([
-                            0.2126, 0.7152, 0.0722, 0, 0, // Red channel
-                            0.2126, 0.7152, 0.0722, 0, 0, // Green channel
-                            0.2126, 0.7152, 0.0722, 0, 0, // Blue channel
-                            0, 0, 0, 1, 0, // Alpha channel
-                          ]),
-                          child: Text(
-                            '🐈',
-                            style: TextStyle(
-                              fontSize: 24,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ),
-                ),
-                label: 'Adopt',
-              ),
-              BottomNavigationBarItem(
-                backgroundColor: Colors.white,
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _selectedIndex == 1
-                        ? AppTheme.deepPurple.withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
-                  ),
-                  child: _selectedIndex == 1
-                      ? Text(
                           '🧠',
                           style: TextStyle(
                             fontSize: 24,
@@ -489,14 +453,14 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _selectedIndex == 2
+                    color: _selectedIndex == 1
                         ? AppTheme.deepPurple.withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
-                  child: _selectedIndex == 2
+                  child: _selectedIndex == 1
                       ? Text(
-                          '✨',
+                          '🐈',
                           style: TextStyle(
                             fontSize: 24,
                             color: AppTheme.goldBase,
@@ -510,7 +474,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                             0, 0, 0, 1, 0, // Alpha channel
                           ]),
                           child: Text(
-                            '✨',
+                            '🐈',
                             style: TextStyle(
                               fontSize: 24,
                               color: AppTheme.textSecondary,
@@ -518,19 +482,19 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                           ),
                         ),
                 ),
-                label: 'Personality',
+                label: 'Adopt',
               ),
               BottomNavigationBarItem(
                 backgroundColor: Colors.white,
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _selectedIndex == 3
+                    color: _selectedIndex == 2
                         ? AppTheme.deepPurple.withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
-                  child: _selectedIndex == 3
+                  child: _selectedIndex == 2
                       ? Text(
                           '🐱',
                           style: TextStyle(
@@ -561,12 +525,12 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _selectedIndex == 4
+                    color: _selectedIndex == 3
                         ? AppTheme.deepPurple.withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
                   ),
-                  child: _selectedIndex == 4
+                  child: _selectedIndex == 3
                       ? Text(
                           '🏷️',
                           style: TextStyle(

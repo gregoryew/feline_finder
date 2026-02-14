@@ -443,7 +443,7 @@ List<CatType> catType = [
     StatValue('Vocality', false, 1),
     StatValue('Confidence', false, 4),
     StatValue('Sensitivity', false, 1),
-    StatValue('Adaptability', false, 5),
+    StatValue('Adaptability', false, 1),
     StatValue('Intelligence', false, 5),
   ]),
 

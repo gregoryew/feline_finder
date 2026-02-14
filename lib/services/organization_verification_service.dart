@@ -1,4 +1,4 @@
-import 'dart:convert';
+Rimport 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
@@ -10,7 +10,7 @@ import '../services/email_service.dart';
 class OrganizationVerificationService {
   static const String _rescueGroupsApiUrl =
       'https://api.rescuegroups.org/v5/public';
-  static const String _apiKey = AppConfig.rescueGroupsApiKey;
+  static String get _apiKey => AppConfig.rescueGroupsApiKey;
 
   /// Validates if an OrgID exists in RescueGroups API
   static Future<Map<String, dynamic>> validateOrgId(String orgId) async {
@@ -19,7 +19,7 @@ class OrganizationVerificationService {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'Authorization': 'Bearer $_apiKey',
+          'Authorization': 'Bearer ${_apiKey}',
           'Content-Type': 'application/json',
         },
       );

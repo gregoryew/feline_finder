@@ -548,12 +548,13 @@ IMPORTANT: Pay close attention to what the user is asking for. Understand the in
 Use this schema structure:
 $schemaDefinition
 
-Return JSON in this exact format:
+Return JSON in this exact format (omit "catType" if user does not ask for a personality type by name):
 {
   "location": {
     "zip": "94040",
     "distance": "20"
   },
+  "catType": "Velcro Cat",
   "filters": {
     "breed": "Persian",
     "sizeGroup": "Medium",
@@ -569,6 +570,11 @@ Return JSON in this exact format:
     "isHousetrained": "Yes"
   }
 }
+
+CAT TYPE (personality type by name):
+- When the user asks for a cat by personality type NAME, set "catType" at the top level to that exact name. Use ONLY one of these exact names (case-sensitive): Professional Napper, Lap Legend, Zen Companion, Old Soul, Quiet Shadow, Zoomie Rocket, Parkour Cat, Toy Addict, Chaos Sprite, Forever Kitten, Velcro Cat, Cuddle Ambassador, Welcome Committee, Therapy Cat, Heart Healer, Solo Artist, Dignified Observer, Window Philosopher, Private Thinker, Gentle Hermit, Drama Monarch, Opinionated Roommate, Soap Opera Star, Mood Ring Cat, Attention Magnet, Routine Master, Puzzle Pro, Social Learner, Explorer Brain, Little Professor.
+- Examples: "I want a Velcro Cat" → "catType": "Velcro Cat". "Show me Zoomie Rocket types" → "catType": "Zoomie Rocket". "Professional Napper near me" → "catType": "Professional Napper" and include location.
+- Omit "catType" if the user does not mention one of these personality type names.
 
 IMPORTANT - Handling OR conditions:
 - When the user uses "or", "either", "either/or", or lists multiple options separated by "or" (e.g., "black or white", "small or medium", "Persian or Siamese"), return an ARRAY of values for ALL filters that support multiple selections
@@ -801,6 +807,13 @@ IMPORTANT - Handling OR conditions:
       'filters': <String, dynamic>{},
     };
 
+    // Pass through catType (personality type by name) if present
+    if (data.containsKey('catType') &&
+        data['catType'] != null &&
+        data['catType'].toString().trim().isNotEmpty) {
+      normalized['catType'] = data['catType'].toString().trim();
+    }
+
     // Normalize location
     if (data.containsKey('location') && data['location'] is Map) {
       final location = data['location'] as Map<String, dynamic>;
@@ -836,6 +849,14 @@ IMPORTANT - Handling OR conditions:
       final filters = data['filters'] as Map<String, dynamic>;
       filters.forEach((key, value) {
         if (value == null) return;
+
+        // catType in filters: lift to top-level and do not add to filters
+        if (key == 'catType') {
+          if (value.toString().trim().isNotEmpty) {
+            normalized['catType'] = value.toString().trim();
+          }
+          return;
+        }
 
         // Preserve arrays as-is (for OR conditions)
         if (value is List) {

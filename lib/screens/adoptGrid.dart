@@ -15,6 +15,7 @@ import '/screens/petDetail.dart';
 import '/screens/search.dart';
 import '/screens/recommendations.dart';
 import '../config.dart';
+import '../services/description_cat_type_scorer.dart';
 import 'globals.dart' as globals;
 
 // GOLD UI COMPONENTS
@@ -107,12 +108,44 @@ class AdoptGridState extends State<AdoptGrid> {
     }();
   }
 
-  /// Load filters from SharedPreferences
+  /// Build filterProcessing string so that synonym filters (operation "contains", same fieldName)
+  /// are combined with OR; other filters and groups are combined with AND.
+  /// Returns null if 0 or 1 filter (no processing needed).
+  String? _buildFilterProcessingWithSynonymsAsOr(List<Filters> validFilters) {
+    if (validFilters.length <= 1) return null;
+    final segments = <String>[];
+    int i = 0;
+    while (i < validFilters.length) {
+      final f = validFilters[i];
+      if (f.operation == 'contains') {
+        final fieldName = f.fieldName;
+        final orIndices = <int>[];
+        while (i < validFilters.length &&
+            validFilters[i].fieldName == fieldName &&
+            validFilters[i].operation == 'contains') {
+          orIndices.add(i + 1); // 1-based index
+          i++;
+        }
+        if (orIndices.length > 1) {
+          segments.add('(${orIndices.join(' OR ')})');
+        } else {
+          segments.add('${orIndices[0]}');
+        }
+      } else {
+        segments.add('${i + 1}');
+        i++;
+      }
+    }
+    return segments.join(' AND ');
+  }
+
+  /// Load filters and filterProcessing from SharedPreferences
   Future<void> _loadFiltersFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final filtersJsonString = prefs.getString('lastSearchFiltersList');
-      
+      final savedFilterProcessing = prefs.getString('lastSearchFilterProcessing');
+
       if (filtersJsonString != null && filtersJsonString.isNotEmpty) {
         final filtersJson = jsonDecode(filtersJsonString) as List<dynamic>;
         filters = filtersJson.map((f) => Filters(
@@ -120,15 +153,21 @@ class AdoptGridState extends State<AdoptGrid> {
           operation: f['operation'] as String,
           criteria: f['criteria'],
         )).toList();
-        
+
+        if (savedFilterProcessing != null && savedFilterProcessing.isNotEmpty) {
+          filterprocessing = savedFilterProcessing;
+        } else {
+          filterprocessing = null;
+        }
+
         // Create backup copy
         filters_backup = filters.map((f) => Filters(
           fieldName: f.fieldName,
           operation: f.operation,
           criteria: f.criteria,
         )).toList();
-        
-        print('✅ Loaded ${filters.length} filters from SharedPreferences');
+
+        print('✅ Loaded ${filters.length} filters and filterProcessing from SharedPreferences');
       } else {
         // Default filter: species = cat (if no saved filters)
         filters.add(Filters(
@@ -554,7 +593,7 @@ void getPets() async {
   String baseUrl =
       "https://api.rescuegroups.org/v5/public/animals/search/available";
   String url =
-      "$baseUrl?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status"
+      "$baseUrl?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status,descriptionText"
       "&sort=$sortMethod&limit=25&page=$currentPage";
 
   if (main.favoritesSelected) {
@@ -582,20 +621,31 @@ void getPets() async {
   }
 
   // Filter out any invalid filters before sending to API
-  List<Map> filtersJson = filters
-      .where((f) => 
-          f.fieldName != null && 
+  List<Filters> validFilters = filters
+      .where((f) =>
+          f.fieldName != null &&
           f.fieldName!.isNotEmpty &&
           f.operation != null &&
           f.operation!.isNotEmpty &&
           f.criteria != null)
-      .map((f) => {
-            "fieldName": f.fieldName,
-            "operation": f.operation,
-            "criteria": f.criteria
-          })
       .toList();
-  
+  // RescueGroups "contains" expects criteria as a string; normalize single-element list to string
+  List<Map> filtersJson = validFilters
+      .map((f) {
+        dynamic criteria = f.criteria;
+        if (f.operation == 'contains' &&
+            criteria is List &&
+            criteria.length == 1) {
+          criteria = criteria.first;
+        }
+        return {
+          "fieldName": f.fieldName,
+          "operation": f.operation,
+          "criteria": criteria,
+        };
+      })
+      .toList();
+
   print('📋 Prepared ${filtersJson.length} filters for API');
   for (var filter in filtersJson) {
     print('  Filter: ${filter['fieldName']} ${filter['operation']} ${filter['criteria']}');
@@ -609,52 +659,51 @@ void getPets() async {
     print('⚠️ Invalid zip code "$server.zip", using default: $zipCode');
   }
 
-  // Use state filterProcessing, or default to "1 AND 2 AND ... AND n" when we have multiple filters
+  // Use saved filterProcessing, or build one so synonym "contains" filters are OR'd (never all AND)
   String? effectiveFilterProcessing = (filterprocessing != null && filterprocessing!.isNotEmpty)
       ? filterprocessing
-      : (filtersJson.length > 1
-          ? List.generate(filtersJson.length, (i) => (i + 1).toString()).join(' AND ')
-          : null);
+      : _buildFilterProcessingWithSynonymsAsOr(validFilters);
+  if (effectiveFilterProcessing != null && (filterprocessing == null || filterprocessing!.isEmpty)) {
+    print('📋 Reconstructed filterProcessing (synonyms as OR): $effectiveFilterProcessing');
+  }
 
-  Map<String, dynamic> data = {
-    "data": {
-      "filterRadius": {
-        "miles": globals.distance,
-        "postalcode": zipCode,
-      },
-      "filters": filtersJson,
-    }
+  // Build request body directly so filterProcessing and criteria are preserved (no round-trip loss)
+  final Map<String, dynamic> requestData = {
+    "filterRadius": {
+      "miles": globals.distance,
+      "postalcode": zipCode,
+    },
+    "filters": filtersJson,
   };
   if (effectiveFilterProcessing != null && effectiveFilterProcessing.isNotEmpty) {
-    data["data"]["filterProcessing"] = effectiveFilterProcessing;
+    requestData["filterProcessing"] = effectiveFilterProcessing;
   }
+  final Map<String, dynamic> envelope = {"data": requestData};
 
   print('📤 Sending request with zip code: $zipCode, filters: ${filtersJson.length}${effectiveFilterProcessing != null ? ", filterProcessing: $effectiveFilterProcessing" : ""}');
 
-  // Convert to RescueGroupsQuery to ensure proper structure
-  var query = RescueGroupsQuery.fromJson(data);
-  var requestBody = json.encode(query.toJson());
+  final requestBody = json.encode(envelope);
 
   // Pretty-print the cats-for-adoption rescue groups query JSON to terminal
-  final prettyJson = const JsonEncoder.withIndent('  ').convert(query.toJson());
+  final prettyJson = const JsonEncoder.withIndent('  ').convert(envelope);
   print('🐱 Cats for adoption rescue groups query (pretty JSON):\n$prettyJson');
 
-  // Debug: Print the actual request body being sent
-  print('📦 Request body: $requestBody');
+  // Debug: Request structure check
   print('📦 Request structure check:');
-  print('  - FilterRadius: miles=${query.data.filterRadius.miles}, postalcode=${query.data.filterRadius.postalcode}');
-  print('  - Filters count: ${query.data.filters.length}');
-  print('  - filterProcessing in body: ${query.data.filterProcessing != null ? "yes (${query.data.filterProcessing})" : "no"}');
-  for (var filter in query.data.filters) {
-    print('  - Filter: ${filter.fieldName} ${filter.operation} ${filter.criteria}');
+  print('  - FilterRadius: miles=${requestData["filterRadius"]?["miles"]}, postalcode=${requestData["filterRadius"]?["postalcode"]}');
+  print('  - Filters count: ${filtersJson.length}');
+  print('  - filterProcessing in body: ${requestData["filterProcessing"] != null ? "yes (${requestData["filterProcessing"]})" : "no"}');
+  for (var filter in filtersJson) {
+    print('  - Filter: ${filter["fieldName"]} ${filter["operation"]} ${filter["criteria"]}');
   }
 
   final encodedUrl = url.replaceAll('[', '%5B').replaceAll(']', '%5D');
 
+  // RescueGroups API requires application/vnd.api+json; using application/json can cause filters to be ignored
   var response = await http.post(
     Uri.parse(encodedUrl),
     headers: {
-      'Content-Type': 'application/json; charset=UTF-8',
+      'Content-Type': 'application/vnd.api+json',
       'Authorization': "$RescueGroupApi",
     },
     body: requestBody,
@@ -709,11 +758,19 @@ void getPets() async {
       });
     }
 
-    // append tiles
-    if (petDecoded.data != null) {
+    // append tiles (build each tile in try/catch so one bad record doesn't clear the list)
+    if (petDecoded.data != null && petDecoded.included != null) {
+      final included = petDecoded.included!;
       setState(() {
         for (var petData in petDecoded.data!) {
-          tiles.add(PetTileData(petData, petDecoded.included!));
+          try {
+            final tile = PetTileData(petData, included);
+            tile.suggestedCatTypeName =
+                DescriptionCatTypeScorer.getTopCatTypeName(tile.descriptionText);
+            tiles.add(tile);
+          } catch (e) {
+            print("Skip pet ${petData.id}: $e");
+          }
         }
       });
     }

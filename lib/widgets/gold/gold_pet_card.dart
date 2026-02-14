@@ -172,6 +172,7 @@ class GoldPetCard extends StatelessWidget {
   Widget _buildNameAndBreed() {
     final name = (tile.name ?? "No Name").toUpperCase();
     final breed = tile.primaryBreed ?? "";
+    final catTypeName = tile.suggestedCatTypeName;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -208,6 +209,19 @@ class GoldPetCard extends StatelessWidget {
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
                 fontSize: AppTheme.fontSizeM,
+                fontFamily: AppTheme.fontFamily,
+              ),
+            ),
+          ],
+          if (catTypeName != null && catTypeName.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Likely a $catTypeName',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.goldBase.withOpacity(0.95),
+                fontWeight: FontWeight.w500,
+                fontSize: AppTheme.fontSizeS,
                 fontFamily: AppTheme.fontFamily,
               ),
             ),

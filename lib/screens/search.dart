@@ -7,6 +7,9 @@ import 'package:catapp/screens/globals.dart';
 import 'package:catapp/models/breed.dart';
 import 'package:catapp/screens/breedSelection.dart';
 import 'package:catapp/services/search_ai_service.dart';
+import 'package:catapp/services/cat_type_filter_mapping.dart';
+import 'package:catapp/models/catType.dart';
+import 'package:catapp/screens/globals.dart' as globals;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -16,6 +19,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../theme.dart';
 import '../widgets/design_system.dart';
 import 'search_screen_style.dart';
+
+/// Sentinel for "Apply my type" in the cat type dropdown (value from personality sliders).
+const Object _kApplyMyType = Object();
 
 /// Result of [generateFilters]: the API filters list and the filterprocessing string (1-based indices, e.g. "1 AND (2 OR 3 OR 4) AND 5").
 class FilterResult {
@@ -73,6 +79,8 @@ class SearchScreenState extends State<SearchScreen> {
   String? _lastLoadedSearchName; // Track which search is currently loaded
   // Track if search animation has been shown this session
   bool _hasShownSearchAnimation = false;
+  /// Cat type dropdown: null = None, 'my_type' = Apply my type, CatType = specific type.
+  Object? _selectedCatTypeValue;
 
   @override
   void initState() {
@@ -99,6 +107,30 @@ class SearchScreenState extends State<SearchScreen> {
 
     // Initialize filter values to prevent type errors
     _initializeFilterValues();
+
+    // Restore saved cat type, or if user set personality sliders use "Apply my type", else None
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final restored = await _loadSavedCatType();
+      if (!mounted) return;
+      if (!restored) {
+        final server = globals.FelineFinderServer.instance;
+        if (CatTypeFilterMapping.hasPersonalityPreference(server)) {
+          final top = CatTypeFilterMapping.getTopPersonalityCatType(server);
+          if (top != null) {
+            CatTypeFilterMapping.applyCatTypeToFilterOptions(
+              top,
+              widget.filteringOptions,
+            );
+            setState(() => _selectedCatTypeValue = _kApplyMyType);
+          } else {
+            setState(() => _selectedCatTypeValue = null);
+          }
+        } else {
+          setState(() => _selectedCatTypeValue = null);
+        }
+      }
+    });
 
     // Load saved search state after initialization
     _loadSearchState();
@@ -626,9 +658,7 @@ class SearchScreenState extends State<SearchScreen> {
                       }
                     },
                     onChanged: (_) => setState(() {}),
-                    decoration: SearchScreenStyle.searchFieldDecoration(
-                      _resetAllFiltersAndSearch,
-                    ),
+                    decoration: SearchScreenStyle.searchFieldDecoration(),
                   ),
                 ),
               ),
@@ -776,12 +806,218 @@ class SearchScreenState extends State<SearchScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              children: filters
-                  .map((filter) => _buildFilterRow(filter, classification))
-                  .toList(),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: classification == CatClassification.personality
+                  ? _buildPersonalityCategoryChildren(filters, classification)
+                  : filters
+                      .map((filter) => _buildFilterRow(filter, classification))
+                      .toList(),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Personality section: Apply cat type first row, then filter rows.
+  List<Widget> _buildPersonalityCategoryChildren(
+    List<filterOption> filters,
+    CatClassification classification,
+  ) {
+    final List<Widget> out = [];
+    out.add(_buildCatTypeApplyRow());
+    out.add(const SizedBox(height: 8));
+    for (final filter in filters) {
+      out.add(_buildFilterRow(filter, classification));
+    }
+    return out;
+  }
+
+  /// Apply cat type row: same style as other filter rows, dropdown list. First row in Personality section.
+  Widget _buildCatTypeApplyRow() {
+    final server = globals.FelineFinderServer.instance;
+    final hasMyType = CatTypeFilterMapping.hasPersonalityPreference(server);
+
+    final List<DropdownMenuItem<Object?>> items = [];
+    if (hasMyType) {
+      items.add(
+        DropdownMenuItem<Object?>(
+          value: _kApplyMyType,
+          child: Text(
+            'Apply my type',
+            style: TextStyle(color: Colors.white.withOpacity(0.9)),
+          ),
+        ),
+      );
+    }
+    items.add(
+      DropdownMenuItem<Object?>(
+        value: null,
+        child: Text(
+          'None',
+          style: TextStyle(color: Colors.white.withOpacity(0.9)),
+        ),
+      ),
+    );
+    for (final type in catType) {
+      items.add(
+        DropdownMenuItem<Object?>(
+          value: type,
+          child: Text(
+            type.name,
+            style: TextStyle(color: Colors.white.withOpacity(0.9)),
+          ),
+        ),
+      );
+    }
+
+    String displayText(Object? value) {
+      if (value == null) return 'None';
+      if (value == _kApplyMyType) return 'Apply my type';
+      if (value is CatType) return value.name;
+      return 'None';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: SearchScreenStyle.gold.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Apply cat type',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                border: Border.all(
+                  color: SearchScreenStyle.gold.withOpacity(0.3),
+                  width: 1,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<Object?>(
+                  value: _selectedCatTypeValue,
+                  isExpanded: true,
+                  selectedItemBuilder: (context) {
+                    return items.map((e) {
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          displayText(e.value),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      );
+                    }).toList();
+                  },
+                  hint: Text(
+                    'Select to set personality filters',
+                    style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+                  ),
+                  iconEnabledColor: Colors.white,
+                  dropdownColor: SearchScreenStyle.purpleSurface,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  items: items,
+                  onChanged: (Object? value) {
+                    CatType? toApply;
+                    if (value == _kApplyMyType) {
+                      toApply = CatTypeFilterMapping.getTopPersonalityCatType(server);
+                    } else if (value is CatType) {
+                      toApply = value;
+                    }
+                    setState(() {
+                      _selectedCatTypeValue = value;
+                      globals.FelineFinderServer.instance
+                          .setSelectedPersonalityCatTypeName(toApply?.name);
+                      if (toApply != null) {
+                        CatTypeFilterMapping.applyCatTypeToFilterOptions(
+                          toApply,
+                          widget.filteringOptions,
+                        );
+                      }
+                    });
+                    _saveCatTypeToPrefs(value);
+                    if (toApply != null && mounted) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) async {
+                        if (!mounted) return;
+                        final showAnimation = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Show filter choices?'),
+                            content: const Text(
+                              'Would you like to see the selected filters highlighted on the screen?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: const Text('No'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: const Text('Yes'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (!mounted) return;
+                        if (showAnimation == true) {
+                          final updates = CatTypeFilterMapping.getPersonalityFiltersForCatType(toApply!);
+                          final personalityFilters = widget.filteringOptions
+                              .where((f) => f.classification == CatClassification.personality)
+                              .toList();
+                          final filtersToUpdate = personalityFilters
+                              .where((f) => updates.containsKey(f.name))
+                              .toList();
+                          if (filtersToUpdate.isNotEmpty) {
+                            await _animateFilterUpdates(
+                              filtersToUpdate,
+                              filtersToUpdate.map((f) => f.name).toList(),
+                            );
+                          }
+                        }
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1334,8 +1570,8 @@ class SearchScreenState extends State<SearchScreen> {
               var result = generateFilters();
               print("Generated ${result.filters.length} filters, filterprocessing: ${result.filterprocessing}");
               
-              // Save filters to SharedPreferences for persistence
-              await _saveFiltersToPrefs(result.filters);
+              // Save filters and filterProcessing to SharedPreferences (so synonym OR groups are preserved)
+              await _saveFiltersToPrefs(result.filters, result.filterprocessing);
               
               Navigator.pop(context, result);
             } catch (e) {
@@ -1504,19 +1740,21 @@ class SearchScreenState extends State<SearchScreen> {
       // Close loading dialog
       Navigator.of(context).pop();
 
-      // Check if response is empty
+      // Check if response is empty (filters, location, or cat type)
       final hasFilters = filterData.containsKey('filters') &&
           filterData['filters'] is Map &&
           (filterData['filters'] as Map).isNotEmpty;
       final hasLocation = filterData.containsKey('location') &&
           filterData['location'] is Map &&
           (filterData['location'] as Map).isNotEmpty;
+      final hasCatType = filterData['catType']?.toString().trim().isNotEmpty == true;
 
-      if (!hasFilters && !hasLocation) {
+      if (!hasFilters && !hasLocation && !hasCatType) {
         _showError(
             'I couldn\'t understand your search. Try being more specific, like:\n'
             '• "black cat near me"\n'
             '• "Persian kitten in 90210"\n'
+            '• "Velcro Cat" or "Zoomie Rocket"\n'
             '• "friendly adult cat good with kids"');
         return;
       }
@@ -1601,19 +1839,21 @@ class SearchScreenState extends State<SearchScreen> {
       // Close loading dialog
       Navigator.of(context).pop();
 
-      // Check if response is empty
+      // Check if response is empty (filters, location, or cat type)
       final hasFilters = filterData.containsKey('filters') &&
           filterData['filters'] is Map &&
           (filterData['filters'] as Map).isNotEmpty;
       final hasLocation = filterData.containsKey('location') &&
           filterData['location'] is Map &&
           (filterData['location'] as Map).isNotEmpty;
+      final hasCatType = filterData['catType']?.toString().trim().isNotEmpty == true;
 
-      if (!hasFilters && !hasLocation) {
+      if (!hasFilters && !hasLocation && !hasCatType) {
         _showError(
             'I couldn\'t understand your search. Try being more specific, like:\n'
             '• "black cat near me"\n'
             '• "Persian kitten in 90210"\n'
+            '• "Velcro Cat" or "Zoomie Rocket"\n'
             '• "friendly adult cat good with kids"');
         return;
       }
@@ -1644,6 +1884,11 @@ class SearchScreenState extends State<SearchScreen> {
     try {
       // Clear the AI search text field
       controller2.clear();
+
+      // Clear Apply cat type and persist
+      setState(() => _selectedCatTypeValue = null);
+      globals.FelineFinderServer.instance.setSelectedPersonalityCatTypeName(null);
+      await _saveCatTypeToPrefs(null);
 
       // Reset all filters to their default "Any" values
       for (var filter in widget.filteringOptions) {
@@ -1869,10 +2114,11 @@ class SearchScreenState extends State<SearchScreen> {
     print(
         '🎯 _applyAIFilters called with: $filterData, animate: $animate, navigateDirect: $navigateDirect');
 
-    // Edge case: Null or empty response
-    if (filterData.isEmpty ||
-        (!filterData.containsKey('filters') &&
-            !filterData.containsKey('location'))) {
+    // Edge case: Null or empty response (allow filters, location, or catType)
+    final hasAny = filterData.containsKey('filters') ||
+        filterData.containsKey('location') ||
+        (filterData['catType']?.toString().trim().isNotEmpty == true);
+    if (filterData.isEmpty || !hasAny) {
       print('❌ Filter data is empty or missing keys');
       _showError(
           'No filters could be parsed from your search. Please try rephrasing.');
@@ -1880,27 +2126,65 @@ class SearchScreenState extends State<SearchScreen> {
     }
 
     final location = filterData['location'] as Map<String, dynamic>?;
-    final filters = filterData['filters'] as Map<String, dynamic>?;
+    var filters = filterData['filters'] as Map<String, dynamic>?;
+
+    List<filterOption> filtersToUpdate = [];
+    List<String> appliedFilters = []; // Track what was applied
+    List<String> failedFilters = []; // Track what failed
+
+    // Apply cat type (personality type by name) first: set search filters from that type's traits
+    final catTypeName = filterData['catType']?.toString().trim();
+    if (catTypeName != null && catTypeName.isNotEmpty) {
+      CatType? matchedType;
+      for (final ct in catType) {
+        if (ct.name.toLowerCase() == catTypeName.toLowerCase()) {
+          matchedType = ct;
+          break;
+        }
+      }
+      if (matchedType != null) {
+        CatTypeFilterMapping.applyCatTypeToFilterOptions(
+            matchedType, widget.filteringOptions);
+        appliedFilters.add('Cat type: ${matchedType.name}');
+        print('✅ Applied cat type: ${matchedType.name}');
+        // Add updated personality filters to filtersToUpdate so the Personality panel
+        // opens and chip selection animates for each trait.
+        final personalityUpdates =
+            CatTypeFilterMapping.getPersonalityFiltersForCatType(matchedType);
+        for (final filterName in personalityUpdates.keys) {
+          for (final f in widget.filteringOptions) {
+            if (f.classification == CatClassification.personality &&
+                f.name == filterName &&
+                !filtersToUpdate.contains(f)) {
+              filtersToUpdate.add(f);
+              break;
+            }
+          }
+        }
+      } else {
+        failedFilters.add('Cat type ($catTypeName)');
+        print('⚠️ Unknown cat type: $catTypeName');
+      }
+    }
 
     print('🎯 Location: $location');
     print('🎯 Filters: $filters');
     print('🎯 Filters is empty: ${filters?.isEmpty ?? true}');
     print('🎯 Location is empty: ${location?.isEmpty ?? true}');
 
+    final hasCatTypeInData = filterData['catType']?.toString().trim().isNotEmpty == true;
     if ((filters == null || filters.isEmpty) &&
-        (location == null || location.isEmpty)) {
-      print('❌ Both filters and location are empty/null');
+        (location == null || location.isEmpty) &&
+        !hasCatTypeInData) {
+      print('❌ Filters, location, and cat type are all empty/null');
       _showError(
           'I couldn\'t find any matching filters in your search. Try examples like:\n'
           '• "black cat" or "Persian cat"\n'
+          '• "Velcro Cat" or "Zoomie Rocket"\n'
           '• "kitten near 90210"\n'
           '• "friendly cat good with dogs"');
       return;
     }
-
-    List<filterOption> filtersToUpdate = [];
-    List<String> appliedFilters = []; // Track what was applied
-    List<String> failedFilters = []; // Track what failed
 
     // Handle location with error handling
     if (location != null && location.isNotEmpty) {
@@ -2054,6 +2338,9 @@ class SearchScreenState extends State<SearchScreen> {
       filters.forEach((aiField, value) {
         print('🎯 Processing filter: $aiField = $value');
         try {
+          // catType is applied above; do not treat as a filter field
+          if (aiField == 'catType') return;
+
           // Edge case: Skip null, empty, or "Any" values (but allow arrays)
           if (value == null) {
             return;
@@ -2877,16 +3164,18 @@ class SearchScreenState extends State<SearchScreen> {
     const expansionDelay = Duration(milliseconds: 400);
 
     // Clear previous animations and highlights
-    setState(() {
+    if (mounted) setState(() {
       _animatingFilters.clear();
       _highlightedOptions.clear();
     });
 
     // Wait a frame to ensure previous state is cleared
     await Future.delayed(const Duration(milliseconds: 50));
+    if (!mounted) return;
 
     // Animate each filter one by one
     for (int i = 0; i < filters.length; i++) {
+      if (!mounted) return;
       final filter = filters[i];
       final filterKey = _filterKeyFor(filter);
       final classification = filter.classification;
@@ -2919,54 +3208,40 @@ class SearchScreenState extends State<SearchScreen> {
       print('   Classification: $classification, FilterType: $filterType');
       print('   Category expansion key: $categoryExpansionKey');
 
-      // Step 1: Scroll to the category section FIRST (even if collapsed)
-      if (categoryKey != null && categoryKey.currentContext != null) {
-        print('   📍 Step 1: Scrolling to category');
-        await Scrollable.ensureVisible(
-          categoryKey.currentContext!,
-          duration: scrollDuration,
-          curve: Curves.easeInOut,
-          alignment: 0.1, // Position category near top
-        );
-        await Future.delayed(
-            const Duration(milliseconds: 150)); // Wait for scroll to settle
-        print('   ✅ Scrolled to category');
-      } else {
-        print('   ⚠️ Category key or context is null - will scroll to filter row directly');
-      }
-
-      // Step 2: Expand the category AFTER scrolling (if it's not already expanded)
+      // Step 1: Expand the category if it's not already expanded (no scroll to top)
       final isCurrentlyExpanded = categoryExpansionKey != null 
           ? (_expandedCategories[categoryExpansionKey] ?? false)
           : false;
-      print('   📂 Step 2: Category expanded: $isCurrentlyExpanded');
+      print('   📂 Step 1: Category expanded: $isCurrentlyExpanded');
       if (!isCurrentlyExpanded && categoryExpansionKey != null) {
         print('   🔓 Expanding category...');
         // Force rebuild by updating state
-        setState(() {
+        if (mounted) setState(() {
           _expandedCategories[categoryExpansionKey] = true;
         });
 
         // Wait a bit for the state update to take effect
         await Future.delayed(const Duration(milliseconds: 100));
+        if (!mounted) return;
 
         // Trigger another rebuild to ensure ExpansionTile gets the new state
-        setState(() {
+        if (mounted) setState(() {
           // Just trigger rebuild - state already set to true
         });
 
         await Future.delayed(expansionDelay); // Wait for expansion animation
+        if (!mounted) return;
         print('   ✅ Category expanded');
       } else {
         print('   ✓ Category already expanded');
       }
 
-      // Step 3: Scroll to the specific filter row/question (after expansion completes)
-      // Wait a bit more to ensure expansion animation is fully complete
+      // Step 2: Scroll to the specific filter row/question (no scroll to top)
       await Future.delayed(const Duration(milliseconds: 100));
-      
+      if (!mounted) return;
+
       if (filterRowKey != null && filterRowKey.currentContext != null) {
-        print('   📍 Step 3: Scrolling to filter row/question');
+        print('   📍 Step 2: Scrolling to filter row/question');
         await Scrollable.ensureVisible(
           filterRowKey.currentContext!,
           duration: scrollDuration,
@@ -2975,23 +3250,15 @@ class SearchScreenState extends State<SearchScreen> {
         );
         await Future.delayed(
             const Duration(milliseconds: 150)); // Wait for scroll to settle
+        if (!mounted) return;
         print('   ✅ Scrolled to filter row/question');
       } else {
         print('   ⚠️ Filter row key or context is null');
-        // Try scrolling to category as fallback
-        if (categoryKey != null && categoryKey.currentContext != null) {
-          print('   📍 Fallback: Scrolling to category');
-          await Scrollable.ensureVisible(
-            categoryKey.currentContext!,
-            duration: scrollDuration,
-            curve: Curves.easeInOut,
-            alignment: 0.1,
-          );
-        }
       }
 
-      // Step 4: Highlight the filter row and the specific option value
-      print('   ✨ Step 4: Highlighting filter and option');
+      // Step 3: Highlight the filter row and the specific option value
+      print('   ✨ Step 3: Highlighting filter and option');
+      if (!mounted) return;
       setState(() {
         _animatingFilters[filterKey] = true;
 
@@ -3039,11 +3306,12 @@ class SearchScreenState extends State<SearchScreen> {
       // Haptic feedback for each filter
       HapticFeedback.selectionClick();
 
-      // Step 5: Wait for highlight animation
+      // Step 4: Wait for highlight animation
       await Future.delayed(animationDuration);
+      if (!mounted) return;
       print('   ✅ Highlight animation complete');
 
-      // Step 6: Keep the highlight for a moment, then remove only the option highlight
+      // Step 5: Keep the highlight for a moment, then remove only the option highlight
       // (Keep the section expanded and filter row visible)
       setState(() {
         // Remove the option highlight but keep the filter row highlight briefly
@@ -3051,8 +3319,9 @@ class SearchScreenState extends State<SearchScreen> {
       });
 
       await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
 
-      // Step 7: Remove filter row highlight (section stays expanded)
+      // Step 6: Remove filter row highlight (section stays expanded)
       setState(() {
         _animatingFilters[filterKey] = false;
       });
@@ -3066,6 +3335,7 @@ class SearchScreenState extends State<SearchScreen> {
 
     HapticFeedback.lightImpact();
 
+    if (!mounted) return;
     // Show success message with applied filters
     final message = appliedFilters.length <= 3
         ? '✓ Applied: ${appliedFilters.join(", ")}'
@@ -3085,6 +3355,42 @@ class SearchScreenState extends State<SearchScreen> {
     return _animatingFilters[_filterKeyFor(filter)] ?? false;
   }
 
+  /// Gold outlined "Clear Filters" button for the app bar (right side).
+  Widget _buildHeaderClearFiltersButton() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: OutlinedButton(
+        onPressed: () async {
+          await _resetAllFiltersAndSearch();
+          if (!mounted) return;
+          final savesFilter = widget.filteringOptions.firstWhere(
+            (f) => f.classification == CatClassification.saves,
+            orElse: () => widget.filteringOptions.first,
+          );
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('lastLoadedSearchName');
+          if (!mounted) return;
+          setState(() {
+            _selectedSavedSearch = null;
+            _lastLoadedSearchName = null;
+            if (savesFilter.classification == CatClassification.saves) {
+              savesFilter.choosenValue = null;
+            }
+          });
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: SearchScreenStyle.gold,
+          side: const BorderSide(color: SearchScreenStyle.gold, width: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: const Text('Clear Filters', style: TextStyle(fontSize: 14)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -3092,7 +3398,7 @@ class SearchScreenState extends State<SearchScreen> {
     // Back button behavior: Cancel (exits without searching)
     // "Find Cats" button: Saves and performs search
     return Scaffold(
-      appBar: SearchScreenStyle.appBar(),
+      appBar: SearchScreenStyle.appBar(actions: [_buildHeaderClearFiltersButton()]),
       resizeToAvoidBottomInset:
           false, // We'll handle keyboard positioning manually
       body: Stack(
@@ -3120,7 +3426,7 @@ class SearchScreenState extends State<SearchScreen> {
                   _buildFilterCategoryByType("Core", Icons.star, FilterType.simple, true),
                   // Advanced Fields (initially collapsed)
                   _buildFilterCategoryByType("Advanced", Icons.tune, FilterType.advanced, false),
-                  // Personality (filters with CatClassification.personality)
+                  // Personality (filters with CatClassification.personality; Apply cat type above Affectionate)
                   _buildFilterCategory("Personality", Icons.psychology, CatClassification.personality),
                   // Location & Sort (separate section)
                   _buildFilterCategory(
@@ -3306,21 +3612,16 @@ class SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  // Clear all filters and reset search
                   await _resetAllFiltersAndSearch();
-                  // Find the saved searches filter and clear its value
                   final savesFilter = widget.filteringOptions.firstWhere(
                     (f) => f.classification == CatClassification.saves,
                     orElse: () => widget.filteringOptions.first,
                   );
-                  // Clear selected saved search and dropdown selection
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.remove('lastLoadedSearchName');
-                  
                   setState(() {
                     _selectedSavedSearch = null;
                     _lastLoadedSearchName = null;
-                    // Clear the filter's choosenValue so dropdown shows no selection
                     if (savesFilter.classification == CatClassification.saves) {
                       savesFilter.choosenValue = null;
                     }
@@ -4363,7 +4664,7 @@ class SearchScreenState extends State<SearchScreen> {
             filters.add(Filters(
                 fieldName: item.fieldName,
                 operation: "contains",
-                criteria: synonym));
+                criteria: [synonym]));
             orIndices.add("$index");
             index++;
           }
@@ -4467,7 +4768,7 @@ class SearchScreenState extends State<SearchScreen> {
             filters.add(Filters(
                 fieldName: item.fieldName,
                 operation: "contains",
-                criteria: synonym));
+                criteria: [synonym]));
             orIndices.add("$index");
             index++;
           }
@@ -4495,8 +4796,60 @@ class SearchScreenState extends State<SearchScreen> {
     return FilterResult(filters, filterprocessing);
   }
 
-  /// Save filters to SharedPreferences for persistence
-  Future<void> _saveFiltersToPrefs(List<Filters> filters) async {
+  static const String _kLastSearchCatTypeKey = 'lastSearchCatType';
+
+  /// Load saved cat type and apply it. Returns true if a value was restored.
+  Future<bool> _loadSavedCatType() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_kLastSearchCatTypeKey);
+      if (saved == null || saved.isEmpty || saved == 'none') return false;
+      final server = globals.FelineFinderServer.instance;
+      if (saved == 'my_type') {
+        if (!CatTypeFilterMapping.hasPersonalityPreference(server)) return false;
+        final top = CatTypeFilterMapping.getTopPersonalityCatType(server);
+        if (top == null) return false;
+        CatTypeFilterMapping.applyCatTypeToFilterOptions(top, widget.filteringOptions);
+        server.setSelectedPersonalityCatTypeName(top.name);
+        setState(() => _selectedCatTypeValue = _kApplyMyType);
+        return true;
+      }
+      try {
+        final type = catType.firstWhere((t) => t.name == saved);
+        CatTypeFilterMapping.applyCatTypeToFilterOptions(type, widget.filteringOptions);
+        server.setSelectedPersonalityCatTypeName(type.name);
+        setState(() => _selectedCatTypeValue = type);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    } catch (e) {
+      print('Error loading saved cat type: $e');
+      return false;
+    }
+  }
+
+  /// Save selected cat type to SharedPreferences so it can be restored when returning to search.
+  Future<void> _saveCatTypeToPrefs(Object? value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (value == null) {
+        await prefs.setString(_kLastSearchCatTypeKey, 'none');
+      } else if (value == _kApplyMyType) {
+        await prefs.setString(_kLastSearchCatTypeKey, 'my_type');
+      } else if (value is CatType) {
+        await prefs.setString(_kLastSearchCatTypeKey, value.name);
+      } else {
+        await prefs.setString(_kLastSearchCatTypeKey, 'none');
+      }
+    } catch (e) {
+      print('Error saving cat type: $e');
+    }
+  }
+
+  /// Save filters and filterProcessing to SharedPreferences for persistence.
+  /// filterProcessing (e.g. "1 AND (2 OR 3 OR 4)") ensures synonym groups use OR, not AND.
+  Future<void> _saveFiltersToPrefs(List<Filters> filters, [String? filterProcessing]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final filtersJson = filters.map((f) => {
@@ -4505,7 +4858,12 @@ class SearchScreenState extends State<SearchScreen> {
         'criteria': f.criteria,
       }).toList();
       await prefs.setString('lastSearchFiltersList', jsonEncode(filtersJson));
-      print('✅ Saved ${filters.length} filters to SharedPreferences');
+      if (filterProcessing != null && filterProcessing.isNotEmpty) {
+        await prefs.setString('lastSearchFilterProcessing', filterProcessing);
+      } else {
+        await prefs.remove('lastSearchFilterProcessing');
+      }
+      print('✅ Saved ${filters.length} filters and filterProcessing to SharedPreferences');
     } catch (e) {
       print('Error saving filters to SharedPreferences: $e');
     }

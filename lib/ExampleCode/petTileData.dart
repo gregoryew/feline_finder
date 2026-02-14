@@ -14,17 +14,26 @@ class PetTileData {
   String? smallPicture;
   double? smallPictureResolutionY;
   bool? hasVideos;
+  /// Plain-text description from API (used for suggested cat type).
+  String? descriptionText;
+  /// Suggested personality cat type name from description (e.g. "Lap Legend").
+  String? suggestedCatTypeName;
 
   PetTileData(petDatum pet, List<Included> included) {
     id = pet.id;
+    descriptionText = pet.attributes?.descriptionText;
     name = pet.attributes!.name;
     primaryBreed = pet.attributes!.breedPrimary;
     var locationsList = findAllOfACertainType(
         pet, included, "locations", IncludedType.LOCATIONS);
-    cityState = locationsList[0].attributes!.citystate;
+    cityState = locationsList.isNotEmpty
+        ? locationsList[0].attributes!.citystate
+        : null;
     var statusList =
         findAllOfACertainType(pet, included, "statuses", IncludedType.STATUSES);
-    status = statusList[0].attributes!.name;
+    status = statusList.isNotEmpty
+        ? statusList[0].attributes!.name
+        : null;
     switch (pet.attributes!.ageGroup ?? AgeGroup.YOUNG) {
       case AgeGroup.ADULT:
         age = 'Adult';

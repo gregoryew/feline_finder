@@ -164,6 +164,94 @@ class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage> {
   }
 }
 
+class _CardVideoOverlayOnce extends StatefulWidget {
+  final String assetPath;
+  final VoidCallback onFinished;
+
+  const _CardVideoOverlayOnce({
+    Key? key,
+    required this.assetPath,
+    required this.onFinished,
+  }) : super(key: key);
+
+  @override
+  State<_CardVideoOverlayOnce> createState() => _CardVideoOverlayOnceState();
+}
+
+class _CardVideoOverlayOnceState extends State<_CardVideoOverlayOnce> {
+  VideoPlayerController? _controller;
+  bool _initialized = false;
+  bool _notified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      final controller = VideoPlayerController.asset(widget.assetPath);
+      _controller = controller;
+      await controller.initialize();
+      controller.setLooping(false);
+      controller.addListener(_onTick);
+      await controller.play();
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+        });
+      }
+    } catch (_) {
+      widget.onFinished();
+    }
+  }
+
+  void _onTick() {
+    final c = _controller;
+    if (c == null) return;
+    if (!_initialized) return;
+    if (_notified) return;
+
+    final isCompleted = c.value.isCompleted ||
+        (c.value.duration.inMilliseconds > 0 &&
+            c.value.position >= c.value.duration);
+    if (isCompleted) {
+      _notified = true;
+      widget.onFinished();
+    }
+  }
+
+  @override
+  void dispose() {
+    final c = _controller;
+    if (c != null) {
+      c.removeListener(_onTick);
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _controller;
+    if (!_initialized || c == null || !c.value.isInitialized) {
+      // Show the image underneath until video is ready.
+      return const SizedBox.shrink();
+    }
+
+    return FittedBox(
+      fit: BoxFit.fill,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: c.value.size.width,
+        height: c.value.size.height,
+        child: VideoPlayer(c),
+      ),
+    );
+  }
+}
+
 class PersonalityFit extends StatefulWidget {
   const PersonalityFit({Key? key}) : super(key: key);
 
@@ -189,6 +277,20 @@ class PersonalityFitState extends State<PersonalityFit> {
 
   // True when at least one slider is not "Doesn't Matter"; when false, show "Unknown" instead of match label
   bool _hasAnyPreference = false;
+
+  // Animated list for short sort transitions (only visible items animate).
+  final GlobalKey<AnimatedListState> _catTypeAnimatedListKey =
+      GlobalKey<AnimatedListState>();
+
+  // Debounce sort animation to avoid animating on every slider tick.
+  Timer? _sortDebounceTimer;
+  List<int>? _pendingOrder;
+  Map<int, double>? _pendingPercentMatch;
+
+  // Play-once animation when the top match changes (after resort).
+  int? _lastTopId;
+  int? _playingTopId;
+  int _playingTopToken = 0;
 
   // ScrollController for the trait cards list
   final ScrollController _questionsScrollController = ScrollController();
@@ -226,6 +328,7 @@ class PersonalityFitState extends State<PersonalityFit> {
     // Initialize display order and match % from catType (no mutation of global list)
     _displayOrder = catType.map((c) => c.id).toList();
     _displayPercentMatch = { for (var c in catType) c.id: 1.0 };
+    _lastTopId = _displayOrder.isNotEmpty ? _displayOrder.first : null;
     _hasAnyPreference = Question_Cat_Types.questions.any(
         (q) => server.getPersonalityFitSliderValue(q.id) > 0);
     
@@ -259,6 +362,7 @@ class PersonalityFitState extends State<PersonalityFit> {
   
   @override
   void dispose() {
+    _sortDebounceTimer?.cancel();
     _questionsScrollController.dispose();
     super.dispose();
   }
@@ -517,6 +621,119 @@ class PersonalityFitState extends State<PersonalityFit> {
     return raw.clamp(0, question.choices.length - 1);
   }
 
+  Widget _buildAnimatedCatTypeTile(
+    int id,
+    Animation<double> animation, {
+    bool isRemoving = false,
+  }) {
+    final type = catType.firstWhere((c) => c.id == id);
+    final percentMatch = _displayPercentMatch[id] ?? 1.0;
+
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOut,
+    );
+
+    return SizeTransition(
+      sizeFactor: curved,
+      axisAlignment: 0.0,
+      child: FadeTransition(
+        opacity: curved,
+        child: GestureDetector(
+          onTap: () {
+            _showCatTypeDetail(context, type);
+          },
+          child: buildCatTypeCard(type, percentMatch),
+        ),
+      ),
+    );
+  }
+
+  void _animateResort({
+    required List<int> newOrder,
+    required Map<int, double> newPercentMatch,
+  }) {
+    // Update the match map first so labels update immediately.
+    _displayPercentMatch = newPercentMatch;
+
+    final listState = _catTypeAnimatedListKey.currentState;
+    if (!mounted || listState == null) {
+      setState(() {
+        _displayOrder = List<int>.from(newOrder);
+      });
+      return;
+    }
+
+    // Perform a sequence of remove+insert operations to create a short sort animation.
+    // AnimatedList naturally only animates visible items.
+    final working = List<int>.from(_displayOrder);
+    const duration = Duration(milliseconds: 180);
+
+    for (int targetIndex = 0; targetIndex < newOrder.length; targetIndex++) {
+      final id = newOrder[targetIndex];
+      final fromIndex = working.indexOf(id);
+      if (fromIndex == -1 || fromIndex == targetIndex) continue;
+
+      // Remove from current position.
+      final removedId = working.removeAt(fromIndex);
+      setState(() {
+        _displayOrder = List<int>.from(working);
+      });
+      listState.removeItem(
+        fromIndex,
+        (context, animation) =>
+            _buildAnimatedCatTypeTile(removedId, animation, isRemoving: true),
+        duration: duration,
+      );
+
+      // Insert at new position.
+      working.insert(targetIndex, removedId);
+      setState(() {
+        _displayOrder = List<int>.from(working);
+      });
+      listState.insertItem(targetIndex, duration: duration);
+    }
+
+    // Bump the key so external callers relying on it still see "a resort happened".
+    _catTypeListKey++;
+  }
+
+  void _scheduleResort({
+    required List<int> newOrder,
+    required Map<int, double> newPercentMatch,
+  }) {
+    _pendingOrder = newOrder;
+    _pendingPercentMatch = newPercentMatch;
+
+    _sortDebounceTimer?.cancel();
+    _sortDebounceTimer = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      final order = _pendingOrder;
+      final match = _pendingPercentMatch;
+      if (order == null || match == null) return;
+
+      final newTopId = order.isNotEmpty ? order.first : null;
+      final topChanged =
+          newTopId != null && newTopId != _lastTopId;
+
+      _animateResort(newOrder: order, newPercentMatch: match);
+
+      if (topChanged) {
+        _lastTopId = newTopId;
+        // Run after the short reorder animation completes.
+        Future.delayed(const Duration(milliseconds: 220), () {
+          if (!mounted) return;
+          if (_displayOrder.isEmpty) return;
+          if (_displayOrder.first != newTopId) return;
+          setState(() {
+            _playingTopId = newTopId;
+            _playingTopToken++;
+          });
+        });
+      }
+    });
+  }
+
   Widget buildQuestionCard(Question_Cat_Types question, int index) {
     final choiceIndex = _clampedChoiceIndex(question);
 
@@ -551,18 +768,32 @@ class PersonalityFitState extends State<PersonalityFit> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header row with question name and help button
+                // Header: question on line 1, answer on line 2 (always two lines so slider stays fixed)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(
-                        "${question.name}: ${question.choices[choiceIndex].name}",
-                          style: const TextStyle(fontSize: 13, color: Colors.white),
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            question.name,
+                            style: const TextStyle(fontSize: 13, color: Colors.white),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            question.choices[choiceIndex].name,
+                            style: const TextStyle(fontSize: 13, color: Colors.white),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
                         onTap: () => _showQuestionDescription(context, question),
                         child: Container(
                           width: 24,
@@ -659,10 +890,15 @@ class PersonalityFitState extends State<PersonalityFit> {
                             final sliderVal = server.getPersonalityFitSliderValue(q.id);
                             if (sliderVal > 0 && sliderVal < q.choices.length) {
                               final choice = q.choices[sliderVal];
+                              // Independence question: 1=Very Independent, 5=Very Affectionate;
+                              // stat scale: 1=low independence, 5=high. Invert so match is correct.
+                              final value = q.name == 'Independence' && choice.lowRange > 0
+                                  ? (6.0 - choice.lowRange)
+                                  : choice.lowRange.toDouble();
                               desired.add({
                                 'questionId': q.id,
                                 'name': q.name,
-                                'value': choice.lowRange.toDouble(),
+                                'value': value,
                               });
                             }
                           }
@@ -740,19 +976,21 @@ class PersonalityFitState extends State<PersonalityFit> {
                           }
 
                           _hasAnyPreference = desired.isNotEmpty;
-                          _displayPercentMatch = newPercentMatch;
-                          _displayOrder = List.from(catType.map((c) => c.id));
-                          _displayOrder.sort((a, b) {
-                            final matchComparison =
-                                (newPercentMatch[b] ?? 0.0).compareTo(newPercentMatch[a] ?? 0.0);
+                          final newOrder = List<int>.from(catType.map((c) => c.id));
+                          newOrder.sort((a, b) {
+                            final matchComparison = (newPercentMatch[b] ?? 0.0)
+                                .compareTo(newPercentMatch[a] ?? 0.0);
                             if (matchComparison != 0) return matchComparison;
                             final nameA = catType.firstWhere((c) => c.id == a).name;
                             final nameB = catType.firstWhere((c) => c.id == b).name;
                             return nameA.compareTo(nameB);
                           });
 
-                          _catTypeListKey++;
                           setState(() {});
+                          _scheduleResort(
+                            newOrder: newOrder,
+                            newPercentMatch: newPercentMatch,
+                          );
                         } catch (e, stackTrace) {
                           // Log errors but don't crash the UI
                           // ignore: avoid_print
@@ -832,19 +1070,12 @@ class PersonalityFitState extends State<PersonalityFit> {
           ),
         // Cat type cards list (order from _displayOrder, match % from _displayPercentMatch)
         Expanded(
-          child: ListView.builder(
-            key: ValueKey(_catTypeListKey),
-            itemCount: _displayOrder.length,
-            itemBuilder: (BuildContext context, int index) {
+          child: AnimatedList(
+            key: _catTypeAnimatedListKey,
+            initialItemCount: _displayOrder.length,
+            itemBuilder: (BuildContext context, int index, Animation<double> animation) {
               final id = _displayOrder[index];
-              final type = catType.firstWhere((c) => c.id == id);
-              final percentMatch = _displayPercentMatch[id] ?? 1.0;
-              return GestureDetector(
-                onTap: () {
-                  _showCatTypeDetail(context, type);
-                },
-                child: buildCatTypeCard(type, percentMatch),
-              );
+              return _buildAnimatedCatTypeTile(id, animation);
             },
           ),
         ),
@@ -967,25 +1198,47 @@ class PersonalityFitState extends State<PersonalityFit> {
                     decoration: const BoxDecoration(
                       gradient: AppTheme.purpleGradient,
                     ),
-                    child: Image.asset(
-                      'assets/cat_types/${catTypeItem.imageName}.jpg',
-                      fit: BoxFit.fill,
-                      width: imageWidth,
-                      height: AppTheme.breedCardImageHeight - 15,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: const BoxDecoration(
-                            gradient: AppTheme.purpleGradient,
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.pets,
-                              color: AppTheme.offWhite,
-                              size: 48,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.asset(
+                          'assets/cat_types/${catTypeItem.imageName}.jpg',
+                          fit: BoxFit.fill,
+                          width: imageWidth,
+                          height: AppTheme.breedCardImageHeight - 15,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              decoration: const BoxDecoration(
+                                gradient: AppTheme.purpleGradient,
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.pets,
+                                  color: AppTheme.offWhite,
+                                  size: 48,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        if (_playingTopId == catTypeItem.id)
+                          Positioned.fill(
+                            child: _CardVideoOverlayOnce(
+                              key: ValueKey(
+                                  'top-${catTypeItem.id}-$_playingTopToken'),
+                              assetPath:
+                                  'assets/cat_types/${catTypeItem.imageName}.mp4',
+                              onFinished: () {
+                                if (!mounted) return;
+                                setState(() {
+                                  if (_playingTopId == catTypeItem.id) {
+                                    _playingTopId = null;
+                                  }
+                                });
+                              },
                             ),
                           ),
-                        );
-                      },
+                      ],
                     ),
                   ),
                 );
@@ -1126,21 +1379,36 @@ class PersonalityFitState extends State<PersonalityFit> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header row with question name and help button
+                  // Header: question on line 1, answer on line 2 (always two lines)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(
-                          "${question.name}: ${question.choices[_clampedChoiceIndex(question)].name}",
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.white,
-                            decoration: TextDecoration.none,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                          softWrap: true,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              question.name,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.white,
+                                decoration: TextDecoration.none,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              question.choices[_clampedChoiceIndex(question)].name,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.white,
+                                decoration: TextDecoration.none,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 8),

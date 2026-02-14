@@ -43,6 +43,14 @@ class FelineFinderServer {
     _personalityFitSliderValue[questionId] = value;
   }
 
+  /// User's selected personality cat type on search screen (e.g. "Lap Legend").
+  /// When set, adoption list shows this type for cats that score "above great" (>= 85%) for it.
+  String? _selectedPersonalityCatTypeName;
+  String? get selectedPersonalityCatTypeName => _selectedPersonalityCatTypeName;
+  void setSelectedPersonalityCatTypeName(String? name) {
+    _selectedPersonalityCatTypeName = name;
+  }
+
   String _userID = "";
 
   CatClassification? whichCategory = CatClassification.basic;

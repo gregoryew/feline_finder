@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:catapp/models/breed.dart';
 import '../theme.dart';
 import '../widgets/design_system.dart';
+import 'fit.dart';
 
 class BreedSelectionScreen extends StatefulWidget {
   final List<int> selectedBreeds;
@@ -89,6 +90,27 @@ class _BreedSelectionScreenState extends State<BreedSelectionScreen> {
       child: Scaffold(
         appBar: GradientAppBar(
           title: "Select Breeds",
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (context) => const Fit(),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.goldBase,
+                  side: const BorderSide(color: AppTheme.goldBase, width: 1.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                child: const Text('Breed Fit'),
+              ),
+            ),
+          ],
         ),
         body: Container(
         decoration: BoxDecoration(

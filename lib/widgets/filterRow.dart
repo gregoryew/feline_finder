@@ -51,7 +51,7 @@ class _FilterRow extends State<FilterRow> {
     }
   }
 
-  goToBreedSelectionScreen() async {
+  Future<void> goToBreedSelectionScreen() async {
     var selected = await Get.to(() => FilterBreedSelection(choosenValues: widget.filter.choosenListValues));
     List<int> selectedBreeds = [];
     List<listOption> options = [];
@@ -68,7 +68,7 @@ class _FilterRow extends State<FilterRow> {
     });
   }
 
-  deleteQuery(String name) async {
+  Future<void> deleteQuery(String name) async {
     String localUserID = "";
     var userID = await widget.server.getUser();
     setState(() {

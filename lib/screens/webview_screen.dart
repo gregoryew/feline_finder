@@ -2,8 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 // Import platform-specific implementations
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../theme.dart';
 
 class WebViewScreen extends StatefulWidget {
@@ -60,7 +58,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           },
           onWebResourceError: (WebResourceError error) {
             // Handle specific error codes
-            if (error.errorCode != null && error.errorCode == -999) {
+            if (error.errorCode == -999) {
               // Error code -999 is a cancelled request (common with redirects)
               // This often happens with Facebook URLs due to redirects
               // Don't show error - the page should continue loading after redirect
@@ -76,12 +74,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
               // Provide more helpful error messages
               String errorMessage = 'Failed to load page';
               
-              if (error.errorCode != null) {
-                errorMessage = 'Error code: ${error.errorCode}';
-              }
-              
-              if (error.description != null && error.description!.isNotEmpty) {
-                errorMessage = error.description!;
+              errorMessage = 'Error code: ${error.errorCode}';
+                          
+              if (error.description.isNotEmpty) {
+                errorMessage = error.description;
                 // Check for common error types
                 if (errorMessage.toLowerCase().contains('unsupported url')) {
                   errorMessage = 'Unsupported URL format. The URL may be invalid or malformed.';

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme.dart';
-import '../widgets/design_system.dart';
 
 class ChatScreen extends StatefulWidget {
   final String currentUser;

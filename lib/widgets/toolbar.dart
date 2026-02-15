@@ -29,7 +29,7 @@ class Tool extends StatelessWidget {
       required this.shelterData})
       : super(key: key);
 
-  get apiKey => AppConfig.googleMapsApiKey;
+  String get apiKey => AppConfig.googleMapsApiKey;
 
   Widget _buildCircularIcon(
       BuildContext context, IconData iconData, Color iconColor) {
@@ -137,11 +137,11 @@ class Tool extends StatelessWidget {
     }
   }
 
-  call(BuildContext context) {
+  void call(BuildContext context) {
     launchUrl(Uri.parse("tel://${detail?.phoneNumber ?? ""}"));
   }
 
-  map(BuildContext context) async {
+  Future<void> map(BuildContext context) async {
     List<Location> locations = await locationFromAddress(
         "${detail?.street ?? ""}, ${detail?.cityState ?? ""} ${detail?.postalCode ?? ""}");
     print("******************** LAT = ${locations[0].latitude} LONG = ${locations[0].longitude}");
@@ -170,7 +170,7 @@ class Tool extends StatelessWidget {
     }
   }
 
-  _launchMap(BuildContext context, double lat, double lng) async {
+  Future<void> _launchMap(BuildContext context, double lat, double lng) async {
     var url = '';
     var urlAppleMaps = '';
     if (Platform.isAndroid) {
@@ -194,7 +194,7 @@ class Tool extends StatelessWidget {
     }
   }
 
-  email(BuildContext context) async {
+  Future<void> email(BuildContext context) async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
       path: detail?.email ?? "",
@@ -232,7 +232,7 @@ class Tool extends StatelessWidget {
     return filePath;
   }
 
-  share(BuildContext context) async {
+  Future<void> share(BuildContext context) async {
     try {
       var response = await http.get(Uri.parse(detail!.mainPictures[0].url!));
       String filepath = await getFilePath();
@@ -252,7 +252,7 @@ class Tool extends StatelessWidget {
     }
   }
 
-  launchMessenger() async {
+  Future<void> launchMessenger() async {
     String facebookIdHere = "greg61545";
     String url() {
       if (Platform.isAndroid) {
@@ -275,11 +275,11 @@ class Tool extends StatelessWidget {
     }
   }
 
-  meet(BuildContext context) {
+  void meet(BuildContext context) {
     launchMessenger();
   }
 
-  schedule(BuildContext context) {
+  void schedule(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => ScheduleAppointmentDialog(

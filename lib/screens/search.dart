@@ -13,11 +13,9 @@ import 'package:catapp/screens/globals.dart' as globals;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme.dart';
-import '../widgets/design_system.dart';
 import 'search_screen_style.dart';
 
 /// Sentinel for "Apply my type" in the cat type dropdown (value from personality sliders).
@@ -3164,10 +3162,12 @@ class SearchScreenState extends State<SearchScreen> {
     const expansionDelay = Duration(milliseconds: 400);
 
     // Clear previous animations and highlights
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _animatingFilters.clear();
       _highlightedOptions.clear();
     });
+    }
 
     // Wait a frame to ensure previous state is cleared
     await Future.delayed(const Duration(milliseconds: 50));
@@ -3216,18 +3216,22 @@ class SearchScreenState extends State<SearchScreen> {
       if (!isCurrentlyExpanded && categoryExpansionKey != null) {
         print('   🔓 Expanding category...');
         // Force rebuild by updating state
-        if (mounted) setState(() {
+        if (mounted) {
+          setState(() {
           _expandedCategories[categoryExpansionKey] = true;
         });
+        }
 
         // Wait a bit for the state update to take effect
         await Future.delayed(const Duration(milliseconds: 100));
         if (!mounted) return;
 
         // Trigger another rebuild to ensure ExpansionTile gets the new state
-        if (mounted) setState(() {
+        if (mounted) {
+          setState(() {
           // Just trigger rebuild - state already set to true
         });
+        }
 
         await Future.delayed(expansionDelay); // Wait for expansion animation
         if (!mounted) return;
@@ -3521,7 +3525,7 @@ class SearchScreenState extends State<SearchScreen> {
                   });
                 }
               },
-              activeColor: const Color(0xFF2196F3),
+              activeThumbColor: const Color(0xFF2196F3),
             ),
           ],
         ),
@@ -3889,7 +3893,7 @@ class SearchScreenState extends State<SearchScreen> {
       
       // Validate zip code before saving (same validation as search screen)
       final zipValidation = await _validateZipCodeForSave(zipValue);
-      if (!zipValidation['isValid'] as bool) {
+      if (!zipValidation['isValid']) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -4049,7 +4053,7 @@ class SearchScreenState extends State<SearchScreen> {
       
       // Validate zip code before updating (same validation as search screen)
       final zipValidation = await _validateZipCodeForSave(zipValue);
-      if (!zipValidation['isValid'] as bool) {
+      if (!zipValidation['isValid']) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(

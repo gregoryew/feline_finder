@@ -19,7 +19,7 @@ class OrganizationVerificationService {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'Authorization': 'Bearer ${_apiKey}',
+          'Authorization': 'Bearer $_apiKey',
           'Content-Type': 'application/json',
         },
       );

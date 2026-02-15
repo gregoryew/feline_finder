@@ -82,11 +82,16 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
         }
       ];
 
+      // API requires filterRadius; when zip unknown use center of USA + largest distance so favorites still load
+      final bool zipUnknown = server.zip.isEmpty || server.zip == "?";
+      final String postalcode = zipUnknown ? AppConfig.centerOfUsaZipCode : server.zip;
+      final int miles = zipUnknown ? AppConfig.maxDistanceMiles : 3000;
+
       Map<String, dynamic> data = {
         "data": {
           "filterRadius": {
-            "miles": 3000, // Large radius to include all favorites
-            "postalcode": server.zip ?? AppConfig.defaultZipCode,
+            "miles": miles,
+            "postalcode": postalcode,
           },
           "filters": filtersJson,
         }

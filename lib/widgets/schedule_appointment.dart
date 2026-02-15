@@ -1488,7 +1488,7 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
             <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
                 <h3>📝 Update to Previous Message</h3>
                 <p><strong>Previous message:</strong></p>
-                <p style="font-style: italic; color: #666;">${_previousNote}</p>
+                <p style="font-style: italic; color: #666;">$_previousNote</p>
                 <p><strong>Updated message:</strong></p>
             </div>
       ''';

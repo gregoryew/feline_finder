@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 
 import '../models/breed.dart';
 import '../theme.dart';
-import '../widgets/design_system.dart';
 
 class FilterBreedSelection extends StatefulWidget {
   // This widget is the home page of your application. It is stateful, meaning

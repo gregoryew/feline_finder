@@ -13,19 +13,15 @@ import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import '/screens/petDetail.dart';
 import '/screens/search.dart';
-import '/screens/recommendations.dart';
 import '../config.dart';
 import '../services/description_cat_type_scorer.dart';
 import 'globals.dart' as globals;
 
 // GOLD UI COMPONENTS
 import '../widgets/gold/gold_pet_card.dart';
-import '../widgets/gold/gold_circle_icon_button.dart';
-import '../widgets/gold/gold_trait_pill.dart';
 import '../widgets/gold/gold_zip_button.dart';
 
 import '../theme.dart';
-import '../widgets/design_system.dart';
 import '../models/searchPageConfig.dart' as searchConfig;
 
 class AdoptGrid extends StatefulWidget {
@@ -81,7 +77,12 @@ class AdoptGridState extends State<AdoptGrid> {
       try {
         String user = await server.getUser();
         favorites = await server.getFavorites(user);
-        var zip = await _getZip();
+        // Only use saved zip from prefs; do not overwrite server.zip with default (main may have left it as "?" when unknown)
+        final prefs = await _prefs;
+        final savedZip = prefs.getString("zipCode");
+        if (savedZip != null && savedZip.isNotEmpty) {
+          server.zip = savedZip;
+        }
 
         setState(() {
           main.favoritesSelected = false;
@@ -89,20 +90,24 @@ class AdoptGridState extends State<AdoptGrid> {
 
           globals.listOfFavorites = favorites;
           userID = user;
-          server.zip = zip;
-
           RescueGroupApi = AppConfig.rescueGroupsApiKey;
-          getPets();
+          if (server.zip.isNotEmpty && server.zip != "?") {
+            getPets();
+          } else {
+            count = "?";
+          }
         });
       } catch (e) {
         // Fallback when Firestore fails
         setState(() {
           userID = "demo-user";
           favorites = [];
-          server.zip = AppConfig.defaultZipCode;
-
           RescueGroupApi = AppConfig.rescueGroupsApiKey;
-          getPets();
+          if (server.zip.isNotEmpty && server.zip != "?") {
+            getPets();
+          } else {
+            count = "?";
+          }
         });
       }
     }();
@@ -240,14 +245,17 @@ Widget build(BuildContext context) {
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 10),
               child: Text(
-                main.favoritesSelected
-                    ? "You have not chosen any favorites yet."
-                    : "No cats to see. Please adjust your search.",
+                (server.zip.isEmpty || server.zip == "?")
+                    ? "Can't display cats because we don't know your location. Enter ZIP code above."
+                    : main.favoritesSelected
+                        ? "You have not chosen any favorites yet."
+                        : "No cats to see. Please adjust your search.",
                 style: const TextStyle(
                   color: Colors.white,
                   fontFamily: AppTheme.fontFamily,
                   fontSize: AppTheme.fontSizeM,
                 ),
+                textAlign: TextAlign.center,
               ),
             ),
 
@@ -354,12 +362,12 @@ Future<void> askForZip() async {
   if (zip == null || zip.isEmpty) {
     // If blank, try to get from adopter's location
     zip = await _getZipFromLocation();
-    if (zip == null || zip.isEmpty) {
+    if (zip.isEmpty) {
       zip = AppConfig.defaultZipCode;
     }
   }
   
-  final zipTrimmed = zip!.trim();
+  final zipTrimmed = zip.trim();
   
   // Validate zip code (same validation as search screen)
   if (zipTrimmed.isEmpty) {
@@ -623,10 +631,8 @@ void getPets() async {
   // Filter out any invalid filters before sending to API
   List<Filters> validFilters = filters
       .where((f) =>
-          f.fieldName != null &&
-          f.fieldName!.isNotEmpty &&
-          f.operation != null &&
-          f.operation!.isNotEmpty &&
+          f.fieldName.isNotEmpty &&
+          f.operation.isNotEmpty &&
           f.criteria != null)
       .toList();
   // RescueGroups "contains" expects criteria as a string; normalize single-element list to string

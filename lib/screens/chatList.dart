@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'chatScreen.dart';
 import '../theme.dart';
-import '../widgets/design_system.dart';
 
 class ConversationListScreen extends StatelessWidget {
   const ConversationListScreen({Key? key}) : super(key: key);

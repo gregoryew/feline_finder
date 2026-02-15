@@ -11,14 +11,12 @@ import 'dart:convert' as convert;
 import '/models/playlist.dart';
 import '/widgets/playlist-row.dart';
 import '/utils/constants.dart';
-import '/models/wikipediaExtract.dart';
 import '../config.dart';
 import 'globals.dart' as globals;
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import 'package:get/get.dart';
 import 'package:outlined_text/outlined_text.dart';
-import 'package:linkfy_text/linkfy_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/youtube-video-row.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
@@ -31,11 +29,15 @@ enum WidgetMarker { adopt, videos, stats, info }
 class BreedDetail extends StatefulWidget {
   final Breed breed;
   final WidgetMarker? initialTab;
+  /// When true (e.g. from Breed Fit), show user pref vs cat trait, legend, and bullseye.
+  /// When false (e.g. from Breed List), show only cat trait bars with full width.
+  final bool showUserComparison;
 
   const BreedDetail({
     Key? key,
     required this.breed,
     this.initialTab,
+    this.showUserComparison = false,
   }) : super(key: key);
 
   @override
@@ -48,7 +50,6 @@ enum BarType { traitBar, percentageBar, backgroundBar }
 
 class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin {
   late WidgetMarker selectedWidgetMarker;
-  late String BreedDescription = "";
   List<Playlist> playlists = [];
   bool _quotaExceeded = false;
   
@@ -123,7 +124,6 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
       setState(() {
         rescueGroupApi = AppConfig.rescueGroupsApiKey;
         getPlaylists();
-        getBreedDescription(widget.breed.htmlUrl);
         getPets(widget.breed.rid.toString());
       });
     }();
@@ -201,38 +201,6 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
     }
   }
 
-  Future<void> getBreedDescription(String breedName) async {
-    var url =
-        "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext&format=json&titles=$breedName";
-
-    print("URL = $url");
-
-    var response = await http.get(Uri.parse(url), headers: {
-      'Content-Type': 'application/json;charset=UTF-8',
-      'Charset': 'utf-8'
-    });
-
-    if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
-      print("status 200");
-      var json = convert.jsonDecode(response.body);
-      var BreedDescriptionObj = WikipediaTextExtract.fromJson(json);
-      setState(() {
-        BreedDescription =
-            BreedDescriptionObj.query!.pages!.page?.extract ?? "";
-      });
-      
-      // No need to generate summary - it's pre-computed in breed data
-    } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
-      print("response.statusCode = ${response.statusCode}");
-      throw Exception(
-          'Failed to load wikipedia breed description ${response.body}');
-    }
-  }
-
   Future<void> getPlaylists() async {
     // Check if playListID is empty or invalid
     if (widget.breed.playListID.isEmpty) {
@@ -287,7 +255,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
           _playlistCache[cacheKey] = cachedPlaylists;
           _quotaExceededCache[cacheKey] = false;
           
-          print('📺 Using Firestore cached playlist for ${widget.breed.name} (${daysSinceUpdate} days old)');
+          print('📺 Using Firestore cached playlist for ${widget.breed.name} ($daysSinceUpdate days old)');
           setState(() {
             playlists = cachedPlaylists;
             _quotaExceeded = false;
@@ -302,7 +270,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
           });
           return;
         } else {
-          print('📺 Firestore cache expired (${daysSinceUpdate} days), fetching fresh data');
+          print('📺 Firestore cache expired ($daysSinceUpdate days), fetching fresh data');
         }
       }
     } catch (e) {
@@ -520,9 +488,9 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
     final truncated = fullText.substring(0, 500);
     final lastSpace = truncated.lastIndexOf(' ');
     if (lastSpace > 0) {
-      return truncated.substring(0, lastSpace) + '...';
+      return '${truncated.substring(0, lastSpace)}...';
     }
-    return truncated + '...';
+    return '$truncated...';
   }
 
   String _extractVideoId(String url) {
@@ -777,19 +745,21 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      Center(
-                        child: Text(
-                          "🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                      if (widget.showUserComparison) ...[
+                        const SizedBox(height: 20),
+                        Center(
+                          child: Text(
+                            "🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ),
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 20),
+                      ],
                       ListView.separated(
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
@@ -813,57 +783,84 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                   final bool isEqual = (statPrecentage - userPreference).abs() < 0.001; // Use small epsilon for float comparison
                   final bool userPrefIsShorter = userPreference < statPrecentage;
                   final bool catTraitIsShorter = statPrecentage < userPreference;
-                  
+                  final String traitLabel = widget.breed.stats[index].name == 'Willingness to be petted'
+                      ? 'Handling'
+                      : widget.breed.stats[index].name;
+
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      // Ensure we have a valid maxWidth, default to screen width if unbounded
                       final double availableWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
                           ? constraints.maxWidth
-                          : MediaQuery.of(context).size.width - 32; // Account for padding
-                      
-                      return ClipRect(
+                          : MediaQuery.of(context).size.width - 32;
+
+                      if (!widget.showUserComparison) {
+                        // Breed List: cat trait only, full width, no legend/bullseye
+                        final double barWidth = availableWidth;
+                        return ClipRect(
+                          child: SizedBox(
+                            width: barWidth,
+                            child: Stack(
+                              children: <Widget>[
+                                bar(1.0, BarType.backgroundBar, barWidth),
+                                bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, barWidth),
+                                Positioned.fill(
+                                  child: Row(
+                                    children: <Widget>[
+                                      Expanded(
+                                        child: Align(
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            "         " +
+                                                traitLabel +
+                                                ': ' +
+                                                Question.questions[index]
+                                                    .choices[widget.breed.stats[index].value.toInt()].name,
+                                            style: const TextStyle(
+                                                fontSize: 16.0,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600),
+                                            textAlign: TextAlign.center,
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      // Breed Fit: user pref vs cat trait, legend, bullseye column
+                      const double bullseyeWidth = 36.0;
+                      final bool showBullseye = isEqual && widget.breed.stats[index].isPercent;
+                      final double barAreaWidth = availableWidth - bullseyeWidth;
+
+                      Widget barChart = ClipRect(
                         child: SizedBox(
-                          width: availableWidth,
+                          width: barAreaWidth,
                           child: Stack(
                             children: <Widget>[
-                              // Background bar (always full width)
-                              bar(1.0, BarType.backgroundBar, availableWidth),
-                              
-                              // Longer bar goes on bottom
+                              bar(1.0, BarType.backgroundBar, barAreaWidth),
                               if (isEqual)
-                                // When equal, show user preference bar
-                                bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, availableWidth)
+                                bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, barAreaWidth)
                               else if (userPrefIsShorter)
-                                // User pref is shorter, so cat trait (longer) goes on bottom
-                                bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, availableWidth)
+                                bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, barAreaWidth)
                               else
-                                // Cat trait is shorter, so user pref (longer) goes on bottom
-                                bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, availableWidth),
-                              
-                              // Shorter bar goes on top (or user pref when equal)
+                                bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, barAreaWidth),
                               if (isEqual)
-                                // Already shown above, but we need the bullseye
                                 const SizedBox.shrink()
                               else if (userPrefIsShorter)
-                                // User pref is shorter, so it goes on top
                                 Positioned(
-                                  child: bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, availableWidth),
+                                  child: bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, barAreaWidth),
                                 )
                               else
-                                // Cat trait is shorter, so it goes on top
                                 Positioned(
-                                  child: bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, availableWidth),
+                                  child: bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, barAreaWidth),
                                 ),
-                              
-                              // Bullseye when equal (to the left of the bar)
-                              if (isEqual && widget.breed.stats[index].isPercent)
-                                Positioned(
-                                  left: -30, // Position to the left of the bar
-                                  top: 4,
-                                  child: const Text("🎯"),
-                                ),
-                              
-                              // Text label
                               Positioned.fill(
                                 child: Row(
                                   children: <Widget>[
@@ -872,12 +869,10 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                                         alignment: Alignment.center,
                                         child: Text(
                                           "         " +
-                                              widget.breed.stats[index].name +
+                                              traitLabel +
                                               ': ' +
                                               Question.questions[index]
-                                                  .choices[widget.breed.stats[index].value
-                                                              .toInt()]
-                                                          .name,
+                                                  .choices[widget.breed.stats[index].value.toInt()].name,
                                           style: const TextStyle(
                                               fontSize: 16.0,
                                               color: Colors.white,
@@ -895,6 +890,25 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                           ),
                         ),
                       );
+
+                      return SizedBox(
+                        width: availableWidth,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: <Widget>[
+                            SizedBox(
+                              width: bullseyeWidth,
+                              height: 40,
+                              child: showBullseye
+                                  ? const Center(
+                                      child: Text("🎯", style: TextStyle(fontSize: 22)),
+                                    )
+                                  : null,
+                            ),
+                            Expanded(child: barChart),
+                          ],
+                        ),
+                      );
                     },
                   );
                 },
@@ -906,7 +920,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
         return Container(
           key: const ValueKey('info'),
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          child: textBox(widget.breed.name, BreedDescription),
+          child: textBox(widget.breed.name, widget.breed.breedSummary),
         );
     }
   }
@@ -1312,7 +1326,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
             // Summary text
             Text(
                     textBlock.isEmpty
-                        ? "Loading breed information..."
+                        ? "No description available."
                   : _getSummary(textBlock),
                     textAlign: TextAlign.left,
               style: GoogleFonts.poppins(

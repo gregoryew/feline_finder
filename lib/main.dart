@@ -6,14 +6,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'services/search_ai_service.dart';
 import 'services/key_store_service.dart';
 import 'theme.dart';
+import 'screens/globals.dart' as globals;
+import 'config.dart';
 // Import webview platform implementations to ensure they're registered
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import '/screens/adoptGrid.dart';
 import '/screens/breedList.dart';
@@ -26,6 +27,12 @@ FirebaseAuth? auth;
 // final gsi.GoogleSignIn googleSignIn = gsi.GoogleSignIn();
 
 final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
+
+class _ManualZipResult {
+  final String zip;
+  final bool skip;
+  const _ManualZipResult(this.zip, {required this.skip});
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,6 +81,12 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('searchAnimationShownThisSession', false);
   await prefs.setString('appStartTime', DateTime.now().toIso8601String());
+
+  // Load zip code at app start (same storage as adoption screen)
+  final savedZip = prefs.getString('zipCode');
+  if (savedZip != null && savedZip.isNotEmpty && savedZip.length == 5) {
+    globals.FelineFinderServer.instance.zip = savedZip;
+  }
 
   // Ensure minimum 3 seconds have passed (launch screen will show during this time)
   final elapsed = DateTime.now().difference(startTime);
@@ -246,6 +259,167 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       parent: _sparkleController,
       curve: Curves.easeOut,
     ));
+    // Ask for zip code at app start if not already loaded (same storage as adoption screen)
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureZipCode());
+  }
+
+  /// 1) Ask for location permission (reason: find cats near you). 2) If denied, ask for zip via dialog with validation; allow retry or skip.
+  Future<void> _ensureZipCode() async {
+    if (!mounted) return;
+    final server = globals.FelineFinderServer.instance;
+    if (server.zip.isNotEmpty && server.zip != "?") return;
+
+    // Step 1: Ask user if we can use location to find cats near them
+    final useLocation = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Find cats near you'),
+        content: const Text(
+          'Feline Finder would like to use your location so we can find cats near you for adoption.',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Allow'),
+          ),
+        ],
+      ),
+    );
+
+    if (useLocation == true && mounted) {
+      final zipFromLocation = await _getZipFromLocation();
+      if (zipFromLocation.isNotEmpty && zipFromLocation.length == 5) {
+        try {
+          final isValid = await server.isZipCodeValid(zipFromLocation);
+          if (isValid == true) {
+            server.zip = zipFromLocation;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('zipCode', zipFromLocation);
+            return;
+          }
+        } catch (_) {}
+      }
+    }
+
+    // Step 2: No location or denied — ask for zip in dialog; validate like adopt screen; allow retry or skip
+    while (mounted) {
+      final controller = TextEditingController();
+      final result = await showDialog<_ManualZipResult>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Enter your ZIP code'),
+          content: TextField(
+            autofocus: true,
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'ZIP code (5 digits)',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+            maxLength: 5,
+            onSubmitted: (_) => Navigator.of(context).pop(_ManualZipResult(controller.text.trim(), skip: false)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(const _ManualZipResult('', skip: true)),
+              child: const Text('Skip'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(_ManualZipResult(controller.text.trim(), skip: false)),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      );
+      controller.dispose();
+
+      if (result == null || result.skip) return;
+
+      final zipTrimmed = result.zip.trim();
+      if (zipTrimmed.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ZIP code cannot be blank.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        continue;
+      }
+      if (zipTrimmed.length != 5) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ZIP code must be exactly 5 digits.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        continue;
+      }
+
+      try {
+        final isValid = await server.isZipCodeValid(zipTrimmed);
+        if (isValid == true) {
+          server.zip = zipTrimmed;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('zipCode', zipTrimmed);
+          return;
+        }
+        if (isValid == false && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ZIP code "$zipTrimmed" is not valid. Try again or tap Skip.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not validate ZIP. Check connection and try again or Skip.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  /// Get ZIP from device location (uses system permission; iOS shows reason from Info.plist).
+  Future<String> _getZipFromLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return '';
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever || permission == LocationPermission.denied) {
+        return '';
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (placemarks.isNotEmpty && placemarks.first.postalCode != null && placemarks.first.postalCode!.isNotEmpty) {
+        return placemarks.first.postalCode!;
+      }
+    } catch (e) {
+      print('Error getting zip from location: $e');
+    }
+    return '';
   }
 
   @override

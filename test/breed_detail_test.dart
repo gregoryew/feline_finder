@@ -15,7 +15,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:catapp/models/breed.dart';
 import 'package:catapp/screens/breedDetail.dart';
@@ -404,10 +403,10 @@ void main() {
       // (videos are simpler to detect, summaries may be in different tabs/locations)
       expect(summarySuccessRate, greaterThanOrEqualTo(0.80),
         reason: 'At least 80% of breeds with summary data should display summaries. '
-                'Found ${breedsWithSummary}/${breedsWithSummaryData} (${(summarySuccessRate * 100).toStringAsFixed(1)}%)');
+                'Found $breedsWithSummary/$breedsWithSummaryData (${(summarySuccessRate * 100).toStringAsFixed(1)}%)');
       expect(videoSuccessRate, greaterThanOrEqualTo(0.90),
         reason: 'At least 90% of breeds with video URLs should display videos. '
-                'Found ${breedsWithVideo}/${breedsWithVideoUrl} (${(videoSuccessRate * 100).toStringAsFixed(1)}%)');
+                'Found $breedsWithVideo/$breedsWithVideoUrl (${(videoSuccessRate * 100).toStringAsFixed(1)}%)');
       
       // Note: Actual display checks may fail due to network restrictions in test environment
       // But the UI structure should be present

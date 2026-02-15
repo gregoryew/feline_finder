@@ -54,27 +54,33 @@ class GoldPlaque extends StatelessWidget {
         vertical: _verticalPadding,
       ),
       child: ClipRect(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: widgets != null
-              ? widgets!.map((widget) => ClipRect(child: widget)).toList()
-              : lines!.map((line) {
-                  return ClipRect(
-                    child: Text(
-                      line,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _textColor,
-                        fontWeight: FontWeight.w600,
+        clipBehavior: Clip.hardEdge,
+        child: SizedBox(
+          width: maxWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: widgets != null
+                ? widgets!.map((widget) => ClipRect(clipBehavior: Clip.hardEdge, child: widget)).toList()
+                : lines!.map((line) {
+                    return ClipRect(
+                      clipBehavior: Clip.hardEdge,
+                      child: Text(
+                        line,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: _textColor,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.none,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        softWrap: true,
                       ),
-                      overflow: TextOverflow.clip,
-                      maxLines: 2,
-                      softWrap: true,
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+          ),
         ),
       ),
     );

@@ -5,7 +5,7 @@ import '/screens/breedDetail.dart';
 import '/gold_frame/gold_frame_panel.dart';
 
 class BreedList extends StatefulWidget {
-  BreedList({Key? key, required this.title}) : super(key: key);
+  const BreedList({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -121,15 +121,17 @@ class _BreedList extends State<BreedList> {
                               childAspectRatio: 3 / 4),
                           itemCount: letters[keys[subSubMenuIndex]]!.length,
                           itemBuilder: (BuildContext context, int index) {
+                            final breed = letters[keys[subSubMenuIndex]]![index];
                             return Padding(
                               padding: const EdgeInsets.all(8),
                               child: GestureDetector(
-                                onTap: () => {
+                                onTap: () {
                                   Get.to(
                                       () => BreedDetail(
-                                          breed: letters[keys[subSubMenuIndex]]![index]),
+                                          breed: breed,
+                                          showUserComparison: false),
                                       transition: Transition.circularReveal,
-                                      duration: const Duration(seconds: 1))
+                                      duration: const Duration(seconds: 1));
                                 },
                                 child: SizedBox.expand(
                                   child: GoldFramedPanel(

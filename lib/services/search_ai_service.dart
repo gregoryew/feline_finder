@@ -35,9 +35,9 @@ class SearchAIService {
         
         print('⚠️ Warning: Gemini API key not configured');
         print('🔍 DEBUG - Environment variable check:');
-        print('   String.fromEnvironment("GEMINI_API_KEY"): "${keyFromDefine.isEmpty ? "empty" : (keyFromDefine.length > 15 ? keyFromDefine.substring(0, 15) + "..." : keyFromDefine)}"');
-        print('   Platform.environment["GEMINI_API_KEY"]: "${keyFromEnv == null ? "null" : (keyFromEnv.isEmpty ? "empty" : (keyFromEnv.length > 15 ? keyFromEnv.substring(0, 15) + "..." : keyFromEnv))}"');
-        print('   Final apiKey from AppConfig: "${apiKey.isEmpty ? "empty" : (apiKey.length > 15 ? apiKey.substring(0, 15) + "..." : apiKey)}"');
+        print('   String.fromEnvironment("GEMINI_API_KEY"): "${keyFromDefine.isEmpty ? "empty" : (keyFromDefine.length > 15 ? "${keyFromDefine.substring(0, 15)}..." : keyFromDefine)}"');
+        print('   Platform.environment["GEMINI_API_KEY"]: "${keyFromEnv == null ? "null" : (keyFromEnv.isEmpty ? "empty" : (keyFromEnv.length > 15 ? "${keyFromEnv.substring(0, 15)}..." : keyFromEnv))}"');
+        print('   Final apiKey from AppConfig: "${apiKey.isEmpty ? "empty" : (apiKey.length > 15 ? "${apiKey.substring(0, 15)}..." : apiKey)}"');
         print('⚠️ Set it using one of these methods:');
         print('   1. flutter run --dart-define=GEMINI_API_KEY=your-key');
         print('   2. export GEMINI_API_KEY=your-key (then flutter run)');
@@ -147,7 +147,7 @@ class SearchAIService {
   "filters": {
     "breed": {
       "field": "animals.breedPrimaryId",
-      "description": "Restrict search results to cats of a specific breed. Match by breed name OR by personality/behavior sayings in personalitySayings. When a trait/saying matches MORE THAN ONE breed, return breed as an ARRAY of ALL matching breeds (e.g. 'dog-like' matches Ragdoll, Maine Coon, Bobtail, Norwegian Forest, Ocicat → breed: [\"Ragdoll\", \"Maine Coon\", \"Bobtail\", \"Norwegian Forest\", \"Ocicat\"]). When only one breed matches, return a string.",
+      "description": "Restrict search results to cats of a specific breed. Match by breed name OR by personality/behavior sayings in personalitySayings. When a trait/saying matches MORE THAN ONE breed, return breed as an ARRAY of ALL matching breeds (e.g. 'dog-like' matches Ragdoll, Maine Coon, Bobtail, Norwegian Forest, Ocicat → breed: ["Ragdoll", "Maine Coon", "Bobtail", "Norwegian Forest", "Ocicat"]). When only one breed matches, return a string.",
       "options": [],
       "keywords": {
         "positive": ["Abyssinian","American Curl","American Shorthair","American Wirehair","Applehead Siamese","Balinese","Bengal","Birman","Bobtail","Bombay","British Shorthair","Burmese","Burmilla","Calico","Canadian Hairless","Chartreux","Chausie","Chinchilla","Cornish Rex","Cymric","Devon Rex","Dilute Calico","Dilute Tortoiseshell","Domestic Long-hair","Domestic Medium-hair","Domestic Short-hair","Egyptian Mau","Exotic Shorthair","Extra-Toes Cat","Havana","Himalayan","Japanese Bobtail","Javanese","Korat","LaPerm","Maine Coon","Manx","Munchkin","Nebelung","Norwegian Forest","Ocicat","Oriental","Persian","Pixie-Bob","Ragamuffin","Ragdoll","Russian Blue","Savannah","Scottish Fold","Selkirk Rex","Siamese","Siberian","Silver","Singapura","Snowshoe","Somali","Sphynx","Tabby","Toyger","Tonkinese","Torbie","Tortoiseshell","Turkish Angora","Turkish Van","Tuxedo"],

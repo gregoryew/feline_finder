@@ -50,7 +50,7 @@ class _FilterZipCodeRow extends State<FilterZipCodeRow> {
     controller2.clear();
   }
 
-  getZipCode() {
+  void getZipCode() {
     _controller.text = "55555";
     print("Set zip code");
   }

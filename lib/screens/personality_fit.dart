@@ -4,10 +4,8 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart' show RenderObjectToWidgetAdapter, WidgetsBinding;
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
-import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,9 +16,7 @@ import 'package:video_player/video_player.dart';
 import '/models/catType.dart';
 import '/models/question_cat_types.dart';
 import 'globals.dart' as globals;
-import '../config.dart';
 import '../theme.dart';
-import '../widgets/design_system.dart';
 import '../gold_frame/gold_frame_panel.dart';
 
 class _CatTypeVideoThenImage extends StatefulWidget {
@@ -299,7 +295,7 @@ class PersonalityFitState extends State<PersonalityFit> {
   final GlobalKey _personalityFitScreenKey = GlobalKey();
   
   // Flag to track if we're capturing for sharing
-  bool _isCapturing = false;
+  final bool _isCapturing = false;
 
   // Map Question_Cat_Types names to CatType stat names
   static const Map<String, String> _questionToStatName = {
@@ -1733,7 +1729,7 @@ class PersonalityFitState extends State<PersonalityFit> {
             : maxDimension / decodedImage.height;
         final int newWidth = (decodedImage.width * scale).round();
         final int newHeight = (decodedImage.height * scale).round();
-        print('📸 Resizing from ${decodedImage.width}x${decodedImage.height} to ${newWidth}x${newHeight}');
+        print('📸 Resizing from ${decodedImage.width}x${decodedImage.height} to ${newWidth}x$newHeight');
         processedImage = img.copyResize(
           decodedImage,
           width: newWidth,

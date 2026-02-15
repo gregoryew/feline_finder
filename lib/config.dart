@@ -169,4 +169,9 @@ class AppConfig {
   // Other configuration constants can be added here
   static const String defaultZipCode = '94043';
   static const int defaultDistance = 1000;
+
+  /// Zip at geographic center of contiguous US (Lebanon, Kansas); used when user zip is unknown (e.g. Saved screen).
+  static const String centerOfUsaZipCode = '67452';
+  /// Large radius in miles for searches when user location is unknown (e.g. Saved screen) so results aren't restricted.
+  static const int maxDistanceMiles = 5000;
 }

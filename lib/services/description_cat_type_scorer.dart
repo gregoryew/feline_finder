@@ -100,11 +100,11 @@ class DescriptionCatTypeScorer {
         bestScore = score;
         best = type;
       } else if (score == bestScore && best != null) {
-        final nameCompare = type.name.compareTo(best!.name);
+        final nameCompare = type.name.compareTo(best.name);
         if (nameCompare < 0) best = type;
       }
     }
-    if (best != null && bestScore > 0) return best!.name;
+    if (best != null && bestScore > 0) return best.name;
 
     // If no type with 2+ traits matched, use the type that matches the single trait.
     best = null;
@@ -115,7 +115,7 @@ class DescriptionCatTypeScorer {
         bestScore = score;
         best = type;
       } else if (score == bestScore && best != null) {
-        final nameCompare = type.name.compareTo(best!.name);
+        final nameCompare = type.name.compareTo(best.name);
         if (nameCompare < 0) best = type;
       }
     }

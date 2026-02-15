@@ -81,7 +81,7 @@ class GoldenButton extends StatelessWidget {
         shadowColor: AppTheme.goldBase.withOpacity(0.5),
       ).copyWith(
         backgroundColor: gradient != null
-            ? MaterialStateProperty.all<Color>(Colors.transparent)
+            ? WidgetStateProperty.all<Color>(Colors.transparent)
             : null,
       ),
       child: Container(
@@ -120,6 +120,7 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final Widget? leading;
   final bool automaticallyImplyLeading;
+  final bool centerTitle;
 
   const GradientAppBar({
     Key? key,
@@ -127,12 +128,14 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.leading,
     this.automaticallyImplyLeading = true,
+    this.centerTitle = false,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(title),
+      centerTitle: centerTitle,
       leading: leading,
       automaticallyImplyLeading: automaticallyImplyLeading,
       actions: actions,

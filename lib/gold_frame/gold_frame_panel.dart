@@ -90,6 +90,7 @@ class GoldFramedPanel extends StatelessWidget {
                 children: [
                   // Child content - constrained to prevent overflow
                   ClipRect(
+                    clipBehavior: Clip.hardEdge,
                     child: SizedBox(
                       width: double.infinity,
                       child: child,
@@ -98,11 +99,14 @@ class GoldFramedPanel extends StatelessWidget {
                   // Plaque positioned directly below image (no spacing)
                   if ((plaqueLines != null && plaqueLines!.isNotEmpty) || 
                       (plaqueWidgets != null && plaqueWidgets!.isNotEmpty))
-                    GoldPlaque(
+                    ClipRect(
+                      clipBehavior: Clip.hardEdge,
+                      child: GoldPlaque(
                       lines: plaqueLines,
                       widgets: plaqueWidgets,
                       // Increase maxWidth to reduce left/right margins (add 20px total, 10px each side)
                       maxWidth: constraints.maxWidth - (borderThickness.left + borderThickness.right) + 20,
+                    ),
                     ),
                 ],
               ),

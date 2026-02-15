@@ -36,11 +36,11 @@
 		<true/>
 	</dict>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Feline Finder uses your location to show pets at nearby shelters.</string>
+	<string>Feline Finder uses your location to find cats near you for adoption.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Feline Finder uses your location to show pets at nearby shelters.</string>
+	<string>Feline Finder uses your location to find cats near you for adoption.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Feline Finder uses your location to show pets at nearby shelters.</string>
+	<string>Feline Finder uses your location to find cats near you for adoption.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

@@ -5,10 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
-import 'package:like_button/like_button.dart';
 import 'package:linkfy_text/linkfy_text.dart';
 import 'package:catapp/ExampleCode/Media.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:rating_dialog/rating_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,11 +20,9 @@ import 'webview_screen.dart';
 import '/models/rescuegroups_v5.dart';
 import '../config.dart';
 import 'globals.dart' as globals;
-import 'package:dots_indicator/dots_indicator.dart';
 import 'package:get/get.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import '../theme.dart';
-import '../widgets/design_system.dart';
 import '../gold_frame/gold_frame_panel.dart';
 
 class petDetail extends StatefulWidget {
@@ -221,7 +217,7 @@ class petDetailState extends State<petDetail>
     return lines.join("\n");
   }
 
-  _scrollListener() {
+  void _scrollListener() {
     if (petDetailInstance == null ||
         petDetailInstance!.mediaWidths.length <= 1) {
       return;
@@ -691,7 +687,7 @@ class petDetailState extends State<petDetail>
           child: media is YouTubeVideo
               ? GestureDetector(
                   onTap: () async {
-                    final video = media as YouTubeVideo;
+                    final video = media;
                     final flutterNetworkConnectivity =
                         FlutterNetworkConnectivity(
                       isContinousLookUp: false,

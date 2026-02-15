@@ -20,24 +20,29 @@ class RescueGroupsQuery {
 
 class Data {
   Data({
-    required this.filterRadius,
+    this.filterRadius,
     required this.filters,
     this.filterProcessing,
   });
-  late final FilterRadius filterRadius;
+  /// Optional. Omit for searches that don't need distance/location (e.g. fetch by animal IDs).
+  final FilterRadius? filterRadius;
   late final List<Filters> filters;
   /// 1-based filter indices and AND/OR, e.g. "1 AND (2 OR 3 OR 4) AND 5"
   final String? filterProcessing;
 
   Data.fromJson(Map<dynamic, dynamic> json)
-      : filterRadius = FilterRadius.fromJson(json['filterRadius']),
+      : filterRadius = json['filterRadius'] != null
+            ? FilterRadius.fromJson(json['filterRadius'] as Map<dynamic, dynamic>)
+            : null,
         filters =
             List.from(json['filters']).map((e) => Filters.fromJson(e)).toList(),
         filterProcessing = json['filterProcessing'] as String?;
 
   Map<dynamic, dynamic> toJson() {
     final data = <String, dynamic>{};
-    data['filterRadius'] = filterRadius.toJson();
+    if (filterRadius != null) {
+      data['filterRadius'] = filterRadius!.toJson();
+    }
     data['filters'] = filters.map((e) => e.toJson()).toList();
     if (filterProcessing != null && filterProcessing!.isNotEmpty) {
       data['filterProcessing'] = filterProcessing;

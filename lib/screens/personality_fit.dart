@@ -39,7 +39,7 @@ class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage> {
   bool _initialized = false;
 
   // Video name matches the image name (base name) except extension.
-  String get _videoAssetPath => 'assets/cat_types/${widget.baseName}.mp4';
+  String get _videoAssetPath => 'assets/cat_types/${widget.baseName}_resized.mp4';
   String get _imageAssetPath => 'assets/cat_types/${widget.baseName}.jpg';
 
   @override
@@ -1223,7 +1223,7 @@ class PersonalityFitState extends State<PersonalityFit> {
                               key: ValueKey(
                                   'top-${catTypeItem.id}-$_playingTopToken'),
                               assetPath:
-                                  'assets/cat_types/${catTypeItem.imageName}.mp4',
+                                  'assets/cat_types/${catTypeItem.imageName}_resized.mp4',
                               onFinished: () {
                                 if (!mounted) return;
                                 setState(() {

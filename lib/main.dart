@@ -338,7 +338,8 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
           ],
         ),
       );
-      controller.dispose();
+      // Defer dispose so the dialog's TextField is fully unmounted first (avoids "used after disposed" when setState rebuilds elsewhere)
+      WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
 
       if (result == null || result.skip) return;
 

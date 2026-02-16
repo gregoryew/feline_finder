@@ -4,11 +4,13 @@ import '../../theme.dart';
 class GoldZipButton extends StatelessWidget {
   final String zip;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const GoldZipButton({
     Key? key,
     required this.zip,
     required this.onTap,
+    this.onLongPress,
   }) : super(key: key);
 
   @override
@@ -24,6 +26,7 @@ class GoldZipButton extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: onTap,
+              onLongPress: onLongPress,
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 clipBehavior: Clip.none,

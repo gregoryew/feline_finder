@@ -75,8 +75,6 @@ class SearchScreenState extends State<SearchScreen> {
   List<String> _savedSearchNames = [];
   String? _selectedSavedSearch;
   String? _lastLoadedSearchName; // Track which search is currently loaded
-  // Track if search animation has been shown this session
-  bool _hasShownSearchAnimation = false;
   /// Cat type dropdown: null = None, 'my_type' = Apply my type, CatType = specific type.
   Object? _selectedCatTypeValue;
 
@@ -135,9 +133,6 @@ class SearchScreenState extends State<SearchScreen> {
 
     // Load saved searches from Firestore
     _loadSavedSearches();
-
-    // Check if search animation should be shown (first time this session)
-    _checkAndShowSearchAnimation();
 
     // Initialize keys for all filters and categories (unique per filter to avoid duplicate keys)
     for (var filter in widget.filteringOptions) {
@@ -1594,84 +1589,6 @@ class SearchScreenState extends State<SearchScreen> {
             ),
             elevation: 0,
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Check if search animation should be shown (first time this app session)
-  Future<void> _checkAndShowSearchAnimation() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final appStartTime = prefs.getString('appStartTime');
-      final currentTime = DateTime.now().toIso8601String();
-      
-      // If no app start time stored, or it's a new session (more than 1 hour old), show animation
-      bool shouldShow = false;
-      if (appStartTime == null) {
-        // First time ever or new session
-        shouldShow = true;
-        await prefs.setString('appStartTime', currentTime);
-        await prefs.setBool('searchAnimationShownThisSession', false);
-      } else {
-        // Check if we've shown it this session
-        final shownThisSession = prefs.getBool('searchAnimationShownThisSession') ?? false;
-        if (!shownThisSession) {
-          shouldShow = true;
-          await prefs.setBool('searchAnimationShownThisSession', true);
-        }
-      }
-      
-      if (shouldShow && mounted) {
-        print('Showing search animation');
-        setState(() {
-          _hasShownSearchAnimation = true;
-        });
-        
-        // Auto-hide 5 seconds after animation starts playing
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted && _hasShownSearchAnimation) {
-            print('Hiding search animation after 5 seconds');
-            setState(() {
-              _hasShownSearchAnimation = false;
-            });
-          }
-        });
-      }
-    } catch (e) {
-      print('Error checking search animation: $e');
-    }
-  }
-
-  /// Build the search animation widget
-  Widget _buildSearchAnimation() {
-    return IgnorePointer(
-      ignoring: true, // Don't block touches
-      child: SizedBox(
-        width: 150,
-        height: 150,
-        child: Image.asset(
-          'assets/Animation/screens/search.gif',
-          fit: BoxFit.contain,
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded) {
-              return child;
-            }
-            return AnimatedOpacity(
-              opacity: frame == null ? 0 : 1,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.easeOut,
-              child: child,
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            print('Error loading search.gif: $error');
-            print('Stack trace: $stackTrace');
-            return Container(
-              color: Colors.grey[300],
-              child: const Icon(Icons.search, size: 50),
-            );
-          },
         ),
       ),
     );
@@ -3462,13 +3379,6 @@ class SearchScreenState extends State<SearchScreen> {
               right: 0,
               bottom: keyboardHeight, // Bottom of toolbar touches top of keyboard
               child: _buildZipCodeKeyboardToolbar(),
-            ),
-          // Search animation - bottom left, shows once per app session
-          if (_hasShownSearchAnimation)
-            Positioned(
-              left: 16,
-              bottom: 100, // Above the bottom buttons
-              child: _buildSearchAnimation(),
             ),
         ],
       ),

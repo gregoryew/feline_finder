@@ -226,6 +226,7 @@ Widget build(BuildContext context) {
                 GoldZipButton(
                   zip: server.zip,
                   onTap: askForZip,
+                  onLongPress: _clearZipCode,
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -352,6 +353,27 @@ Future<String> _getZip() async {
     return savedZip;
   }
   return AppConfig.defaultZipCode;
+}
+
+// ----------------------------------------------------------------------
+//                         CLEAR ZIP CODE (long-press)
+// ----------------------------------------------------------------------
+Future<void> _clearZipCode() async {
+  final prefs = await _prefs;
+  await prefs.remove('zipCode');
+  if (!mounted) return;
+  setState(() {
+    server.zip = '?';
+    count = '?';
+    tiles = [];
+    loadedPets = 0;
+    maxPets = -1;
+  });
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('ZIP code cleared. Tap the ZIP button to enter a new one.'),
+    ),
+  );
 }
 
 // ----------------------------------------------------------------------

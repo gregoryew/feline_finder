@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -68,7 +69,7 @@ class petDetailState extends State<petDetail>
       textAlign: TextAlign.center,
       style: TextStyle(fontSize: 15),
     ),
-    image: Image.asset("assets/icon/icon_rating.png"),
+    image: Image.asset("assets/icon/icon.png"),
     submitButtonText: 'Submit',
     commentHint: 'Please provide a comment here.',
     onCancelled: () => print('cancelled'),
@@ -424,7 +425,7 @@ class petDetailState extends State<petDetail>
               // Gold-framed media gallery (no built-in plaque)
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
                 child: GoldFramedPanel(
                   plaqueLines: null,
                   child: LayoutBuilder(
@@ -437,6 +438,10 @@ class petDetailState extends State<petDetail>
                       final imageHeight = availableHeight > 0 && availableHeight != double.infinity
                           ? availableHeight
                           : 200.0;
+                      
+                      // Content box = full inner frame so tall images touch top/bottom, wide images touch left/right (no purple at edges)
+                      final contentWidth = availableWidth.clamp(0.0, double.infinity);
+                      final contentHeight = imageHeight;
                       
                       if (petDetailInstance == null ||
                           petDetailInstance!.media.isEmpty) {
@@ -531,12 +536,25 @@ class petDetailState extends State<petDetail>
                                           imageWidth = imageHeight * 4 / 3;
                                         }
 
+                                        // Contain: scale to fit inside content box (no clipping, no distortion)
+                                        final naturalWidth = imageWidth;
+                                        final naturalHeight = imageHeight;
+                                        final scale = (contentWidth > 0 && contentHeight > 0 &&
+                                                naturalWidth > 0 && naturalHeight > 0)
+                                            ? math.min(
+                                                contentWidth / naturalWidth,
+                                                contentHeight / naturalHeight,
+                                              ).clamp(0.0, 1.0)
+                                            : 1.0;
+                                        final displayWidth = naturalWidth * scale;
+                                        final displayHeight = naturalHeight * scale;
+
                                         // Center the image
                                         return Center(
                                           child: _buildMediaItem(
                                             media,
-                                            imageWidth,
-                                            imageHeight,
+                                            displayWidth,
+                                            displayHeight,
                                             index,
                                             petDetailInstance!.media.length,
                                           ),
@@ -661,6 +679,31 @@ class petDetailState extends State<petDetail>
         ],
       ),
     );
+  }
+
+  /// Returns aspect ratio (width/height) for the currently visible gallery media. Used to reduce top/bottom inset for tall images.
+  double? _getAspectRatioForCurrentMedia() {
+    if (petDetailInstance == null || petDetailInstance!.media.isEmpty) return null;
+    final index = currentIndexPage.clamp(0, petDetailInstance!.media.length - 1);
+    final media = petDetailInstance!.media[index];
+    if (media is SmallPhoto && petDetailInstance!.mainPictures.isNotEmpty) {
+      final photoUrl = media.photo;
+      try {
+        final matching = petDetailInstance!.mainPictures.firstWhere(
+          (pic) => pic.url.toString() == photoUrl,
+          orElse: () => petDetailInstance!.mainPictures[0],
+        );
+        if (matching.resolutionX != null &&
+            matching.resolutionY != null &&
+            matching.resolutionX! > 0 &&
+            matching.resolutionY! > 0) {
+          return matching.resolutionX! / matching.resolutionY!;
+        }
+      } catch (_) {}
+      return 4 / 3;
+    }
+    if (media is YouTubeVideo) return 16 / 9;
+    return 4 / 3;
   }
 
   Widget _buildMediaItem(
@@ -1323,7 +1366,7 @@ class _GoldRibbonPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.fill;
-    
+
     // Create gold gradient
     final gradient = LinearGradient(
       begin: Alignment.topLeft,
@@ -1337,15 +1380,15 @@ class _GoldRibbonPainter extends CustomPainter {
       ],
       stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
     );
-    
+
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     paint.shader = gradient.createShader(rect);
-    
+
     // Draw flowing ribbon shape with wavy edges
     final path = Path();
     const waveHeight = 8.0;
     const waveLength = 40.0;
-    
+
     // Top wavy edge
     path.moveTo(0, waveHeight);
     for (double x = 0; x <= size.width; x += waveLength) {
@@ -1356,22 +1399,20 @@ class _GoldRibbonPainter extends CustomPainter {
         waveHeight,
       );
     }
-    
+
     // Right edge
     path.lineTo(size.width, size.height - waveHeight);
-    
+
     // Bottom wavy edge - out of phase with top for flowing ribbon effect
-    // Iterate from right to left, but use x-from-left for pattern matching
     double currentX = size.width;
     while (currentX > 0) {
       final nextX = (currentX - waveLength).clamp(0.0, size.width);
       final xFromLeft = size.width - currentX;
       final controlX = currentX - waveLength / 2;
-      // Offset by waveLength to be out of phase (peaks align with valleys)
-      final controlY = (xFromLeft + waveLength) % (waveLength * 2) == 0 
-          ? size.height 
+      final controlY = (xFromLeft + waveLength) % (waveLength * 2) == 0
+          ? size.height
           : size.height - waveHeight * 2;
-      
+
       path.quadraticBezierTo(
         controlX,
         controlY,
@@ -1380,12 +1421,11 @@ class _GoldRibbonPainter extends CustomPainter {
       );
       currentX = nextX;
     }
-    
-    // Left edge
+
     path.close();
-    
+
     canvas.drawPath(path, paint);
-    
+
     // Add gold border
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
@@ -1393,7 +1433,7 @@ class _GoldRibbonPainter extends CustomPainter {
       ..strokeWidth = 2.0;
     canvas.drawPath(path, borderPaint);
   }
-  
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -5,6 +5,8 @@ class PetTileData {
   String? name;
   String? primaryBreed;
   String? cityState;
+  /// Organization/shelter name from API (when fields[orgs]=id,name is requested).
+  String? organizationName;
   String? status;
   String? age;
   String? sex;
@@ -26,8 +28,16 @@ class PetTileData {
     primaryBreed = pet.attributes!.breedPrimary;
     var locationsList = findAllOfACertainType(
         pet, included, "locations", IncludedType.LOCATIONS);
+    var orgsList = findAllOfACertainType(
+        pet, included, "orgs", IncludedType.ORGS);
+    // Prefer location from locations; fall back to org's citystate when we have org data
     cityState = locationsList.isNotEmpty
         ? locationsList[0].attributes!.citystate
+        : (orgsList.isNotEmpty && orgsList[0].attributes != null
+            ? orgsList[0].attributes!.citystate
+            : null);
+    organizationName = orgsList.isNotEmpty && orgsList[0].attributes != null
+        ? orgsList[0].attributes!.name
         : null;
     var statusList =
         findAllOfACertainType(pet, included, "statuses", IncludedType.STATUSES);

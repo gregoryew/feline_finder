@@ -29,7 +29,7 @@ class Question_Cat_Types {
         10,
         'energy_level.gif',
         true, [
-      Choice('Doesn\'t Matter', 0, 5, 1),
+      Choice('Flexible', 0, 5, 1),
       Choice('Very Low', 1, 1, 6),
       Choice('Low', 2, 2, 5),
       Choice('Moderate', 3, 3, 4),
@@ -44,7 +44,7 @@ class Question_Cat_Types {
         1,
         'fun_loving.gif',
         true, [
-      Choice('Doesn\'t Matter', 0, 5, 1),
+      Choice('Flexible', 0, 5, 1),
       Choice('Not Playful', 1, 1, 6),
       Choice('Slightly Playful', 2, 2, 5),
       Choice('Moderately Playful', 3, 3, 4),
@@ -59,7 +59,7 @@ class Question_Cat_Types {
         2,
         'tlc.gif',
         true, [
-      Choice('Doesn\'t Matter', 0, 5, 1),
+      Choice('Flexible', 0, 5, 1),
       Choice('Minimal', 1, 1, 6),
       Choice('Low', 2, 2, 5),
       Choice('Moderate', 3, 3, 4),
@@ -74,7 +74,7 @@ class Question_Cat_Types {
         3,
         'autonomy.gif',
         true, [
-      Choice('Doesn\'t Matter', 0, 5, 1),
+      Choice('Flexible', 0, 5, 1),
       Choice('Very Independent', 1, 1, 6),
       Choice('Somewhat Independent', 2, 2, 5),
       Choice('Balanced', 3, 3, 4),
@@ -89,7 +89,7 @@ class Question_Cat_Types {
         9,
         'talkative.gif',
         true, [
-      Choice('Doesn\'t Matter', 0, 5, 1),
+      Choice('Flexible', 0, 5, 1),
       Choice('Very Unsocial', 1, 1, 6),
       Choice('Unsocial', 2, 2, 5),
       Choice('Moderate', 3, 3, 4),
@@ -104,7 +104,7 @@ class Question_Cat_Types {
         9,
         'talkative.gif',
         true, [
-      Choice('Doesn\'t Matter', 0, 5, 1),
+      Choice('Flexible', 0, 5, 1),
       Choice('Very Quiet', 1, 1, 6),
       Choice('Quiet', 2, 2, 5),
       Choice('Moderate', 3, 3, 4),
@@ -119,7 +119,7 @@ class Question_Cat_Types {
         4,
         'petting.gif',
         true, [
-      Choice('Doesn\'t Matter', 0, 5, 1),
+      Choice('Flexible', 0, 5, 1),
       Choice('Unconfident', 1, 1, 6),
       Choice('Somewhat Unconfident', 2, 2, 5),
       Choice('Neutral', 3, 3, 4),
@@ -135,7 +135,7 @@ class Question_Cat_Types {
         '',
         true,
         [
-          Choice('Doesn\'t Matter', 0, 4, 1),
+          Choice('Flexible', 0, 4, 1),
           Choice('Minimal', 1, 1, 5),
           Choice('Low', 2, 2, 4),
           Choice('Moderate', 3, 3, 3),
@@ -149,7 +149,7 @@ class Question_Cat_Types {
         11,
         '',
         true, [
-      Choice('Doesn\'t Matter', 0, 5, 1),
+      Choice('Flexible', 0, 5, 1),
       Choice('Not Adaptable', 1, 1, 6),
       Choice('Somewhat Adaptable', 2, 2, 5),
       Choice('Moderate', 3, 3, 4),
@@ -165,7 +165,7 @@ class Question_Cat_Types {
         'smart_cat.gif',
         true,
         [
-          Choice('Doesn\'t Matter', 0, 5, 1),
+          Choice('Flexible', 0, 5, 1),
           Choice('Low Intelligence', 1, 1, 6),
           Choice('Below Average', 2, 2, 5),
           Choice('Average', 3, 3, 4),

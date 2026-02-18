@@ -1,3 +1,5 @@
+import 'breed.dart';
+
 enum CatClassification {
   saves,
   breed,
@@ -26,6 +28,13 @@ class filterOption {
   FilterType filterType;
   List<String> synonyms;
 
+  /// If non-null, this filter can appear in the status chip bar. Higher = higher priority.
+  int? statusPriority;
+  /// Group key for combining chips (e.g. "location" => zip + distance as one chip).
+  String? statusGroup;
+  /// Optional label for the chip instead of deriving from filter value.
+  String? statusLabelOverride;
+
   filterOption(
       this.name,
       this.choosenValue,
@@ -39,7 +48,41 @@ class filterOption {
       this.imported,
       this.filterType, {
     List<String>? synonyms,
+    this.statusPriority,
+    this.statusGroup,
+    this.statusLabelOverride,
   }) : synonyms = synonyms ?? const [];
+}
+
+/// State for the "Match Style" chip (preset name, Custom, or Not set).
+class MatchStyleState {
+  final String displayLabel;
+  final bool isSet;
+
+  const MatchStyleState._(this.displayLabel, this.isSet);
+
+  /// No match style selected; chip is omitted.
+  static const MatchStyleState notSet = MatchStyleState._('Not set', false);
+  /// User customized filters; chip shows "🎯 Custom".
+  static const MatchStyleState custom = MatchStyleState._('🎯 Custom', true);
+  /// Preset selected; chip shows e.g. "🎯 Private Thinker".
+  static MatchStyleState preset(String name) =>
+      MatchStyleState._('🎯 $name', true);
+}
+
+/// Model for one status chip (label, sort order, optional group, tap action).
+class ChipModel {
+  final String label;
+  final int priority;
+  final String? group;
+  final void Function()? onTap;
+
+  const ChipModel({
+    required this.label,
+    required this.priority,
+    this.group,
+    this.onTap,
+  });
 }
 
 class listOption {
@@ -50,6 +93,192 @@ class listOption {
   listOption(this.displayName, this.search, this.value);
 }
 
+/// Returns true if the filter has a non-default, active value (should count toward chips).
+bool isFilterActive(filterOption f) {
+  // Multi-select list (e.g. breeds): active only if at least one real option selected (not Any/Change)
+  if (f.list && f.choosenListValues.isNotEmpty) {
+    final anyValues = <int>{};
+    for (final o in f.options) {
+      if (_isAnyOption(o) || o.displayName == 'Change...') anyValues.add(o.value);
+    }
+    final hasNonAny = f.choosenListValues.any((v) => !anyValues.contains(v));
+    if (!hasNonAny) return false;
+    return true;
+  }
+
+  final v = f.choosenValue;
+  if (v == null || (v is String && v.trim().isEmpty)) return false;
+
+  final s = v.toString().trim();
+  // List/single-select: "Any" or "Any Type" = inactive
+  if (s.equalsIgnoreCase('Any') || s.equalsIgnoreCase('Any Type')) return false;
+
+  // Boolean-style (Yes/No/Any): if options contain "Any", treat that as inactive
+  if (f.options.isNotEmpty) {
+    try {
+      final anyOpt = f.options.firstWhere((listOption o) => _isAnyOption(o));
+      final anySearch = anyOpt.search?.toString().trim() ?? '';
+      if (s.equalsIgnoreCase(anySearch)) return false;
+    } catch (_) {}
+  }
+
+  return true;
+}
+
+bool _isAnyOption(listOption o) {
+  final search = o.search?.toString().trim().toLowerCase() ?? '';
+  return search == 'any' || search == 'any type';
+}
+
+extension _StringEquals on String {
+  bool equalsIgnoreCase(String other) =>
+      toLowerCase() == other.toLowerCase();
+}
+
+/// Builds status chips for the search screen: active filters with statusPriority set,
+/// optional Match Style chip, grouped by statusGroup, sorted by priority, capped at maxChips.
+List<ChipModel> buildStatusChips({
+  required List<filterOption> filters,
+  required MatchStyleState matchStyle,
+  int maxChips = 4,
+  void Function()? onMoreTap,
+}) {
+  final List<ChipModel> result = [];
+  final active = filters.where((f) => isFilterActive(f) && f.statusPriority != null).toList();
+  final Map<String, List<filterOption>> byGroup = {};
+
+  for (final f in active) {
+    final group = f.statusGroup;
+    if (group != null && group.isNotEmpty) {
+      byGroup.putIfAbsent(group, () => []).add(f);
+    } else {
+      byGroup.putIfAbsent(f.name, () => []).add(f);
+    }
+  }
+
+  // Build one chip per group (or single filter)
+  for (final entry in byGroup.entries) {
+    final groupKey = entry.key;
+    final groupFilters = entry.value;
+    final priority = groupFilters.map((f) => f.statusPriority!).reduce((a, b) => a > b ? a : b);
+    String label;
+    if (groupKey == 'location') {
+      filterOption? zipFilter;
+      filterOption? distFilter;
+      for (final f in groupFilters) {
+        if (f.fieldName == 'zipCode') zipFilter = f;
+        if (f.fieldName == 'distance') distFilter = f;
+      }
+      final zipVal = zipFilter?.choosenValue?.toString().trim();
+      final distVal = distFilter?.choosenValue?.toString().trim();
+      final hasZip = zipVal != null && zipVal.isNotEmpty && !zipVal.equalsIgnoreCase('Any');
+      final hasDist = distVal != null && distVal.isNotEmpty && !distVal.equalsIgnoreCase('Any');
+      final parts = <String>[];
+      if (hasZip) parts.add(zipVal!);
+      if (hasDist) parts.add('$distVal mi');
+      label = parts.isEmpty ? '📍 Location' : '📍 ${parts.join(' · ')}';
+    } else {
+      final f = groupFilters.first;
+      final override = f.statusLabelOverride;
+      if (override != null && override.isNotEmpty) {
+        // Ensure every chip with statusPriority has an emoji
+        label = '${_emojiForFilter(f)} $override';
+      } else {
+        label = _chipLabelForFilter(f);
+      }
+    }
+    result.add(ChipModel(
+      label: label,
+      priority: priority,
+      group: groupKey,
+    ));
+  }
+
+  // Match Style chip (priority 100)
+  if (matchStyle.isSet) {
+    result.add(ChipModel(label: matchStyle.displayLabel, priority: 100, onTap: null));
+  }
+
+  result.sort((a, b) {
+    final cmp = b.priority.compareTo(a.priority);
+    if (cmp != 0) return cmp;
+    return a.label.compareTo(b.label);
+  });
+
+  final showMore = result.length > maxChips;
+  final visible = showMore ? result.take(maxChips - 1).toList() : result;
+  if (showMore) {
+    final n = result.length - (maxChips - 1);
+    visible.add(ChipModel(
+      label: '+$n more',
+      priority: 0,
+      onTap: onMoreTap,
+    ));
+  }
+  return visible;
+}
+
+String _chipLabelForFilter(filterOption f) {
+  final emoji = _emojiForFilter(f);
+  if (f.list && f.choosenListValues.isNotEmpty) {
+    final opts = f.options.where((o) => f.choosenListValues.contains(o.value)).toList();
+    // Breed chip: show first chosen breed name, then " +" if more than one
+    if (f.fieldName == 'animals.breedPrimaryId') {
+      final firstVal = f.choosenListValues.first;
+      if (firstVal == 0) return '$emoji ${f.name}'; // "Any" or placeholder
+      String? firstName;
+      if (opts.isNotEmpty) {
+        try {
+          firstName = opts.firstWhere((o) => o.value == firstVal).displayName;
+        } catch (_) {
+          firstName = _breedNameByIdOrRid(firstVal);
+        }
+      } else {
+        firstName = _breedNameByIdOrRid(firstVal);
+      }
+      if (firstName == null) return '$emoji ${f.name}';
+      return f.choosenListValues.length > 1 ? '$emoji $firstName +' : '$emoji $firstName';
+    }
+    if (opts.isEmpty) return '$emoji ${f.name}';
+    final names = opts.map((o) => o.displayName).join(', ');
+    return '$emoji $names';
+  }
+  final v = f.choosenValue?.toString().trim() ?? '';
+  if (v.isEmpty) return '$emoji ${f.name}';
+  listOption? match;
+  for (final o in f.options) {
+    if (o.search?.toString().trim() == v) {
+      match = o;
+      break;
+    }
+  }
+  final display = match?.displayName ?? v;
+  return '$emoji $display';
+}
+
+String _emojiForFilter(filterOption f) {
+  if (f.fieldName == 'zipCode' || f.statusGroup == 'location') return '📍';
+  if (f.fieldName == 'animals.breedPrimaryId') return '🐱';
+  if (f.fieldName == 'animals.ageGroup') return '📅';
+  if (f.fieldName == 'animals.sex') return '⚥';
+  if (f.fieldName == 'animals.indoorOutdoor') return '🏠';
+  if (f.fieldName == 'animals.isDogsOk' || f.fieldName == 'animals.isCatsOk' || f.fieldName == 'animals.isKidsOk') return '🐾';
+  if (f.fieldName == 'animals.isSpecialNeeds') return '❤️';
+  return '🔖';
+}
+
+/// Look up breed name by id or rid (choosenListValues may store either depending on screen).
+String? _breedNameByIdOrRid(int value) {
+  try {
+    final b = breeds.firstWhere((b) => b.id == value || b.rid == value);
+    return b.name;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Optional persistent copy of filter options (e.g. after loading a saved search).
+/// When non-empty, adopt grid and other consumers can use this instead of [filteringOptions].
 List<filterOption> persistentFilteringOptions = [];
 
 List<filterOption> filteringOptions = [
@@ -77,11 +306,12 @@ List<filterOption> filteringOptions = [
       [listOption("Change...", "Change", 0)],
       [],
       false,
-      FilterType.simple
+      FilterType.simple,
+      statusPriority: 90,
   ),
   filterOption(
       "Sort By",
-      "",
+      "distance",
       "sortBy",
       false,
       false,
@@ -106,7 +336,7 @@ List<filterOption> filteringOptions = [
     [],
     [],
     false,
-    FilterType.advanced
+    FilterType.advanced,
   ),
   filterOption(
       "Distance",
@@ -126,7 +356,7 @@ List<filterOption> filteringOptions = [
       ],
       [],
       false,
-      FilterType.advanced
+      FilterType.advanced,
   ),
   filterOption(
       "Updated Since",
@@ -184,7 +414,8 @@ List<filterOption> filteringOptions = [
       ],
       [],
       false,
-      FilterType.simple
+      FilterType.simple,
+      statusPriority: 85,
   ),
   filterOption(
       "Sex",
@@ -201,7 +432,8 @@ List<filterOption> filteringOptions = [
       ],
       [],
       false,
-      FilterType.simple
+      FilterType.simple,
+      statusPriority: 80,
   ),
   filterOption(
       "Coat Length",
@@ -216,23 +448,6 @@ List<filterOption> filteringOptions = [
         listOption("Medium", "Medium", 1),
         listOption("Long", "Long", 2),
         listOption("Any", "Any", 3)
-      ],
-      [],
-      false,
-      FilterType.advanced
-  ),
-  filterOption(
-      "Altered",
-      "",
-      "animals.isAltered",
-      true,
-      false,
-      CatClassification.physical,
-      10,
-      [
-        listOption("Yes", true, 0),
-        listOption("No", false, 1),
-        listOption("Any", "Any", 2)
       ],
       [],
       false,
@@ -271,7 +486,8 @@ List<filterOption> filteringOptions = [
       ],
       [],
       false,
-      FilterType.simple
+      FilterType.simple,
+      statusPriority: 70,
   ),
   filterOption(
       "OK with dogs",
@@ -288,7 +504,8 @@ List<filterOption> filteringOptions = [
       ],
       [],
       false,
-      FilterType.simple
+      FilterType.simple,
+      statusPriority: 67,
   ),
   filterOption(
       "OK with cats",
@@ -305,7 +522,8 @@ List<filterOption> filteringOptions = [
       ],
       [],
       false,
-      FilterType.simple
+      FilterType.simple,
+      statusPriority: 66,
   ),
   filterOption(
        "Adults",
@@ -340,7 +558,8 @@ List<filterOption> filteringOptions = [
       ],
       [],
       false,
-      FilterType.simple
+      FilterType.simple,
+      statusPriority: 65,
   ),
   //Personality
    filterOption(
@@ -354,9 +573,7 @@ List<filterOption> filteringOptions = [
        [
          listOption("Cautious", "Cautious", 0),
          listOption("Friendly", "Friendly", 1),
-         listOption("Protective", "Protective", 2),
-         listOption("Aggressive", "Aggressive", 3),
-         listOption("Any", "Any", 4)
+         listOption("Any", "Any", 2)
        ],
        [],
        false,
@@ -699,6 +916,23 @@ List<filterOption> filteringOptions = [
       FilterType.advanced
   ),
   filterOption(
+      "Altered",
+      "",
+      "animals.isAltered",
+      true,
+      false,
+      CatClassification.physical,
+      38,
+      [
+        listOption("Yes", true, 0),
+        listOption("No", false, 1),
+        listOption("Any", "Any", 2)
+      ],
+      [],
+      false,
+      FilterType.simple
+  ),
+  filterOption(
       "Microchipped",
       "",
       "animals.isMicrochipped",
@@ -747,6 +981,7 @@ List<filterOption> filteringOptions = [
       ],
       [],
       false,
-      FilterType.advanced
+      FilterType.advanced,
+      statusPriority: 60,
   )
 ];

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../../ExampleCode/petTileData.dart';
 import '../../theme.dart';
 import 'gold_trait_pill.dart';
@@ -6,11 +7,15 @@ import 'gold_trait_pill.dart';
 class GoldPetCard extends StatelessWidget {
   final PetTileData tile;
   final List<String> favorites;
+  final void Function(String)? onVideoBadgeFirstSeen;
+  final bool showVideoGlow;
 
   const GoldPetCard({
     Key? key,
     required this.tile,
     required this.favorites,
+    this.onVideoBadgeFirstSeen,
+    this.showVideoGlow = false,
   }) : super(key: key);
 
   bool get _hasImage =>
@@ -18,9 +23,20 @@ class GoldPetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 5.0),
-      decoration: BoxDecoration(
+    return VisibilityDetector(
+      key: Key('video_badge_${tile.id ?? ""}'),
+      onVisibilityChanged: (info) {
+        if (info.visibleFraction >= 0.95 &&
+            (tile.hasVideos ?? false) &&
+            onVideoBadgeFirstSeen != null &&
+            tile.id != null &&
+            tile.id!.isNotEmpty) {
+          onVideoBadgeFirstSeen!(tile.id!);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 5.0),
+        decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         gradient: AppTheme.purpleGradient,
         boxShadow: [
@@ -45,7 +61,50 @@ class GoldPetCard extends StatelessWidget {
           const SizedBox(height: 10),
           _buildTraits(),
           const SizedBox(height: 10),
+          _buildOrganizationName(),
           _buildLocation(),
+        ],
+      ),
+    ),
+    );
+  }
+
+  static const double _iconSlotWidth = 22.0; // Same for org and location so icons align
+
+  Widget _buildOrganizationName() {
+    final orgName = tile.organizationName;
+    if (orgName == null || orgName.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0, left: 16, right: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: _iconSlotWidth,
+            child: Icon(
+              Icons.business,
+              size: 16,
+              color: AppTheme.goldBase,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              orgName.trim(),
+              textAlign: TextAlign.left,
+              style: const TextStyle(
+                fontSize: AppTheme.fontSizeM,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                fontFamily: AppTheme.fontFamily,
+              ),
+              softWrap: true,
+            ),
+          ),
         ],
       ),
     );
@@ -123,15 +182,36 @@ class GoldPetCard extends StatelessWidget {
                     ),
                   ),
 
-                  // Video icon
+                  // Video icon (with optional first-seen glow)
                   Positioned(
                     top: 8,
                     right: 8,
                     child: Visibility(
                       visible: tile.hasVideos ?? false,
-                      child: Image.asset(
-                        "assets/Icons/video_icon_resized.png",
-                      ),
+                      child: showVideoGlow
+                          ? Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.goldBase.withOpacity(0.9),
+                                    blurRadius: 14,
+                                    spreadRadius: 2,
+                                  ),
+                                  BoxShadow(
+                                    color: AppTheme.goldBase.withOpacity(0.5),
+                                    blurRadius: 24,
+                                    spreadRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: Image.asset(
+                                "assets/Icons/video_icon_resized.png",
+                              ),
+                            )
+                          : Image.asset(
+                              "assets/Icons/video_icon_resized.png",
+                            ),
                     ),
                   ),
                 ],
@@ -172,7 +252,6 @@ class GoldPetCard extends StatelessWidget {
   Widget _buildNameAndBreed() {
     final name = (tile.name ?? "No Name").toUpperCase();
     final breed = tile.primaryBreed ?? "";
-    final catTypeName = tile.suggestedCatTypeName;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -209,19 +288,6 @@ class GoldPetCard extends StatelessWidget {
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
                 fontSize: AppTheme.fontSizeM,
-                fontFamily: AppTheme.fontFamily,
-              ),
-            ),
-          ],
-          if (catTypeName != null && catTypeName.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Likely a $catTypeName',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.goldBase.withOpacity(0.95),
-                fontWeight: FontWeight.w500,
-                fontSize: AppTheme.fontSizeS,
                 fontFamily: AppTheme.fontFamily,
               ),
             ),
@@ -269,18 +335,22 @@ class GoldPetCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0, left: 16, right: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
-            Icons.location_on,
-            size: 16,
-            color: AppTheme.goldBase,
+          SizedBox(
+            width: _iconSlotWidth,
+            child: Icon(
+              Icons.location_on,
+              size: 16,
+              color: AppTheme.goldBase,
+            ),
           ),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
               location.trim(),
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.left,
               style: const TextStyle(
                 fontSize: AppTheme.fontSizeM,
                 fontWeight: FontWeight.w500,

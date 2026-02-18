@@ -696,14 +696,14 @@ class FitState extends State<Fit> {
     }
   }
 
-  /// True when every Breed Fit slider is set to "Doesn't Matter" (value 0).
+  /// True when every Breed Fit slider is set to "Flexible" (value 0).
   bool _allSlidersSetToDontMatter() {
     final sv = globals.FelineFinderServer.instance.sliderValue;
     return Question.questions.every((q) => q.id < sv.length && sv[q.id] == 0);
   }
 
   /// Creates a label widget showing breed match percentage
-  /// Shows "Set Your Preference" when all sliders are Doesn't Matter; otherwise
+  /// Shows "Set Your Preference" when all sliders are Flexible; otherwise
   /// text labels: "Purrfect" (95-100), "Excellent" (90-95), "Great" (85-90), etc.
   Widget _buildDotIndicator(double percentMatch, {bool allSlidersDontMatter = false}) {
     final label = allSlidersDontMatter ? 'Set Your Preference' : _getMatchLabel(percentMatch);

@@ -271,7 +271,7 @@ class PersonalityFitState extends State<PersonalityFit> {
   late List<int> _displayOrder;
   late Map<int, double> _displayPercentMatch;
 
-  // True when at least one slider is not "Doesn't Matter"; when false, show "Unknown" instead of match label
+  // True when at least one slider is not "Flexible"; when false, show "Unknown" instead of match label
   bool _hasAnyPreference = false;
 
   // Animated list for short sort transitions (only visible items animate).

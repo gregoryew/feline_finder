@@ -10,7 +10,9 @@ class GoldFramedPanel extends StatelessWidget {
   final Widget child;
   final List<String>? plaqueLines;
   final List<Widget>? plaqueWidgets;
-  
+  /// When set, use this for top/bottom content inset instead of proportional border (e.g. for tall images to reduce letterboxing).
+  final double? reducedVerticalInset;
+
   static const String _frameAsset = 'assets/frame/gold_frame_no_plaque.png';
   static const Rect _frameCenterSlice = Rect.fromLTWH(108, 106, 806, 810);
 
@@ -19,6 +21,7 @@ class GoldFramedPanel extends StatelessWidget {
     required this.child,
     this.plaqueLines,
     this.plaqueWidgets,
+    this.reducedVerticalInset,
   }) : assert(plaqueLines == null || plaqueWidgets == null, 'Cannot provide both plaqueLines and plaqueWidgets'),
        super(key: key);
 
@@ -80,9 +83,9 @@ class GoldFramedPanel extends StatelessWidget {
               ),
               padding: EdgeInsets.only(
                 left: borderThickness.left,
-                top: borderThickness.top,
+                top: reducedVerticalInset ?? borderThickness.top,
                 right: borderThickness.right,
-                bottom: borderThickness.bottom,
+                bottom: reducedVerticalInset ?? borderThickness.bottom,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -132,9 +135,9 @@ class GoldFramedPanel extends StatelessWidget {
               // Child content with padding
               Positioned(
                 left: borderThickness.left,
-                top: borderThickness.top,
+                top: reducedVerticalInset ?? borderThickness.top,
                 right: borderThickness.right,
-                bottom: borderThickness.bottom + (plaqueHeight > 0 ? plaqueHeight : 0), // Removed extra spacing
+                bottom: (reducedVerticalInset ?? borderThickness.bottom) + (plaqueHeight > 0 ? plaqueHeight : 0),
                 child: SizedBox(
                   width: double.infinity,
                   height: double.infinity,

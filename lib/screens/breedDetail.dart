@@ -26,6 +26,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum WidgetMarker { adopt, videos, stats, info }
 
+// Use theme gold so ribbon and circular buttons match the favorite icon and other
+// gold accents on this page (and the frame).
 class BreedDetail extends StatefulWidget {
   final Breed breed;
   final WidgetMarker? initialTab;
@@ -773,7 +775,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                                   ? widget.breed.stats[index].value.toDouble() /
                                       maxValues[index].toDouble()
                                   : 1.0;
-                  // When user preference is 0 (unset/"Doesn't Matter"), treat it as no preference
+                  // When user preference is 0 (unset/"Flexible"), treat it as no preference
                   var userSliderValue = globals.FelineFinderServer.instance.sliderValue[index];
                   var userPreference = (widget.breed.stats[index].isPercent && userSliderValue > 0)
                       ? userSliderValue.toDouble() / maxValues[index].toDouble()
@@ -951,25 +953,9 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                   print('cats101URL: ${widget.breed.cats101URL}');
                   if (widget.breed.cats101URL.isEmpty) {
                     print('cats101URL is empty, using fallback image');
-                    // Fallback to breed image if no video URL
+                    // Fallback to breed image if no video URL — no frame on breed detail
                     return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.goldBase.withOpacity(0.4),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                            offset: const Offset(0, 8),
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: AspectRatio(
@@ -979,38 +965,22 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                             fit: BoxFit.cover,
                             image: AssetImage(
                                 'assets/Full/${widget.breed.fullSizedPicture.replaceAll(' ', '_')}.jpg'),
-          ),
-        ),
-      ),
-    );
-  }
+                          ),
+                        ),
+                      ),
+                    );
+                  }
 
                   final videoId = _extractVideoId(widget.breed.cats101URL);
                   final thumbnailUrl = _getYouTubeThumbnail(videoId);
 
-    return Container(
+                  return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-                          color: AppTheme.goldBase.withOpacity(0.4),
-            blurRadius: 20,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-                    ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: AspectRatio(
-                        aspectRatio: 16 / 9, // YouTube thumbnail aspect ratio
-                        child: GestureDetector(
+                          aspectRatio: 16 / 9, // YouTube thumbnail aspect ratio
+                          child: GestureDetector(
                           onTap: () async {
                             // Check network connectivity
                             final flutterNetworkConnectivity =
@@ -1187,12 +1157,12 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                 },
                 child: _buildTabContent(),
               ),
-            ],
-          ),
-        ),
-        ),
-      ),
-    );
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
   }
 
   Widget _buildCircularGoldButton({
@@ -1214,7 +1184,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
             height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
@@ -1222,7 +1192,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                   AppTheme.goldBase,
                   AppTheme.goldShadow,
                 ],
-                stops: const [0.0, 0.5, 1.0],
+                stops: [0.0, 0.5, 1.0],
               ),
               boxShadow: [
                 // Inner shadow for 3D effect
@@ -1371,29 +1341,27 @@ class _GoldRibbonPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..style = PaintingStyle.fill;
-    
-    // Create gold gradient
-    final gradient = LinearGradient(
+
+    // Same theme gold as circular buttons and favorite icon
+    final gradient = const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [
         AppTheme.goldHighlight,
         AppTheme.goldBase,
         AppTheme.goldShadow,
-        AppTheme.goldBase,
-        AppTheme.goldHighlight,
       ],
-      stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
+      stops: [0.0, 0.5, 1.0],
     );
-    
+
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     paint.shader = gradient.createShader(rect);
-    
+
     // Draw flowing ribbon shape with wavy edges
     final path = Path();
     const waveHeight = 8.0;
     const waveLength = 40.0;
-    
+
     // Top wavy edge
     path.moveTo(0, waveHeight);
     for (double x = 0; x <= size.width; x += waveLength) {
@@ -1404,22 +1372,20 @@ class _GoldRibbonPainter extends CustomPainter {
         waveHeight,
       );
     }
-    
+
     // Right edge
     path.lineTo(size.width, size.height - waveHeight);
-    
+
     // Bottom wavy edge - out of phase with top for flowing ribbon effect
-    // Iterate from right to left, but use x-from-left for pattern matching
     double currentX = size.width;
     while (currentX > 0) {
       final nextX = (currentX - waveLength).clamp(0.0, size.width);
       final xFromLeft = size.width - currentX;
       final controlX = currentX - waveLength / 2;
-      // Offset by waveLength to be out of phase (peaks align with valleys)
-      final controlY = (xFromLeft + waveLength) % (waveLength * 2) == 0 
-          ? size.height 
+      final controlY = (xFromLeft + waveLength) % (waveLength * 2) == 0
+          ? size.height
           : size.height - waveHeight * 2;
-      
+
       path.quadraticBezierTo(
         controlX,
         controlY,
@@ -1428,20 +1394,19 @@ class _GoldRibbonPainter extends CustomPainter {
       );
       currentX = nextX;
     }
-    
-    // Left edge
+
     path.close();
-    
+
     canvas.drawPath(path, paint);
-    
-    // Add gold border
+
+    // Add gold border (theme gold)
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
       ..color = AppTheme.goldShadow
       ..strokeWidth = 2.0;
     canvas.drawPath(path, borderPaint);
   }
-  
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

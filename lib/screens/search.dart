@@ -6,6 +6,7 @@ import 'package:catapp/ExampleCode/RescueGroupsQuery.dart';
 import 'package:catapp/screens/globals.dart';
 import 'package:catapp/models/breed.dart';
 import 'package:catapp/screens/breedSelection.dart';
+import 'package:catapp/screens/select_shelters_screen.dart';
 import 'package:catapp/services/search_ai_service.dart';
 import 'package:catapp/services/cat_type_filter_mapping.dart';
 import 'package:catapp/models/catType.dart';
@@ -18,8 +19,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../theme.dart';
 import 'search_screen_style.dart';
 
-/// Sentinel for "Apply my type" in the cat type dropdown (value from personality sliders).
-const Object _kApplyMyType = Object();
+/// Value for "Apply my type" in the cat type dropdown (value from personality sliders).
+const String _kApplyMyTypeId = 'apply_my_type';
+/// Value for "Custom" in the cat type dropdown (no preset; user adjusts filters manually).
+const String _kCustomId = 'custom';
 
 /// Result of [generateFilters]: the API filters list and the filterprocessing string (1-based indices, e.g. "1 AND (2 OR 3 OR 4) AND 5").
 class FilterResult {
@@ -77,6 +80,20 @@ class SearchScreenState extends State<SearchScreen> {
   String? _lastLoadedSearchName; // Track which search is currently loaded
   /// Cat type dropdown: null = None, 'my_type' = Apply my type, CatType = specific type.
   Object? _selectedCatTypeValue;
+  /// Selected shelter org IDs. Used in generateFilters as orgId filter.
+  List<String> _selectedShelterOrgIds = [];
+  /// Selected shelter names (same order as _selectedShelterOrgIds; for display and when reopening Select Shelters).
+  List<String> _selectedShelterNames = [];
+
+  /// If a personality preset is selected, switch to Custom and persist. Call after user edits a personality filter.
+  void _switchToCustomPersonalityIfPresetSelected() {
+    if (_selectedCatTypeValue != _kApplyMyTypeId && _selectedCatTypeValue is! CatType) return;
+    setState(() {
+      _selectedCatTypeValue = _kCustomId;
+    });
+    globals.FelineFinderServer.instance.setSelectedPersonalityCatTypeName('Custom');
+    _saveCatTypeToPrefs(_kCustomId);
+  }
 
   @override
   void initState() {
@@ -117,8 +134,9 @@ class SearchScreenState extends State<SearchScreen> {
             CatTypeFilterMapping.applyCatTypeToFilterOptions(
               top,
               widget.filteringOptions,
+              server: server,
             );
-            setState(() => _selectedCatTypeValue = _kApplyMyType);
+            setState(() => _selectedCatTypeValue = _kApplyMyTypeId);
           } else {
             setState(() => _selectedCatTypeValue = null);
           }
@@ -504,6 +522,32 @@ class SearchScreenState extends State<SearchScreen> {
         // Update UI to reflect loaded state
         setState(() {});
       }
+
+      // Load selected shelters so they are retained when returning to search
+      final savedShelterOrgIds = prefs.getString('lastSearchShelterOrgIds');
+      final savedShelterNames = prefs.getString('lastSearchShelterNames');
+      if (savedShelterOrgIds != null && savedShelterOrgIds.isNotEmpty) {
+        try {
+          final ids = (jsonDecode(savedShelterOrgIds) as List<dynamic>)
+              .map((e) => e.toString())
+              .toList();
+          final names = savedShelterNames != null &&
+                  savedShelterNames.isNotEmpty
+              ? (jsonDecode(savedShelterNames) as List<dynamic>)
+                  .map((e) => e.toString())
+                  .toList()
+              : <String>[];
+          setState(() {
+            _selectedShelterOrgIds = ids;
+            _selectedShelterNames = ids
+                .asMap()
+                .entries
+                .map((e) =>
+                    e.key < names.length ? names[e.key] : '')
+                .toList();
+          });
+        } catch (_) {}
+      }
     } catch (e) {
       print('Error loading search state: $e');
     }
@@ -557,8 +601,14 @@ class SearchScreenState extends State<SearchScreen> {
       final filtersJson = jsonEncode(filtersToSave);
       await prefs.setString('lastSearchFilters', filtersJson);
 
+      // Save selected shelters so they are retained when returning to search
+      await prefs.setString(
+          'lastSearchShelterOrgIds', jsonEncode(_selectedShelterOrgIds));
+      await prefs.setString(
+          'lastSearchShelterNames', jsonEncode(_selectedShelterNames));
+
       print(
-          '✅ Saved search state: query="$query", filters=${filtersToSave.length}');
+          '✅ Saved search state: query="$query", filters=${filtersToSave.length}, shelters=${_selectedShelterOrgIds.length}');
     } catch (e) {
       print('Error saving search state: $e');
     }
@@ -736,10 +786,19 @@ class SearchScreenState extends State<SearchScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-                children: filters
-                    .map((filter) =>
-                        _buildFilterRow(filter, filter.classification))
-                    .toList(),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (filterType == FilterType.simple) ...[
+                    _buildCatTypeApplyRow(),
+                    const SizedBox(height: 8),
+                    _buildShelterSelector(),
+                    const SizedBox(height: 8),
+                  ],
+                  ...filters
+                      .map((filter) =>
+                          _buildFilterRow(filter, filter.classification))
+                      .toList(),
+                ],
               ),
             ),
           ],
@@ -812,21 +871,17 @@ class SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  /// Personality section: Apply cat type first row, then filter rows.
+  /// Personality section: filter rows only (Cat Type is in Core as first entry).
   List<Widget> _buildPersonalityCategoryChildren(
     List<filterOption> filters,
     CatClassification classification,
   ) {
-    final List<Widget> out = [];
-    out.add(_buildCatTypeApplyRow());
-    out.add(const SizedBox(height: 8));
-    for (final filter in filters) {
-      out.add(_buildFilterRow(filter, classification));
-    }
-    return out;
+    return filters
+        .map((filter) => _buildFilterRow(filter, classification))
+        .toList();
   }
 
-  /// Apply cat type row: same style as other filter rows, dropdown list. First row in Personality section.
+  /// Apply cat type row: same style as other filter rows, dropdown list. Shown as first entry in Core section.
   Widget _buildCatTypeApplyRow() {
     final server = globals.FelineFinderServer.instance;
     final hasMyType = CatTypeFilterMapping.hasPersonalityPreference(server);
@@ -835,7 +890,7 @@ class SearchScreenState extends State<SearchScreen> {
     if (hasMyType) {
       items.add(
         DropdownMenuItem<Object?>(
-          value: _kApplyMyType,
+          value: _kApplyMyTypeId,
           child: Text(
             'Apply my type',
             style: TextStyle(color: Colors.white.withOpacity(0.9)),
@@ -856,17 +911,47 @@ class SearchScreenState extends State<SearchScreen> {
       items.add(
         DropdownMenuItem<Object?>(
           value: type,
-          child: Text(
-            type.name,
-            style: TextStyle(color: Colors.white.withOpacity(0.9)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                type.name,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                type.tagline,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
           ),
         ),
       );
     }
+    items.add(
+      DropdownMenuItem<Object?>(
+        value: _kCustomId,
+        child: Text(
+          'Custom',
+          style: TextStyle(color: Colors.white.withOpacity(0.9)),
+        ),
+      ),
+    );
 
     String displayText(Object? value) {
       if (value == null) return 'None';
-      if (value == _kApplyMyType) return 'Apply my type';
+      if (value == _kApplyMyTypeId) return 'Apply my type';
+      if (value == _kCustomId) return 'Custom';
       if (value is CatType) return value.name;
       return 'None';
     }
@@ -892,7 +977,7 @@ class SearchScreenState extends State<SearchScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Apply cat type',
+                    'Apply personality type',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -948,19 +1033,23 @@ class SearchScreenState extends State<SearchScreen> {
                   items: items,
                   onChanged: (Object? value) {
                     CatType? toApply;
-                    if (value == _kApplyMyType) {
+                    if (value == _kApplyMyTypeId) {
                       toApply = CatTypeFilterMapping.getTopPersonalityCatType(server);
                     } else if (value is CatType) {
                       toApply = value;
                     }
+                    // _kCustomId: no preset applied; user keeps or adjusts filters manually
                     setState(() {
                       _selectedCatTypeValue = value;
                       globals.FelineFinderServer.instance
-                          .setSelectedPersonalityCatTypeName(toApply?.name);
+                          .setSelectedPersonalityCatTypeName(
+                        value == _kCustomId ? 'Custom' : toApply?.name,
+                      );
                       if (toApply != null) {
                         CatTypeFilterMapping.applyCatTypeToFilterOptions(
                           toApply,
                           widget.filteringOptions,
+                          server: globals.FelineFinderServer.instance,
                         );
                       }
                     });
@@ -989,6 +1078,22 @@ class SearchScreenState extends State<SearchScreen> {
                         );
                         if (!mounted) return;
                         if (showAnimation == true) {
+                          setState(() {
+                            _expandedCategories[CatClassification.personality] = true;
+                          });
+                          await Future.delayed(const Duration(milliseconds: 350));
+                          if (!mounted) return;
+                          final personalityContext = _categoryKeys[CatClassification.personality]?.currentContext;
+                          if (personalityContext != null) {
+                            await Scrollable.ensureVisible(
+                              personalityContext,
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.easeInOut,
+                              alignment: 0.1,
+                            );
+                            await Future.delayed(const Duration(milliseconds: 200));
+                          }
+                          if (!mounted) return;
                           final updates = CatTypeFilterMapping.getPersonalityFiltersForCatType(toApply!);
                           final personalityFilters = widget.filteringOptions
                               .where((f) => f.classification == CatClassification.personality)
@@ -1000,6 +1105,17 @@ class SearchScreenState extends State<SearchScreen> {
                             await _animateFilterUpdates(
                               filtersToUpdate,
                               filtersToUpdate.map((f) => f.name).toList(),
+                            );
+                          }
+                          if (!mounted) return;
+                          // Scroll back to Apply cat type (Core section) so user can change type or continue
+                          final coreContext = _filterTypeCategoryKeys['${FilterType.simple}_category_key']?.currentContext;
+                          if (coreContext != null) {
+                            await Scrollable.ensureVisible(
+                              coreContext,
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.easeInOut,
+                              alignment: 0.0,
                             );
                           }
                         }
@@ -1305,6 +1421,127 @@ class SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Widget _buildShelterSelector() {
+    String selectedSheltersText = 'Any shelter';
+    if (_selectedShelterOrgIds.isNotEmpty) {
+      selectedSheltersText = _selectedShelterOrgIds.length == 1
+          ? (_selectedShelterNames.isNotEmpty
+              ? _selectedShelterNames.first
+              : '1 shelter selected')
+          : '${_selectedShelterOrgIds.length} shelters selected';
+    }
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: SearchScreenStyle.gold.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Shelter',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push<Map<String, dynamic>>(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          SelectSheltersScreen(
+                        initialSelectedOrgIds: _selectedShelterOrgIds,
+                        initialSelectedNames: _selectedShelterNames,
+                      ),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.ease;
+                        var slideAnimation = Tween(begin: begin, end: end).animate(
+                          CurvedAnimation(parent: animation, curve: curve),
+                        );
+                        return SlideTransition(
+                          position: slideAnimation,
+                          child: child,
+                        );
+                      },
+                      transitionDuration: const Duration(milliseconds: 300),
+                      reverseTransitionDuration: const Duration(milliseconds: 300),
+                    ),
+                  );
+                  if (result != null && mounted) {
+                    setState(() {
+                      _selectedShelterOrgIds =
+                          (result['selectedOrgIds'] as List<dynamic>?)
+                              ?.map((e) => e.toString())
+                              .toList() ??
+                          [];
+                      _selectedShelterNames =
+                          (result['selectedShelterNames'] as List<dynamic>?)
+                              ?.map((e) => e.toString())
+                              .toList() ??
+                          [];
+                      if (_selectedShelterNames.length != _selectedShelterOrgIds.length) {
+                        final first = result['firstShelterName'] as String? ?? '';
+                        _selectedShelterNames = List.generate(
+                            _selectedShelterOrgIds.length,
+                            (i) => i < _selectedShelterNames.length
+                                ? _selectedShelterNames[i]
+                                : (i == 0 ? first : ''));
+                      }
+                    });
+                  }
+                },
+                icon: const Icon(Icons.location_on, color: Colors.white),
+                label: Text(
+                  '$selectedSheltersText >',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: SearchScreenStyle.purpleSurface,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(
+                      color: SearchScreenStyle.gold,
+                      width: 1.5,
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildChipSelector(filterOption filter) {
     return Theme(
       data: Theme.of(context).copyWith(
@@ -1360,6 +1597,9 @@ class SearchScreenState extends State<SearchScreen> {
                     }
                   }
                 });
+                if (filter.classification == CatClassification.personality) {
+                  _switchToCustomPersonalityIfPresetSelected();
+                }
               },
 
               // 🎨 VISUALS (PURPLE + GOLD)
@@ -1525,6 +1765,9 @@ class SearchScreenState extends State<SearchScreen> {
                   // intentional no-op; rebuild happens via setState
                 }
               });
+              if (filter.classification == CatClassification.personality) {
+                _switchToCustomPersonalityIfPresetSelected();
+              }
             },
           ),
         ),
@@ -1562,6 +1805,16 @@ class SearchScreenState extends State<SearchScreen> {
               await _saveSearchState();
               var result = generateFilters();
               print("Generated ${result.filters.length} filters, filterprocessing: ${result.filterprocessing}");
+              
+              // Write out the find-animals search URL (same as adoptGrid.getPets() first page)
+              const String baseUrl =
+                  'https://api.rescuegroups.org/v5/public/animals/search/available';
+              final String sortMethod = globals.sortMethod;
+              final String url =
+                  '$baseUrl?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status,descriptionText'
+                  '&sort=$sortMethod&limit=25&page=1';
+              final String encodedUrl = url.replaceAll('[', '%5B').replaceAll(']', '%5D');
+              print('🔗 Find animals search URL: $encodedUrl');
               
               // Save filters and filterProcessing to SharedPreferences (so synonym OR groups are preserved)
               await _saveFiltersToPrefs(result.filters, result.filterprocessing);
@@ -1793,15 +2046,19 @@ class SearchScreenState extends State<SearchScreen> {
   }
 
   /// Reset all filters and search to defaults: clear text, set all to "Any",
-  /// set sortBy to "Most Recent", set zip code to current location,
+  /// set sortBy to "Distance", set zip code to current location,
   /// set distance and updatedSince to "Any"
   Future<void> _resetAllFiltersAndSearch() async {
     try {
       // Clear the AI search text field
       controller2.clear();
 
-      // Clear Apply cat type and persist
-      setState(() => _selectedCatTypeValue = null);
+      // Clear Apply cat type and shelter selection, persist cat type
+      setState(() {
+        _selectedCatTypeValue = null;
+        _selectedShelterOrgIds = [];
+        _selectedShelterNames = [];
+      });
       globals.FelineFinderServer.instance.setSelectedPersonalityCatTypeName(null);
       await _saveCatTypeToPrefs(null);
 
@@ -1812,13 +2069,13 @@ class SearchScreenState extends State<SearchScreen> {
           continue;
         }
 
-        // Special handling for sortBy - set to "Most Recent" (value: "date")
+        // Special handling for sortBy - set to "Distance" (value: "distance")
         if (filter.fieldName == 'sortBy') {
-          final mostRecentOption = filter.options.firstWhere(
-            (opt) => opt.search == "date",
+          final distanceOption = filter.options.firstWhere(
+            (opt) => opt.search == "distance",
             orElse: () => filter.options.first,
           );
-          filter.choosenValue = mostRecentOption.search;
+          filter.choosenValue = distanceOption.search;
           continue;
         }
 
@@ -2059,7 +2316,8 @@ class SearchScreenState extends State<SearchScreen> {
       }
       if (matchedType != null) {
         CatTypeFilterMapping.applyCatTypeToFilterOptions(
-            matchedType, widget.filteringOptions);
+            matchedType, widget.filteringOptions,
+            server: globals.FelineFinderServer.instance);
         appliedFilters.add('Cat type: ${matchedType.name}');
         print('✅ Applied cat type: ${matchedType.name}');
         // Add updated personality filters to filtersToUpdate so the Personality panel
@@ -4141,13 +4399,13 @@ class SearchScreenState extends State<SearchScreen> {
 
         final fieldName = filter.fieldName;
 
-        // Special handling for sortBy - set to "Most Recent"
+        // Special handling for sortBy - set to "Distance"
         if (fieldName == 'sortBy') {
-          final mostRecentOption = filter.options.firstWhere(
-            (opt) => opt.search == "date",
+          final distanceOption = filter.options.firstWhere(
+            (opt) => opt.search == "distance",
             orElse: () => filter.options.first,
           );
-          filter.choosenValue = mostRecentOption.search;
+          filter.choosenValue = distanceOption.search;
           continue;
         }
 
@@ -4699,6 +4957,15 @@ class SearchScreenState extends State<SearchScreen> {
         index++;
       }
     }
+    // Shelter filter: add selected org IDs to the search REST call (orgId field)
+    if (_selectedShelterOrgIds.isNotEmpty) {
+      filters.add(Filters(
+          fieldName: "orgs.id",
+          operation: "equal",
+          criteria: _selectedShelterOrgIds));
+      segments.add("$index");
+      index++;
+    }
     final filterprocessing = segments.join(" AND ");
     print("=== FINAL FILTERS ===");
     print("Total filters: ${filters.length}");
@@ -4723,14 +4990,21 @@ class SearchScreenState extends State<SearchScreen> {
         if (!CatTypeFilterMapping.hasPersonalityPreference(server)) return false;
         final top = CatTypeFilterMapping.getTopPersonalityCatType(server);
         if (top == null) return false;
-        CatTypeFilterMapping.applyCatTypeToFilterOptions(top, widget.filteringOptions);
+        CatTypeFilterMapping.applyCatTypeToFilterOptions(
+            top, widget.filteringOptions, server: server);
         server.setSelectedPersonalityCatTypeName(top.name);
-        setState(() => _selectedCatTypeValue = _kApplyMyType);
+        setState(() => _selectedCatTypeValue = _kApplyMyTypeId);
+        return true;
+      }
+      if (saved == 'custom') {
+        server.setSelectedPersonalityCatTypeName('Custom');
+        setState(() => _selectedCatTypeValue = _kCustomId);
         return true;
       }
       try {
         final type = catType.firstWhere((t) => t.name == saved);
-        CatTypeFilterMapping.applyCatTypeToFilterOptions(type, widget.filteringOptions);
+        CatTypeFilterMapping.applyCatTypeToFilterOptions(
+            type, widget.filteringOptions, server: server);
         server.setSelectedPersonalityCatTypeName(type.name);
         setState(() => _selectedCatTypeValue = type);
         return true;
@@ -4749,8 +5023,10 @@ class SearchScreenState extends State<SearchScreen> {
       final prefs = await SharedPreferences.getInstance();
       if (value == null) {
         await prefs.setString(_kLastSearchCatTypeKey, 'none');
-      } else if (value == _kApplyMyType) {
+      } else if (value == _kApplyMyTypeId) {
         await prefs.setString(_kLastSearchCatTypeKey, 'my_type');
+      } else if (value == _kCustomId) {
+        await prefs.setString(_kLastSearchCatTypeKey, 'custom');
       } else if (value is CatType) {
         await prefs.setString(_kLastSearchCatTypeKey, value.name);
       } else {

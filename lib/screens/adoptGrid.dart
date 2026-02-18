@@ -23,6 +23,7 @@ import '../widgets/gold/gold_zip_button.dart';
 
 import '../theme.dart';
 import '../models/searchPageConfig.dart' as searchConfig;
+import '../widgets/status_chip_bar.dart';
 
 class AdoptGrid extends StatefulWidget {
   final ValueChanged<bool>? setFav;
@@ -43,6 +44,11 @@ class AdoptGridState extends State<AdoptGrid> {
   String? userID;
   final server = globals.FelineFinderServer.instance;
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+
+  /// Video badge: ids that have been seen (first time in view); reset on new search/zip.
+  final Set<String> _videoBadgeSeenIds = {};
+  /// Video badge: ids currently showing glow; cleared after animation.
+  final Set<String> _videoBadgeGlowIds = {};
 
   List<Filters> filters = [];
   List<Filters> filters_backup = [];
@@ -73,7 +79,9 @@ class AdoptGridState extends State<AdoptGrid> {
     () async {
       // Load saved filters from SharedPreferences first
       await _loadFiltersFromPrefs();
-      
+      // Load saved cat type so status bar shows it (e.g. "🎯 Lap Legend")
+      await _loadSavedCatTypeForStatusBar();
+
       try {
         String user = await server.getUser();
         favorites = await server.getFavorites(user);
@@ -144,6 +152,58 @@ class AdoptGridState extends State<AdoptGrid> {
     return segments.join(' AND ');
   }
 
+  /// Apply loaded Filters (from prefs) to the global filterOption list so the status chip bar shows correctly on first display.
+  void _applyLoadedFiltersToFilterOptions() {
+    final options = searchConfig.persistentFilteringOptions.isNotEmpty
+        ? searchConfig.persistentFilteringOptions
+        : searchConfig.filteringOptions;
+    for (final f in filters) {
+      if (f.fieldName == 'species.singular') continue;
+      try {
+        searchConfig.filterOption? opt;
+        for (final o in options) {
+          if (o.fieldName == f.fieldName) { opt = o; break; }
+        }
+        if (opt == null) continue;
+        final c = f.criteria;
+        if (opt.list) {
+          if (c is List && c.isNotEmpty) {
+            opt.choosenListValues = c.map((e) {
+              if (e is int) return e;
+              return int.tryParse(e.toString()) ?? 0;
+            }).toList();
+          }
+        } else {
+          if (c is List && c.isNotEmpty) {
+            opt.choosenValue = c.first;
+          } else if (c != null) {
+            opt.choosenValue = c;
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  static const String _kLastSearchCatTypeKey = 'lastSearchCatType';
+
+  /// Load saved cat type from SharedPreferences and set server.selectedPersonalityCatTypeName
+  /// so the status chip bar shows the cat type (e.g. "🎯 Lap Legend") on first display.
+  Future<void> _loadSavedCatTypeForStatusBar() async {
+    try {
+      final prefs = await _prefs;
+      final saved = prefs.getString(_kLastSearchCatTypeKey);
+      if (saved == null || saved.isEmpty || saved == 'none') {
+        server.setSelectedPersonalityCatTypeName(null);
+        return;
+      }
+      if (saved == 'my_type') {
+        server.setSelectedPersonalityCatTypeName('Custom');
+        return;
+      }
+      server.setSelectedPersonalityCatTypeName(saved);
+    } catch (_) {}
+  }
+
   /// Load filters and filterProcessing from SharedPreferences
   Future<void> _loadFiltersFromPrefs() async {
     try {
@@ -171,6 +231,9 @@ class AdoptGridState extends State<AdoptGrid> {
           operation: f.operation,
           criteria: f.criteria,
         )).toList();
+
+        // Sync to filterOption list so status chip bar shows chosen options on first display
+        _applyLoadedFiltersToFilterOptions();
 
         print('✅ Loaded ${filters.length} filters and filterProcessing from SharedPreferences');
       } else {
@@ -241,6 +304,36 @@ Widget build(BuildContext context) {
               ],
             ),
           ),
+          // Status chip bar: active filters + "+N more" (tapping more opens search).
+          // When no filters are active, show a single "Set filters" chip so the bar is always visible.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: StatusChipBar(
+              onDarkBackground: true,
+              chips: () {
+                final selectedCatTypeName = server.selectedPersonalityCatTypeName;
+                final matchStyle = (selectedCatTypeName != null && selectedCatTypeName.trim().isNotEmpty)
+                    ? searchConfig.MatchStyleState.preset(selectedCatTypeName.trim())
+                    : searchConfig.MatchStyleState.notSet;
+                final chips = searchConfig.buildStatusChips(
+                  filters: filteringOptions,
+                  matchStyle: matchStyle,
+                  maxChips: 4,
+                  onMoreTap: search,
+                );
+                if (chips.isEmpty) {
+                  return [
+                    searchConfig.ChipModel(
+                      label: '🔍 Set filters',
+                      priority: 0,
+                      onTap: search,
+                    ),
+                  ];
+                }
+                return chips;
+              }(),
+            ),
+          ),
           // MESSAGE UNDER ZIP / STATUS
           if (count != "Processing" && tiles.isEmpty)
             Padding(
@@ -279,6 +372,8 @@ Widget build(BuildContext context) {
                   child: GoldPetCard(
                     tile: tiles[index],
                     favorites: favorites,
+                    onVideoBadgeFirstSeen: _onVideoBadgeFirstSeen,
+                    showVideoGlow: _videoBadgeGlowIds.contains(tiles[index].id ?? ''),
                   ),
                 );
               },
@@ -368,6 +463,8 @@ Future<void> _clearZipCode() async {
     tiles = [];
     loadedPets = 0;
     maxPets = -1;
+    _videoBadgeSeenIds.clear();
+    _videoBadgeGlowIds.clear();
   });
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
@@ -438,6 +535,8 @@ Future<void> askForZip() async {
       tiles = [];
       loadedPets = 0;
       maxPets = -1;
+      _videoBadgeSeenIds.clear();
+      _videoBadgeGlowIds.clear();
       getPets();
     } else if (isValid == null) {
       // Network error
@@ -577,6 +676,8 @@ void search() async {
       tiles = [];
       loadedPets = 0;
       maxPets = -1;
+      _videoBadgeSeenIds.clear();
+      _videoBadgeGlowIds.clear();
       main.favoritesSelected = false;
       widget.setFav?.call(false);
       getPets();
@@ -594,8 +695,23 @@ void setFavorites(bool favorited) {
     tiles = [];
     loadedPets = 0;
     maxPets = -1;
+    _videoBadgeSeenIds.clear();
+    _videoBadgeGlowIds.clear();
 
     getPets();
+  });
+}
+
+// ----------------------------------------------------------------------
+//                    VIDEO BADGE FIRST-SEEN GLOW
+// ----------------------------------------------------------------------
+void _onVideoBadgeFirstSeen(String id) {
+  if (id.isEmpty || _videoBadgeSeenIds.contains(id)) return;
+  _videoBadgeSeenIds.add(id);
+  _videoBadgeGlowIds.add(id);
+  if (mounted) setState(() {});
+  Future.delayed(const Duration(seconds: 2), () {
+    if (mounted) setState(() => _videoBadgeGlowIds.remove(id));
   });
 }
 
@@ -624,6 +740,8 @@ void getPets() async {
       "https://api.rescuegroups.org/v5/public/animals/search/available";
   String url =
       "$baseUrl?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status,descriptionText"
+      "&fields[orgs]=id,name,citystate"
+      "&include=orgs,pictures,locations,statuses,videos"
       "&sort=$sortMethod&limit=25&page=$currentPage";
 
   if (main.favoritesSelected) {
@@ -727,6 +845,8 @@ void getPets() async {
 
   final encodedUrl = url.replaceAll('[', '%5B').replaceAll(']', '%5D');
 
+  print('🔗 Find animals search URL: $encodedUrl');
+
   // RescueGroups API requires application/vnd.api+json; using application/json can cause filters to be ignored
   var response = await http.post(
     Uri.parse(encodedUrl),
@@ -758,10 +878,13 @@ void getPets() async {
   }
 
   if (response.body.isEmpty) {
+    print('🔗 Animals search: request succeeded (200) but response body is empty');
     setState(() {
       tiles = [];
       maxPets = 0;
       count = "No Matches";
+      _videoBadgeSeenIds.clear();
+      _videoBadgeGlowIds.clear();
     });
     return;
   }
@@ -770,9 +893,11 @@ void getPets() async {
     var jsonMap = jsonDecode(response.body);
 
     Meta meta = Meta.fromJson(jsonMap["meta"]);
+    print('🔗 Animals search: request succeeded (200). meta.count=${meta.count}, countReturned=${jsonMap["meta"]?["countReturned"] ?? "n/a"}');
     pet petDecoded;
 
     if (meta.count == 0) {
+      print('🔗 Animals search: API returned 0 matches (filters/location may exclude all animals)');
       petDecoded = pet(meta: meta, data: [], included: []);
     } else {
       petDecoded = pet.fromJson(jsonMap);
@@ -803,11 +928,13 @@ void getPets() async {
       });
     }
   } catch (e) {
-    print("JSON error: $e");
+    print("🔗 Animals search: request succeeded (200) but JSON parse failed: $e");
     setState(() {
       tiles = [];
       maxPets = 0;
       count = "No Matches";
+      _videoBadgeSeenIds.clear();
+      _videoBadgeGlowIds.clear();
     });
   }
   }

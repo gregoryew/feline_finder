@@ -278,7 +278,7 @@ class SearchAIService {
     "newPeopleReaction": {
       "field": "animals.newPeopleReaction",
       "description": "How the cat reacts to strangers or new people.",
-      "options": ["Cautious", "Friendly", "Protective", "Aggressive", "Any"],
+      "options": ["Cautious", "Friendly", "Any"],
       "keywords": {
         "positive": ["friendly", "sociable", "trusting"],
         "negative": ["shy", "timid", "hides from strangers"]

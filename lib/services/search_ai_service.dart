@@ -548,13 +548,14 @@ IMPORTANT: Pay close attention to what the user is asking for. Understand the in
 Use this schema structure:
 $schemaDefinition
 
-Return JSON in this exact format (omit "catType" if user does not ask for a personality type by name):
+Return JSON in this exact format (omit "catType" if user does not ask for a personality type by name; omit "sortBy" if user does not ask to sort):
 {
   "location": {
     "zip": "94040",
     "distance": "20"
   },
   "catType": "Velcro Cat",
+  "sortBy": "distance",
   "filters": {
     "breed": "Persian",
     "sizeGroup": "Medium",
@@ -575,6 +576,12 @@ CAT TYPE (personality type by name):
 - When the user asks for a cat by personality type NAME, set "catType" at the top level to that exact name. Use ONLY one of these exact names (case-sensitive): Professional Napper, Lap Legend, Zen Companion, Old Soul, Quiet Shadow, Zoomie Rocket, Parkour Cat, Toy Addict, Chaos Sprite, Forever Kitten, Velcro Cat, Cuddle Ambassador, Welcome Committee, Therapy Cat, Heart Healer, Solo Artist, Dignified Observer, Window Philosopher, Private Thinker, Gentle Hermit, Drama Monarch, Opinionated Roommate, Soap Opera Star, Mood Ring Cat, Attention Magnet, Routine Master, Puzzle Pro, Social Learner, Explorer Brain, Little Professor.
 - Examples: "I want a Velcro Cat" → "catType": "Velcro Cat". "Show me Zoomie Rocket types" → "catType": "Zoomie Rocket". "Professional Napper near me" → "catType": "Professional Napper" and include location.
 - Omit "catType" if the user does not mention one of these personality type names.
+
+SORT BY (optional top-level "sortBy"):
+- When the user asks to sort or order results, set "sortBy" at the top level to either "distance" or "date".
+- "distance": User says "sort by distance", "nearest", "closest", "by distance", "closest first", "nearest first", "order by distance".
+- "date": User says "sort by date", "most recent", "newest first", "by time", "recently added", "latest first", "order by date", "newest", "most recent first".
+- Omit "sortBy" if the user does not mention how to sort.
 
 IMPORTANT - Handling OR conditions:
 - When the user uses "or", "either", "either/or", or lists multiple options separated by "or" (e.g., "black or white", "small or medium", "Persian or Siamese"), return an ARRAY of values for ALL filters that support multiple selections

@@ -179,6 +179,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       title: 'Feline Finder',
+      showPerformanceOverlay: false, // Red number in corner is FPS/ms overlay; keep off in debug
       theme: ThemeData(
         fontFamily: 'Poppins',
         primarySwatch: Colors.blue,
@@ -438,6 +439,11 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
 
 // 9
   void _onItemTapped(int index) {
+    // When user taps 🐈 (Adopt) tab, dismiss fit help so "tap 🐈 to see your matches" is completed
+    if (index == 1) {
+      PersonalityFitScreenKey.currentState?.dismissHelpAndSave();
+      FitScreenKey.currentState?.dismissHelpAndSave();
+    }
     setState(() {
       _selectedIndex = index;
     });

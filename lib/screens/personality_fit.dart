@@ -264,8 +264,8 @@ class PersonalityFitState extends State<PersonalityFit> {
   // Local state for slider values to ensure reactivity
   final Map<int, double> _sliderValues = {};
 
-  // Track if instructions are dismissed
-  bool _instructionsDismissed = false;
+  // Help: 0 = first message, 1 = second message (after first slider move), 2 = dismissed (persisted)
+  int _helpPhase = 0;
 
   // Display order (cat type ids) and match % — avoid mutating global catType
   late List<int> _displayOrder;
@@ -332,27 +332,28 @@ class PersonalityFitState extends State<PersonalityFit> {
     _loadInstructionsState();
     
     // TEMPORARY: Uncomment the line below to reset instructions for testing
-    _resetInstructions();
+    // _resetInstructions();
   }
-  
+
   Future<void> _loadInstructionsState() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _instructionsDismissed = prefs.getBool('personality_fit_instructions_dismissed') ?? false;
+    final completed = prefs.getBool('personality_fit_instructions_dismissed') ?? false;
+    if (mounted) setState(() {
+      _helpPhase = completed ? 2 : 0;
     });
   }
-  
-  Future<void> _saveInstructionsState(bool dismissed) async {
+
+  Future<void> _saveHelpCompleted() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('personality_fit_instructions_dismissed', dismissed);
+    await prefs.setBool('personality_fit_instructions_dismissed', true);
   }
-  
+
   // Temporary method to reset instructions for testing
   Future<void> _resetInstructions() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('personality_fit_instructions_dismissed');
-    setState(() {
-      _instructionsDismissed = false;
+    if (mounted) setState(() {
+      _helpPhase = 0;
     });
   }
   
@@ -874,6 +875,9 @@ class PersonalityFitState extends State<PersonalityFit> {
                       ),
                       onChanged: (newValue) {
                         try {
+                          if (_helpPhase == 0) {
+                            setState(() => _helpPhase = 1);
+                          }
                           final roundedValue = newValue.round().clamp(0, question.choices.length - 1);
                           _sliderValues[question.id] = newValue;
                           globals.FelineFinderServer.instance
@@ -1010,8 +1014,8 @@ class PersonalityFitState extends State<PersonalityFit> {
     // Right column now only shows the breed cards (no animation square)
     return Column(
       children: [
-        // Instructions at the top (if not dismissed)
-        if (!_instructionsDismissed)
+        // Help message: phase 0 = first message, 1 = second (tap 🐈 to dismiss), 2 = gone
+        if (_helpPhase != 2)
           Container(
             margin: const EdgeInsets.only(bottom: 12.0, left: 5.0, right: 5.0),
             padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 12.0, bottom: 12.0),
@@ -1019,49 +1023,31 @@ class PersonalityFitState extends State<PersonalityFit> {
               gradient: AppTheme.purpleGradient,
               borderRadius: BorderRadius.circular(8.0),
             ),
-            child: Stack(
-              children: [
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: 28.0),
-                    child: Text(
-                      'Adjust sliders to see your top personality matches',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                // X button in top right
-                Positioned(
-                  top: 2,
-                  right: 2,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _instructionsDismissed = true;
-                      });
-                      _saveInstructionsState(true);
-                    },
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.3),
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            child: ClipRect(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(1, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  );
+                },
+                child: _helpPhase == 0
+                    ? const Text(
+                        'Adjust sliders to see your top personality matches',
+                        key: ValueKey<int>(0),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      )
+                    : _buildTapCatHelpMessage(key: const ValueKey<int>(1)),
+              ),
             ),
           ),
         // Cat type cards list (order from _displayOrder, match % from _displayPercentMatch)
@@ -1077,6 +1063,31 @@ class PersonalityFitState extends State<PersonalityFit> {
         ),
       ],
     );
+  }
+
+  Widget _buildTapCatHelpMessage({required Key key}) {
+    return KeyedSubtree(
+      key: key,
+      child: const Text(
+        "When you're ready, tap 🐈 tab to see your matches",
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.none,
+          height: 1.4,
+        ),
+        textAlign: TextAlign.center,
+        softWrap: true,
+      ),
+    );
+  }
+
+  /// Called when user taps the 🐈 (Adopt) tab; dismisses help and persists.
+  void dismissHelpAndSave() {
+    if (_helpPhase == 2) return;
+    setState(() => _helpPhase = 2);
+    _saveHelpCompleted();
   }
 
   /// Gets the match label based on percentage range
@@ -1114,7 +1125,7 @@ class PersonalityFitState extends State<PersonalityFit> {
   /// "Poor" (35-45), "Not a Match" (0-35)
   Widget _buildDotIndicator(double percentMatch) {
     final label =
-        _hasAnyPreference ? _getMatchLabel(percentMatch) : 'Set Your Preferences';
+        _hasAnyPreference ? _getMatchLabel(percentMatch) : 'Tune Match';
     
     return Text(
       label,
@@ -1130,7 +1141,7 @@ class PersonalityFitState extends State<PersonalityFit> {
   /// Build dot indicator for capture only (with overflow protection to remove yellow underlines)
   Widget _buildDotIndicatorForCapture(double percentMatch) {
     final label =
-        _hasAnyPreference ? _getMatchLabel(percentMatch) : 'Set Your Preferences';
+        _hasAnyPreference ? _getMatchLabel(percentMatch) : 'Tune Match';
     
     return ClipRect(
       clipBehavior: Clip.hardEdge,
@@ -1584,8 +1595,8 @@ class PersonalityFitState extends State<PersonalityFit> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Instructions if not dismissed
-                  if (!_instructionsDismissed)
+                  // Help message (same phase as main view)
+                  if (_helpPhase != 2)
                     Container(
                       margin: const EdgeInsets.only(bottom: 12.0, left: 5.0, right: 5.0),
                       padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 12.0, bottom: 12.0),
@@ -1593,11 +1604,8 @@ class PersonalityFitState extends State<PersonalityFit> {
                         gradient: AppTheme.purpleGradient,
                         borderRadius: BorderRadius.circular(8.0),
                       ),
-                      child: Stack(
-                        children: [
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.only(right: 28.0),
+                      child: _helpPhase == 0
+                          ? const Center(
                               child: Text(
                                 'Adjust sliders to see your top personality matches',
                                 style: TextStyle(
@@ -1610,27 +1618,21 @@ class PersonalityFitState extends State<PersonalityFit> {
                                 overflow: TextOverflow.visible,
                                 softWrap: true,
                               ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 2,
-                            right: 2,
-                            child: Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.3),
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                size: 14,
-                                color: Colors.white,
+                            )
+                          : const Center(
+                              child: Text(
+                                "When you're ready, tap 🐈 tab to see your matches",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.none,
+                                ),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.visible,
+                                softWrap: true,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   // Show only the top 6 breed cards in the generated image
                   // Use capture-specific breed card builder with correct width

@@ -1916,8 +1916,9 @@ class SearchScreenState extends State<SearchScreen> {
           filterData['location'] is Map &&
           (filterData['location'] as Map).isNotEmpty;
       final hasCatType = filterData['catType']?.toString().trim().isNotEmpty == true;
+      final hasSortBy = filterData['sortBy']?.toString().trim().isNotEmpty == true;
 
-      if (!hasFilters && !hasLocation && !hasCatType) {
+      if (!hasFilters && !hasLocation && !hasCatType && !hasSortBy) {
         _showError(
             'I couldn\'t understand your search. Try being more specific, like:\n'
             '• "black cat near me"\n'
@@ -2007,7 +2008,7 @@ class SearchScreenState extends State<SearchScreen> {
       // Close loading dialog
       Navigator.of(context).pop();
 
-      // Check if response is empty (filters, location, or cat type)
+      // Check if response is empty (filters, location, cat type, or sort)
       final hasFilters = filterData.containsKey('filters') &&
           filterData['filters'] is Map &&
           (filterData['filters'] as Map).isNotEmpty;
@@ -2015,8 +2016,9 @@ class SearchScreenState extends State<SearchScreen> {
           filterData['location'] is Map &&
           (filterData['location'] as Map).isNotEmpty;
       final hasCatType = filterData['catType']?.toString().trim().isNotEmpty == true;
+      final hasSortBy = filterData['sortBy']?.toString().trim().isNotEmpty == true;
 
-      if (!hasFilters && !hasLocation && !hasCatType) {
+      if (!hasFilters && !hasLocation && !hasCatType && !hasSortBy) {
         _showError(
             'I couldn\'t understand your search. Try being more specific, like:\n'
             '• "black cat near me"\n'
@@ -2286,10 +2288,11 @@ class SearchScreenState extends State<SearchScreen> {
     print(
         '🎯 _applyAIFilters called with: $filterData, animate: $animate, navigateDirect: $navigateDirect');
 
-    // Edge case: Null or empty response (allow filters, location, or catType)
+    // Edge case: Null or empty response (allow filters, location, catType, or sortBy)
     final hasAny = filterData.containsKey('filters') ||
         filterData.containsKey('location') ||
-        (filterData['catType']?.toString().trim().isNotEmpty == true);
+        (filterData['catType']?.toString().trim().isNotEmpty == true) ||
+        (filterData['sortBy']?.toString().trim().isNotEmpty == true);
     if (filterData.isEmpty || !hasAny) {
       print('❌ Filter data is empty or missing keys');
       _showError(
@@ -2346,10 +2349,12 @@ class SearchScreenState extends State<SearchScreen> {
     print('🎯 Location is empty: ${location?.isEmpty ?? true}');
 
     final hasCatTypeInData = filterData['catType']?.toString().trim().isNotEmpty == true;
+    final hasSortBy = filterData['sortBy']?.toString().trim().isNotEmpty == true;
     if ((filters == null || filters.isEmpty) &&
         (location == null || location.isEmpty) &&
-        !hasCatTypeInData) {
-      print('❌ Filters, location, and cat type are all empty/null');
+        !hasCatTypeInData &&
+        !hasSortBy) {
+      print('❌ Filters, location, cat type, and sortBy are all empty/null');
       _showError(
           'I couldn\'t find any matching filters in your search. Try examples like:\n'
           '• "black cat" or "Persian cat"\n'
@@ -2436,6 +2441,28 @@ class SearchScreenState extends State<SearchScreen> {
         print('Error applying location filters: $e');
         failedFilters.add('Location');
       }
+    }
+
+    // Apply sortBy from AI: AI interprets user intent and returns "distance" or "date"; we map to dropdown.
+    final sortByValue = filterData['sortBy']?.toString().trim().toLowerCase();
+    if (sortByValue == 'distance' || sortByValue == 'date') {
+      try {
+        final sortByFilter = widget.filteringOptions.firstWhere(
+          (f) => f.fieldName == 'sortBy',
+          orElse: () => widget.filteringOptions.first,
+        );
+        if (sortByFilter.fieldName == 'sortBy' && sortByFilter.options.isNotEmpty) {
+          final option = sortByFilter.options.firstWhere(
+            (opt) => opt.search.toString().toLowerCase() == sortByValue,
+            orElse: () => sortByFilter.options.first,
+          );
+          if (option.search.toString().toLowerCase() == sortByValue) {
+            sortByFilter.choosenValue = option.search;
+            appliedFilters.add('Sort: ${option.displayName}');
+            print('✅ Applied sortBy: ${option.displayName}');
+          }
+        }
+      } catch (_) {}
     }
 
     // Field name mapping with validation (AI schema key -> searchPageConfig fieldName)

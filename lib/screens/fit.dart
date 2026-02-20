@@ -41,8 +41,8 @@ class FitState extends State<Fit> {
   // Local state for slider values to ensure reactivity
   final Map<int, double> _sliderValues = {};
 
-  // Track if instructions are dismissed
-  bool _instructionsDismissed = false;
+  // Help: 0 = first message, 1 = second message (after first slider move), 2 = dismissed (persisted)
+  int _helpPhase = 0;
 
   // GlobalKeys for each question card
   late final Map<int, GlobalKey> _questionCardKeys;
@@ -97,22 +97,23 @@ class FitState extends State<Fit> {
 
   Future<void> _loadInstructionsState() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _instructionsDismissed = prefs.getBool(_instructionsDismissedKey) ?? false;
+    final completed = prefs.getBool(_instructionsDismissedKey) ?? false;
+    if (mounted) setState(() {
+      _helpPhase = completed ? 2 : 0;
     });
   }
-  
-  Future<void> _saveInstructionsState(bool dismissed) async {
+
+  Future<void> _saveHelpCompleted() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_instructionsDismissedKey, dismissed);
+    await prefs.setBool(_instructionsDismissedKey, true);
   }
-  
+
   // Temporary method to reset instructions for testing
   Future<void> _resetInstructions() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_instructionsDismissedKey);
-    setState(() {
-      _instructionsDismissed = false;
+    if (mounted) setState(() {
+      _helpPhase = 0;
     });
   }
   
@@ -473,6 +474,9 @@ class FitState extends State<Fit> {
                       ),
                       onChanged: (newValue) {
                         try {
+                          if (_helpPhase == 0) {
+                            setState(() => _helpPhase = 1);
+                          }
                           final roundedValue = newValue.round();
                           _sliderValues[question.id] = newValue;
                           globals.FelineFinderServer.instance
@@ -586,8 +590,8 @@ class FitState extends State<Fit> {
     // Right column now only shows the breed cards (no animation square)
     return Column(
       children: [
-        // Instructions at the top (if not dismissed)
-        if (!_instructionsDismissed)
+        // Help message: phase 0 = first message, 1 = second (tap 🐈 to dismiss), 2 = gone
+        if (_helpPhase != 2)
           Container(
             margin: const EdgeInsets.only(bottom: 12.0, left: 5.0, right: 5.0),
             width: double.infinity,
@@ -596,50 +600,34 @@ class FitState extends State<Fit> {
               gradient: AppTheme.purpleGradient,
               borderRadius: BorderRadius.circular(8.0),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _instructionsDismissed = true;
-                        });
-                        _saveInstructionsState(true);
-                      },
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.3),
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
+            child: ClipRect(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(1, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  );
+                },
+                child: _helpPhase == 0
+                    ? Text(
+                        'Adjust sliders to see top breed matches',
+                        key: const ValueKey<int>(0),
+                        style: const TextStyle(
+                          fontSize: 12,
                           color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.none,
+                          height: 1.4,
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Adjust sliders to see top breed matches',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.none,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                  softWrap: true,
-                ),
-              ],
+                        textAlign: TextAlign.center,
+                        softWrap: true,
+                      )
+                    : _buildTapCatHelpMessage(key: const ValueKey<int>(1)),
+              ),
             ),
           ),
         // Breed cards list
@@ -696,6 +684,31 @@ class FitState extends State<Fit> {
     }
   }
 
+  Widget _buildTapCatHelpMessage({required Key key}) {
+    return KeyedSubtree(
+      key: key,
+      child: const Text(
+        "When you're ready, tap 🐈 tab to see your matches",
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.none,
+          height: 1.4,
+        ),
+        textAlign: TextAlign.center,
+        softWrap: true,
+      ),
+    );
+  }
+
+  /// Called when user taps the 🐈 (Adopt) tab; dismisses help and persists.
+  void dismissHelpAndSave() {
+    if (_helpPhase == 2) return;
+    setState(() => _helpPhase = 2);
+    _saveHelpCompleted();
+  }
+
   /// True when every Breed Fit slider is set to "Flexible" (value 0).
   bool _allSlidersSetToDontMatter() {
     final sv = globals.FelineFinderServer.instance.sliderValue;
@@ -703,10 +716,10 @@ class FitState extends State<Fit> {
   }
 
   /// Creates a label widget showing breed match percentage
-  /// Shows "Set Your Preference" when all sliders are Flexible; otherwise
+  /// Shows "Tune Match" when all sliders are Flexible; otherwise
   /// text labels: "Purrfect" (95-100), "Excellent" (90-95), "Great" (85-90), etc.
   Widget _buildDotIndicator(double percentMatch, {bool allSlidersDontMatter = false}) {
-    final label = allSlidersDontMatter ? 'Set Your Preference' : _getMatchLabel(percentMatch);
+    final label = allSlidersDontMatter ? 'Tune Match' : _getMatchLabel(percentMatch);
     
     return ClipRect(
       clipBehavior: Clip.hardEdge,
@@ -730,7 +743,7 @@ class FitState extends State<Fit> {
 
   /// Build dot indicator for capture only (with overflow protection to remove yellow underlines)
   Widget _buildDotIndicatorForCapture(double percentMatch, {bool allSlidersDontMatter = false}) {
-    final label = allSlidersDontMatter ? 'Set Your Preference' : _getMatchLabel(percentMatch);
+    final label = allSlidersDontMatter ? 'Tune Match' : _getMatchLabel(percentMatch);
     
     return ClipRect(
       clipBehavior: Clip.hardEdge,
@@ -1172,8 +1185,8 @@ class FitState extends State<Fit> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Instructions if not dismissed
-                  if (!_instructionsDismissed)
+                  // Help message (same phase as main view)
+                  if (_helpPhase != 2)
                     Container(
                       margin: const EdgeInsets.only(bottom: 12.0, left: 5.0, right: 5.0),
                       width: double.infinity,
@@ -1182,43 +1195,31 @@ class FitState extends State<Fit> {
                         gradient: AppTheme.purpleGradient,
                         borderRadius: BorderRadius.circular(8.0),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
+                      child: _helpPhase == 0
+                          ? const Text(
+                              'Adjust sliders to see top breed matches',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.none,
+                                height: 1.4,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Adjust sliders to see top breed matches',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              decoration: TextDecoration.none,
-                              height: 1.4,
+                              textAlign: TextAlign.center,
+                              softWrap: true,
+                            )
+                          : const Text(
+                              "When you're ready, tap 🐈 tab to see your matches",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.none,
+                                height: 1.4,
+                              ),
+                              textAlign: TextAlign.center,
+                              softWrap: true,
                             ),
-                            textAlign: TextAlign.center,
-                            softWrap: true,
-                          ),
-                        ],
-                      ),
                     ),
                   // Show only the top 6 breed cards in the generated image
                   // Use capture-specific breed card builder with correct width

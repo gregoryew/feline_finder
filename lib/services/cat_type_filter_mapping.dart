@@ -294,9 +294,10 @@ class CatTypeFilterMapping {
           } catch (_) {
             continue;
           }
+          final statVal = stat!.name == 'Independence' ? independenceStatValueMapped(stat.value) : stat.value;
           if (stat.isPercent) {
             sum += 1.0 -
-                (desiredValue - stat.value).abs() / (q.choices.length - 1);
+                (desiredValue - statVal).abs() / (q.choices.length - 1);
           } else {
             final traitValues = q.choices
                 .where((c) => c.lowRange > 0)
@@ -308,8 +309,8 @@ class CatTypeFilterMapping {
                     traitValues.reduce((a, b) => a < b ? a : b));
             final maxDistance = range < 1.0 ? 1.0 : range;
             final score = maxDistance <= 0
-                ? (desiredValue == stat.value ? 1.0 : 0.0)
-                : (1.0 - (desiredValue - stat.value).abs() / maxDistance)
+                ? (desiredValue == statVal ? 1.0 : 0.0)
+                : (1.0 - (desiredValue - statVal).abs() / maxDistance)
                     .clamp(0.0, 1.0);
             sum += score;
           }

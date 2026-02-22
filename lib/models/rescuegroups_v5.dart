@@ -19,13 +19,23 @@ class pet {
   final List<petDatum>? data;
   final List<Included>? included;
 
-  factory pet.fromJson(Map<dynamic, dynamic> json) => pet(
-        meta: Meta.fromJson(json["meta"]),
-        data:
-            List<petDatum>.from(json["data"].map((x) => petDatum.fromJson(x))),
-        included: List<Included>.from(
-            json["included"].map((x) => Included.fromJson(x))),
-      );
+  factory pet.fromJson(Map<dynamic, dynamic> json) {
+        final dataRaw = json["data"];
+        final includedRaw = json["included"];
+        final dataList = dataRaw is List ? dataRaw : null;
+        final includedList = includedRaw is List ? includedRaw : null;
+        return pet(
+          meta: json["meta"] != null ? Meta.fromJson(json["meta"] as Map<dynamic, dynamic>) : Meta.fromJson({}),
+          data: dataList == null
+              ? null
+              : List<petDatum>.from(
+                  dataList.map((x) => petDatum.fromJson(x as Map<dynamic, dynamic>))),
+          included: includedList == null
+              ? null
+              : List<Included>.from(
+                  includedList.map((x) => Included.fromJson(x as Map<dynamic, dynamic>))),
+        );
+      }
 
   Map<dynamic, dynamic> toJson() => {
         "meta": meta!.toJson(),

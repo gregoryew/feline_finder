@@ -56,33 +56,10 @@ class AppConfig {
     return '';
   }
 
-  // Google Maps API Configuration (used in toolbar)
-  // SECURITY: Use environment variable or --dart-define to avoid committing keys to git
-  // Option 1: flutter run --dart-define=GOOGLE_MAPS_API_KEY=your-key
-  // Option 2: export GOOGLE_MAPS_API_KEY=your-key (then flutter run)
-  static String get googleMapsApiKey {
-    final fromKeyStore = KeyStoreService.instance.getKey('GOOGLE_MAPS_API_KEY');
-    if (fromKeyStore.isNotEmpty) {
-      return fromKeyStore;
-    }
-
-    // First try --dart-define (for builds, most secure)
-    const keyFromDefine = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
-    if (keyFromDefine.isNotEmpty) {
-      return keyFromDefine;
-    }
-    
-    // Then try system environment variable (for development)
-    if (!kIsWeb) {
-      final keyFromEnv = Platform.environment['GOOGLE_MAPS_API_KEY'];
-      if (keyFromEnv != null && keyFromEnv.isNotEmpty) {
-        return keyFromEnv;
-      }
-    }
-    
-    // Fallback: Return empty string if not set
-    return '';
-  }
+  // Google Maps API Configuration (used in toolbar and map screen).
+  // Key is loaded from Firestore key_store only (no keys in code or native config).
+  static String get googleMapsApiKey =>
+      KeyStoreService.instance.getKey('GOOGLE_MAPS_API_KEY');
 
   // Gemini AI API Configuration
   // Get from: https://aistudio.google.com/app/apikey

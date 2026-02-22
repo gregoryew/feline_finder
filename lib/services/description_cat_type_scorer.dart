@@ -51,7 +51,8 @@ class DescriptionCatTypeScorer {
   static double _scoreCatType(CatType type, Set<String> descriptionTraits) {
     final highTraits = <String>[];
     for (final stat in type.stats) {
-      if (stat.value >= 4) highTraits.add(stat.name);
+      final v = stat.name == 'Independence' ? independenceStatValueMapped(stat.value) : stat.value;
+      if (v >= 4) highTraits.add(stat.name);
     }
     if (highTraits.isEmpty) return 0.0;
     final matched = highTraits.where((t) => descriptionTraits.contains(t)).length;
@@ -62,7 +63,8 @@ class DescriptionCatTypeScorer {
   static int _highTraitCount(CatType type) {
     int n = 0;
     for (final stat in type.stats) {
-      if (stat.value >= 4) n++;
+      final v = stat.name == 'Independence' ? independenceStatValueMapped(stat.value) : stat.value;
+      if (v >= 4) n++;
     }
     return n;
   }

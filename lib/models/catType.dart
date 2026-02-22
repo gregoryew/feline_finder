@@ -30,6 +30,12 @@ class StatValue {
   StatValue(this.name, this.isPercent, this.value);
 }
 
+/// Maps cat type Independence trait for display/comparison: 1→5, 2→4, 3→3, 4→2, 5→1, 0→0.
+double independenceStatValueMapped(double value) {
+  if (value <= 0) return 0;
+  return 6.0 - value.clamp(1.0, 5.0);
+}
+
 List<CatType> catType = [
   // 1–5 values: Energy, Playfulness, Affection, Independence, Sociability,
   //             Vocality, Confidence, Sensitivity, Adaptability, Intelligence

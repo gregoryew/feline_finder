@@ -21,6 +21,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/youtube-video-row.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import '../theme.dart';
+import '../network_utils.dart';
 import '../widgets/design_system.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -169,37 +170,50 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
-    var response = await http.post(Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': rescueGroupApi!
-        },
-        body: json.encode(data2.toJson()));
+    try {
+      var response = await http.post(Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+            'Authorization': rescueGroupApi!
+          },
+          body: json.encode(data2.toJson()));
 
-    if (response.statusCode == 200) {
-      // If the server did return a 200 OK response,
-      // then parse the JSON.
-      print("status 200");
-      var json = jsonDecode(response.body);
-      var meta = Meta.fromJson(json["meta"]);
-      if (meta.count == 0) {
-        maxPets = 0;
-        tiles = [];
-        return;
+      if (response.statusCode == 200) {
+        // If the server did return a 200 OK response,
+        // then parse the JSON.
+        print("status 200");
+        var json = jsonDecode(response.body);
+        var meta = Meta.fromJson(json["meta"]);
+        if (meta.count == 0) {
+          maxPets = 0;
+          tiles = [];
+          return;
+        }
+        pet petDecoded = petFromJson(response.body);
+        if (maxPets == -1) {
+          maxPets = (petDecoded.meta?.count ?? 0);
+        }
+        if (mounted) {
+          setState(() {
+            petDecoded.data?.forEach((petData) {
+              tiles.add(PetTileData(petData, petDecoded.included!));
+            });
+          });
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not load cats. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
-      pet petDecoded = petFromJson(response.body);
-      if (maxPets == -1) {
-        maxPets = (petDecoded.meta?.count ?? 0);
-      }
-      setState(() {
-        petDecoded.data?.forEach((petData) {
-          tiles.add(PetTileData(petData, petDecoded.included!));
-        });
-      });
-    } else {
-      // If the server did not return a 200 OK response,
-      // then throw an exception.
-      throw Exception('Failed to load pet ${response.body}');
+    } catch (e) {
+      loadedPets -= tilesPerLoad;
+      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
     }
   }
 
@@ -277,6 +291,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
       }
     } catch (e) {
       print('⚠️ Error reading from Firestore cache: $e, will try API');
+      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
     }
     
     // 3. Check if quota was exceeded in memory cache
@@ -397,6 +412,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
       }
     } catch (e) {
       print('❌ Error fetching YouTube playlist for ${widget.breed.name}: $e');
+      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
       setState(() {
         playlists = [];
       });

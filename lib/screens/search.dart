@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:catapp/models/searchPageConfig.dart';
@@ -6,7 +7,6 @@ import 'package:catapp/ExampleCode/RescueGroupsQuery.dart';
 import 'package:catapp/screens/globals.dart';
 import 'package:catapp/models/breed.dart';
 import 'package:catapp/screens/breedSelection.dart';
-import 'package:catapp/screens/select_shelters_screen.dart';
 import 'package:catapp/services/search_ai_service.dart';
 import 'package:catapp/services/cat_type_filter_mapping.dart';
 import 'package:catapp/models/catType.dart';
@@ -16,7 +16,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import '../theme.dart';
+import '../network_utils.dart';
 import 'search_screen_style.dart';
 
 /// Value for "Apply my type" in the cat type dropdown (value from personality sliders).
@@ -35,12 +37,20 @@ class SearchScreen extends StatefulWidget {
   final Map<CatClassification, List<filterOption>> categories;
   final List<filterOption> filteringOptions;
   final String userID;
+  /// When true, opened from Shelters screen: clear filters to species=cat + org only; Find Cats will apply and go to adoption list.
+  final bool fromShelterScreen;
+  /// When opening from Shelters tab "Select": pre-select this shelter and keep other filters as they were.
+  final List<String>? initialShelterOrgIds;
+  final List<String>? initialShelterNames;
 
   const SearchScreen({
     Key? key,
     required this.categories,
     required this.filteringOptions,
     required this.userID,
+    this.fromShelterScreen = false,
+    this.initialShelterOrgIds,
+    this.initialShelterNames,
   }) : super(key: key);
 
   @override
@@ -148,6 +158,14 @@ class SearchScreenState extends State<SearchScreen> {
 
     // Load saved search state after initialization
     _loadSearchState();
+
+    // When opened from Shelter screen: clear filters to species=cat only (org IDs already set in prefs)
+    if (widget.fromShelterScreen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _clearFiltersToDefaultsForShelter();
+      });
+    }
 
     // Load saved searches from Firestore
     _loadSavedSearches();
@@ -471,8 +489,8 @@ class SearchScreenState extends State<SearchScreen> {
         controller2.text = savedQuery;
       }
 
-      // Load filter values
-      final savedFiltersJson = prefs.getString('lastSearchFilters');
+      // Load filter values (skip when opened from Shelter screen; we clear to defaults there)
+      final savedFiltersJson = widget.fromShelterScreen ? null : prefs.getString('lastSearchFilters');
       if (savedFiltersJson != null && savedFiltersJson.isNotEmpty) {
         final Map<String, dynamic> savedFilters = jsonDecode(savedFiltersJson);
 
@@ -523,30 +541,40 @@ class SearchScreenState extends State<SearchScreen> {
         setState(() {});
       }
 
-      // Load selected shelters so they are retained when returning to search
-      final savedShelterOrgIds = prefs.getString('lastSearchShelterOrgIds');
-      final savedShelterNames = prefs.getString('lastSearchShelterNames');
-      if (savedShelterOrgIds != null && savedShelterOrgIds.isNotEmpty) {
-        try {
-          final ids = (jsonDecode(savedShelterOrgIds) as List<dynamic>)
-              .map((e) => e.toString())
-              .toList();
-          final names = savedShelterNames != null &&
-                  savedShelterNames.isNotEmpty
-              ? (jsonDecode(savedShelterNames) as List<dynamic>)
-                  .map((e) => e.toString())
-                  .toList()
-              : <String>[];
-          setState(() {
-            _selectedShelterOrgIds = ids;
-            _selectedShelterNames = ids
-                .asMap()
-                .entries
-                .map((e) =>
-                    e.key < names.length ? names[e.key] : '')
+      // Load selected shelters: use initial selection when opened from Shelters "Select", else from prefs
+      if (widget.initialShelterOrgIds != null && widget.initialShelterOrgIds!.isNotEmpty) {
+        setState(() {
+          _selectedShelterOrgIds = List<String>.from(widget.initialShelterOrgIds!);
+          _selectedShelterNames = widget.initialShelterNames != null &&
+                  widget.initialShelterNames!.length >= _selectedShelterOrgIds.length
+              ? List<String>.from(widget.initialShelterNames!)
+              : List.generate(_selectedShelterOrgIds.length, (i) => i < (widget.initialShelterNames?.length ?? 0) ? widget.initialShelterNames![i] : '');
+        });
+      } else {
+        final savedShelterOrgIds = prefs.getString('lastSearchShelterOrgIds');
+        final savedShelterNames = prefs.getString('lastSearchShelterNames');
+        if (savedShelterOrgIds != null && savedShelterOrgIds.isNotEmpty) {
+          try {
+            final ids = (jsonDecode(savedShelterOrgIds) as List<dynamic>)
+                .map((e) => e.toString())
                 .toList();
-          });
-        } catch (_) {}
+            final names = savedShelterNames != null &&
+                    savedShelterNames.isNotEmpty
+                ? (jsonDecode(savedShelterNames) as List<dynamic>)
+                    .map((e) => e.toString())
+                    .toList()
+                : <String>[];
+            setState(() {
+              _selectedShelterOrgIds = ids;
+              _selectedShelterNames = ids
+                  .asMap()
+                  .entries
+                  .map((e) =>
+                      e.key < names.length ? names[e.key] : '')
+                  .toList();
+            });
+          } catch (_) {}
+        }
       }
     } catch (e) {
       print('Error loading search state: $e');
@@ -612,6 +640,32 @@ class SearchScreenState extends State<SearchScreen> {
     } catch (e) {
       print('Error saving search state: $e');
     }
+  }
+
+  /// When opened from Shelter screen: set all filters to Any (org IDs already in prefs). generateFilters() always adds species=cat.
+  void _clearFiltersToDefaultsForShelter() {
+    for (var filter in widget.filteringOptions) {
+      if (filter.classification == CatClassification.saves) continue;
+      if (filter.list) {
+        if (filter.options.isEmpty) continue;
+        final anyOption = filter.options.lastWhere(
+          (o) => o.displayName == 'Any' || o.displayName == 'Change...' || o.search == 'Any' || o.search == 'Any Type',
+          orElse: () => filter.options.last,
+        );
+        filter.choosenListValues = [anyOption.value];
+      } else {
+        if (filter.fieldName == 'zipCode') continue;
+        if (filter.options.isEmpty) continue;
+        final anyOption = filter.options.firstWhere(
+          (o) => o.search == 'Any' || o.search == 'Any Type',
+          orElse: () => filter.options.first,
+        );
+        filter.choosenValue = anyOption.search;
+      }
+    }
+    _selectedCatTypeValue = null;
+    globals.FelineFinderServer.instance.setSelectedPersonalityCatTypeName(null);
+    setState(() {});
   }
 
   void _initializeFilterValues() {
@@ -1463,54 +1517,8 @@ class SearchScreenState extends State<SearchScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () async {
-                  final result = await Navigator.push<Map<String, dynamic>>(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          SelectSheltersScreen(
-                        initialSelectedOrgIds: _selectedShelterOrgIds,
-                        initialSelectedNames: _selectedShelterNames,
-                      ),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        const begin = Offset(1.0, 0.0);
-                        const end = Offset.zero;
-                        const curve = Curves.ease;
-                        var slideAnimation = Tween(begin: begin, end: end).animate(
-                          CurvedAnimation(parent: animation, curve: curve),
-                        );
-                        return SlideTransition(
-                          position: slideAnimation,
-                          child: child,
-                        );
-                      },
-                      transitionDuration: const Duration(milliseconds: 300),
-                      reverseTransitionDuration: const Duration(milliseconds: 300),
-                    ),
-                  );
-                  if (result != null && mounted) {
-                    setState(() {
-                      _selectedShelterOrgIds =
-                          (result['selectedOrgIds'] as List<dynamic>?)
-                              ?.map((e) => e.toString())
-                              .toList() ??
-                          [];
-                      _selectedShelterNames =
-                          (result['selectedShelterNames'] as List<dynamic>?)
-                              ?.map((e) => e.toString())
-                              .toList() ??
-                          [];
-                      if (_selectedShelterNames.length != _selectedShelterOrgIds.length) {
-                        final first = result['firstShelterName'] as String? ?? '';
-                        _selectedShelterNames = List.generate(
-                            _selectedShelterOrgIds.length,
-                            (i) => i < _selectedShelterNames.length
-                                ? _selectedShelterNames[i]
-                                : (i == 0 ? first : ''));
-                      }
-                    });
-                  }
+                onPressed: () {
+                  globals.onNavigateToSheltersTab?.call(context);
                 },
                 icon: const Icon(Icons.location_on, color: Colors.white),
                 label: Text(
@@ -1861,6 +1869,22 @@ class SearchScreenState extends State<SearchScreen> {
       return;
     }
 
+    // If offline, show standard network error and don't call AI
+    try {
+      final connectivity = FlutterNetworkConnectivity(
+        isContinousLookUp: false,
+        lookUpDuration: const Duration(seconds: 3),
+      );
+      final hasNetwork = await connectivity.isInternetConnectionAvailable();
+      if (hasNetwork != true && mounted) {
+        showNetworkErrorSnackBar(context);
+        return;
+      }
+    } catch (_) {
+      if (mounted) showNetworkErrorSnackBar(context);
+      return;
+    }
+
     // Show loading indicator
     showDialog(
       context: context,
@@ -1935,6 +1959,10 @@ class SearchScreenState extends State<SearchScreen> {
       // Close loading dialog
       Navigator.of(context).pop();
 
+      if (mounted && isNetworkError(e)) {
+        showNetworkErrorSnackBar(context);
+        return;
+      }
       final errorMsg = e.toString();
       if (errorMsg.contains('not initialized')) {
         _showError(
@@ -1958,6 +1986,22 @@ class SearchScreenState extends State<SearchScreen> {
           backgroundColor: Colors.orange,
         ),
       );
+      return;
+    }
+
+    // If offline, show standard network error and don't call AI
+    try {
+      final connectivity = FlutterNetworkConnectivity(
+        isContinousLookUp: false,
+        lookUpDuration: const Duration(seconds: 3),
+      );
+      final hasNetwork = await connectivity.isInternetConnectionAvailable();
+      if (hasNetwork != true && mounted) {
+        showNetworkErrorSnackBar(context);
+        return;
+      }
+    } catch (_) {
+      if (mounted) showNetworkErrorSnackBar(context);
       return;
     }
 
@@ -2034,6 +2078,10 @@ class SearchScreenState extends State<SearchScreen> {
       // Close loading dialog
       Navigator.of(context).pop();
 
+      if (mounted && isNetworkError(e)) {
+        showNetworkErrorSnackBar(context);
+        return;
+      }
       final errorMsg = e.toString();
       if (errorMsg.contains('not initialized')) {
         _showError(
@@ -3600,11 +3648,13 @@ class SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    // Body is above bottom bar; keyboard overlays from screen bottom. So toolbar must sit (bottomBar + safe area) lower to touch keyboard top.
+    final bottomBarHeight = MediaQuery.of(context).padding.bottom + 56;
 
     // Back button behavior: Cancel (exits without searching)
     // "Find Cats" button: Saves and performs search
     return Scaffold(
-      appBar: SearchScreenStyle.appBar(actions: [_buildHeaderClearFiltersButton()]),
+      appBar: SearchScreenStyle.appBar(context, actions: [_buildHeaderClearFiltersButton()]),
       resizeToAvoidBottomInset:
           false, // We'll handle keyboard positioning manually
       body: Stack(
@@ -3656,13 +3706,12 @@ class SearchScreenState extends State<SearchScreen> {
               bottom: keyboardHeight - 80,
               child: _buildKeyboardToolbar(),
             ),
-          // Zip code keyboard toolbar - appears above keyboard when zip code field is focused
-          // Bottom of toolbar touches top of keyboard
-          if (_zipCodeFocusNode.hasFocus && keyboardHeight > 100)
+          // Zip code keyboard toolbar - appears above keyboard when zip code field is focused (iOS only; Android has its own done key)
+          if (_zipCodeFocusNode.hasFocus && keyboardHeight > 100 && !Platform.isAndroid)
             Positioned(
               left: 0,
               right: 0,
-              bottom: keyboardHeight, // Bottom of toolbar touches top of keyboard
+              bottom: (keyboardHeight - bottomBarHeight).clamp(0.0, double.infinity),
               child: _buildZipCodeKeyboardToolbar(),
             ),
         ],
@@ -3988,6 +4037,7 @@ class SearchScreenState extends State<SearchScreen> {
       }
     } catch (e) {
       print('Error loading saved searches: $e');
+      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
     }
   }
 
@@ -4214,12 +4264,18 @@ class SearchScreenState extends State<SearchScreen> {
       );
     } catch (e) {
       print('Error saving search: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving search: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        if (isNetworkError(e)) {
+          showNetworkErrorSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving search. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -4352,12 +4408,18 @@ class SearchScreenState extends State<SearchScreen> {
       );
     } catch (e) {
       print('Error updating search: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating search: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        if (isNetworkError(e)) {
+          showNetworkErrorSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating search. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -4567,12 +4629,18 @@ class SearchScreenState extends State<SearchScreen> {
       );
     } catch (e) {
       print('Error loading saved search: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading search: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        if (isNetworkError(e)) {
+          showNetworkErrorSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error loading search. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -5002,6 +5070,181 @@ class SearchScreenState extends State<SearchScreen> {
           "Filter: ${filter.fieldName} ${filter.operation} ${filter.criteria}");
     }
     return FilterResult(filters, filterprocessing);
+  }
+
+  /// Build FilterResult from a list of filter options (e.g. after applying personality).
+  /// Uses same rules as [generateFilters]. [shelterOrgIds] optional for org filter.
+  static FilterResult generateFiltersFromOptions(
+    List<filterOption> filteringOptions, {
+    List<String>? shelterOrgIds,
+  }) {
+    DateTime date = DateTime.now();
+    List<Filters> filters = [];
+    List<String> segments = [];
+    int index = 1;
+
+    filters.add(Filters(
+        fieldName: "species.singular", operation: "equal", criteria: ["cat"]));
+    segments.add("$index");
+    index++;
+
+    for (var item in filteringOptions) {
+      if (item.classification == CatClassification.saves) continue;
+      if (item.classification == CatClassification.sort) {
+        if (item.fieldName == "sortBy") {
+          // skip; sortMethod not added as filter
+        } else if (item.fieldName == "distance") {
+          // skip; distance not added as filter
+        } else if (item.fieldName == "animals.updatedDate") {
+          if (!(item.choosenValue == "" || item.choosenValue == "Any")) {
+            if (item.choosenValue == "Day") {
+              date = date.subtract(const Duration(days: 1));
+            } else if (item.choosenValue == "Week") {
+              date = date.subtract(const Duration(days: 7));
+            } else if (item.choosenValue == "Month") {
+              date = date.subtract(const Duration(days: 30));
+            } else if (item.choosenValue == "Year") {
+              date = date.subtract(const Duration(days: 365));
+            }
+            final formattedDate = "${date.year.toString().padLeft(4, '0')}-"
+                "${date.month.toString().padLeft(2, '0')}-"
+                "${date.day.toString().padLeft(2, '0')}T00:00:00Z";
+            filters.add(Filters(
+                fieldName: "animals.updatedDate",
+                operation: "greaterthan",
+                criteria: formattedDate));
+            segments.add("$index");
+            index++;
+          }
+        }
+        continue;
+      }
+      if (item.list) {
+        if (item.choosenListValues.isEmpty) continue;
+        if (item.synonyms.isNotEmpty) {
+          int? anyOptionValue;
+          try {
+            final anyOption = item.options.firstWhere(
+              (opt) => opt.search == "Any" || opt.search == "Any Type",
+            );
+            anyOptionValue = anyOption.value;
+          } catch (e) {
+            anyOptionValue = null;
+          }
+          final nonAnyValues = anyOptionValue != null
+              ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
+              : item.choosenListValues;
+          if (nonAnyValues.isEmpty) continue;
+          final orIndices = <String>[];
+          for (var synonym in item.synonyms) {
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "contains",
+                criteria: [synonym]));
+            orIndices.add("$index");
+            index++;
+          }
+          segments.add("(${orIndices.join(" OR ")})");
+          continue;
+        }
+        if (item.classification == CatClassification.breed) {
+          final nonAnyValues = item.choosenListValues.where((v) => v != 0).toList();
+          if (nonAnyValues.isEmpty) continue;
+          List<String> breedIds = [];
+          for (var breedRid in nonAnyValues) {
+            try {
+              final breed = breeds.firstWhere((b) => b.rid == breedRid);
+              breedIds.add(breed.rid.toString());
+            } catch (e) {}
+          }
+          if (breedIds.isNotEmpty) {
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "equal",
+                criteria: breedIds));
+            segments.add("$index");
+            index++;
+          }
+        } else {
+          int? anyOptionValue;
+          try {
+            final anyOption = item.options.firstWhere(
+              (opt) => opt.search == "Any" || opt.search == "Any Type",
+            );
+            anyOptionValue = anyOption.value;
+          } catch (e) {
+            anyOptionValue = null;
+          }
+          final nonAnyValues = anyOptionValue != null
+              ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
+              : item.choosenListValues;
+          if (nonAnyValues.isEmpty) continue;
+          List<String> OptionsList = [];
+          for (var choosenValue in nonAnyValues) {
+            try {
+              final option = item.options.firstWhere(
+                (element) => element.value == choosenValue,
+              );
+              if (option.search == "Any" || option.search == "Any Type") continue;
+              OptionsList.add(option.search.toString());
+            } catch (e) {}
+          }
+          if (OptionsList.isNotEmpty) {
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "equal",
+                criteria: OptionsList));
+            segments.add("$index");
+            index++;
+          }
+        }
+      } else {
+        dynamic value = item.choosenValue;
+        if (value == null ||
+            value == "" ||
+            value == "Any" ||
+            value == "Any Type") continue;
+        String stringValue = value.toString().trim();
+        if (stringValue.isEmpty ||
+            stringValue.toLowerCase() == "any" ||
+            stringValue.toLowerCase() == "any type") continue;
+        if (item.options.isNotEmpty) {
+          var matchingOption = item.options.firstWhere(
+            (opt) => opt.value == value || opt.search == stringValue,
+            orElse: () => item.options.first,
+          );
+          if (matchingOption.search == "Any" ||
+              matchingOption.search == "Any Type") continue;
+        }
+        if (item.synonyms.isNotEmpty) {
+          final orIndices = <String>[];
+          for (var synonym in item.synonyms) {
+            filters.add(Filters(
+                fieldName: item.fieldName,
+                operation: "contains",
+                criteria: [synonym]));
+            orIndices.add("$index");
+            index++;
+          }
+          segments.add("(${orIndices.join(" OR ")})");
+          continue;
+        }
+        filters.add(Filters(
+            fieldName: item.fieldName,
+            operation: "equal",
+            criteria: [stringValue]));
+        segments.add("$index");
+        index++;
+      }
+    }
+    if (shelterOrgIds != null && shelterOrgIds.isNotEmpty) {
+      filters.add(Filters(
+          fieldName: "orgs.id",
+          operation: "equal",
+          criteria: shelterOrgIds));
+      segments.add("$index");
+    }
+    return FilterResult(filters, segments.join(" AND "));
   }
 
   static const String _kLastSearchCatTypeKey = 'lastSearchCatType';

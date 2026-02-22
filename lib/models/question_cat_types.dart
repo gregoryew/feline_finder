@@ -75,11 +75,11 @@ class Question_Cat_Types {
         'autonomy.gif',
         true, [
       Choice('Flexible', 0, 5, 1),
-      Choice('Very Independent', 1, 1, 6),
-      Choice('Somewhat Independent', 2, 2, 5),
+      Choice('Very Dependent', 1, 1, 6),
+      Choice('Somewhat Dependent', 2, 2, 5),
       Choice('Balanced', 3, 3, 4),
-      Choice('Somewhat Affectionate', 4, 4, 3),
-      Choice('Very Affectionate', 5, 5, 2),
+      Choice('Somewhat Independent', 4, 4, 3),
+      Choice('Very Independent', 5, 5, 2),
     ]),
     Question_Cat_Types(
         5,
@@ -135,11 +135,12 @@ class Question_Cat_Types {
         '',
         true,
         [
-          Choice('Flexible', 0, 4, 1),
-          Choice('Minimal', 1, 1, 5),
-          Choice('Low', 2, 2, 4),
-          Choice('Moderate', 3, 3, 3),
-          Choice('High', 4, 4, 2),
+          Choice('Flexible', 0, 5, 1),
+          Choice('Minimal', 1, 1, 6),
+          Choice('Low', 2, 2, 5),
+          Choice('Moderate', 3, 3, 4),
+          Choice('High', 4, 4, 3),
+          Choice('Very High', 5, 5, 2),
         ]),
     Question_Cat_Types(
         9,

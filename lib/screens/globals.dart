@@ -19,6 +19,14 @@ const serverName = "stingray-app-uadxu.ondigitalocean.app";
 const double petDetailImageHeight = 300;
 const double petDetailImageWidth = 330;
 String sortMethod = "animals.distance";
+/// When SearchScreen was opened from Shelters and user taps Find Cats, call this with the FilterResult so the app switches to Adopt tab and applies the search. Set by HomeScreen.
+void Function(dynamic searchResult)? onApplySearchAndSwitchToAdopt;
+/// When called with a BuildContext (e.g. from SearchScreen), pop that route and switch to Shelters tab. Set by HomeScreen.
+void Function(BuildContext)? onNavigateToSheltersTab;
+/// True when user opened Shelters tab from the search screen (Shelters button). Used to show "Select" and return to search with shelter selected.
+bool sheltersOpenedFromSearch = false;
+/// When user taps "Select" on a shelter (from search flow): switch to Adopt tab and open SearchScreen with this shelter selected. Set by HomeScreen.
+void Function(String orgId, String orgName)? onSelectShelterAndOpenSearch;
 int distance = 1000;
 int updatedSince = 4;
 List<String> listOfFavorites = [];
@@ -193,7 +201,7 @@ class FelineFinderServer {
     return _userID;
   }
 
-  void favoritePet(String userID, String petID) async {
+  Future<void> favoritePet(String userID, String petID) async {
     try {
       List<String> currentArray = await getFavorites(userID);
       if (!currentArray.contains(petID)) {
@@ -205,6 +213,7 @@ class FelineFinderServer {
       }
     } catch (e) {
       print("Error favoriting pet: $e");
+      rethrow;
     }
   }
 
@@ -235,7 +244,7 @@ class FelineFinderServer {
     }
   }
 
-  void unfavoritePet(String userID, String petID) async {
+  Future<void> unfavoritePet(String userID, String petID) async {
     try {
       List<String> currentArray = await getFavorites(userID);
       if (currentArray.contains(petID)) {
@@ -247,6 +256,7 @@ class FelineFinderServer {
       }
     } catch (e) {
       print("Error unfavoriting pet: $e");
+      rethrow;
     }
   }
 

@@ -39,8 +39,14 @@ class SearchScreenStyle {
   ];
 
   // ===== APP BAR =====
-  static AppBar appBar({List<Widget>? actions}) {
+  static AppBar appBar(BuildContext context, {List<Widget>? actions}) {
     return AppBar(
+      automaticallyImplyLeading: false,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.of(context).pop(),
+        color: gold,
+      ),
       title: const Text(
         'Search',
         style: TextStyle(

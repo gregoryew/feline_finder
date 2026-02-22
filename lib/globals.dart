@@ -109,7 +109,7 @@ class FelineFinderServer {
     }
   }
 
-  void favoritePet(String userID, String petID) async {
+  Future<void> favoritePet(String userID, String petID) async {
     print("favoritePet called");
     var response2 = await http.post(
       Uri.parse('https://octopus-app-s7q5v.ondigitalocean.app/favoritePet/'),
@@ -151,7 +151,7 @@ class FelineFinderServer {
     }
   }
 
-  void unfavoritePet(String userID, String petID) async {
+  Future<void> unfavoritePet(String userID, String petID) async {
     print("unfavorite pet called");
     var response = await http.post(
       Uri.parse('https://octopus-app-s7q5v.ondigitalocean.app/unfavoritePet/'),

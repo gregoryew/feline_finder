@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config.dart';
+import '../network_utils.dart';
 import '../ExampleCode/RescueGroupsQuery.dart';
 import '../ExampleCode/petTileData.dart';
 import '../models/rescuegroups_v5.dart';
@@ -138,9 +139,10 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
     } catch (e) {
       print('Error fetching favorite pets: $e');
       setState(() {
-        errorMessage = 'Failed to fetch favorite pets: $e';
+        errorMessage = 'Failed to fetch favorite pets. Please try again.';
         isLoading = false;
       });
+      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
     }
   }
 

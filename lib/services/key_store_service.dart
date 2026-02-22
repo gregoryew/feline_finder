@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+import '../network_utils.dart';
+
 /// Loads API keys from Firestore at app startup and keeps them in memory only.
 ///
 /// Collection: `key_store`
@@ -20,30 +22,47 @@ class KeyStoreService {
 
   final Map<String, String> _keys = {};
   bool _loaded = false;
+  bool _loadFailedWithNetworkError = false;
 
   bool get isLoaded => _loaded;
+
+  /// True if the last load() failed due to network (no internet / Firestore unavailable).
+  bool get loadFailedWithNetworkError => _loadFailedWithNetworkError;
+
+  /// Clear the load-failed flag (e.g. after showing a snackbar so we don't show again).
+  void clearLoadFailedFlag() {
+    _loadFailedWithNetworkError = false;
+  }
 
   /// Returns a key value from memory (empty if missing).
   String getKey(String keyName) => _keys[keyName] ?? '';
 
   /// Loads all keys from Firestore into memory.
   Future<void> load() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection(collectionName).get();
+    _loadFailedWithNetworkError = false;
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection(collectionName).get();
 
-    _keys.clear();
+      _keys.clear();
 
-    for (final doc in snapshot.docs) {
-      final data = doc.data();
-      final name = (data['key_name'] as String?)?.trim().isNotEmpty == true
-          ? (data['key_name'] as String).trim()
-          : doc.id;
-      final value = (data['key_value'] as String?) ?? '';
-      if (name.trim().isEmpty) continue;
-      _keys[name] = value;
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final name = (data['key_name'] as String?)?.trim().isNotEmpty == true
+            ? (data['key_name'] as String).trim()
+            : doc.id;
+        final value = (data['key_value'] as String?) ?? '';
+        if (name.trim().isEmpty) continue;
+        _keys[name] = value;
+      }
+
+      _loaded = true;
+    } catch (e) {
+      if (isNetworkError(e)) {
+        _loadFailedWithNetworkError = true;
+      }
+      // Don't rethrow - allow app to run with empty keys; UI can show network message
     }
-
-    _loaded = true;
   }
 
   /// Debug-only: seed Firestore `key_store` from compile-time defines.

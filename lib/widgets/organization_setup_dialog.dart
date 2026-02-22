@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../network_utils.dart';
 
 class OrganizationSetupDialog extends StatefulWidget {
   final String organizationId;
@@ -280,12 +281,16 @@ class _OrganizationSetupDialogState extends State<OrganizationSetupDialog> {
     } catch (e) {
       print('Error saving organization preferences: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save preferences: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (isNetworkError(e)) {
+          showNetworkErrorSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to save preferences. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         setState(() {
           _isSaving = false;
         });

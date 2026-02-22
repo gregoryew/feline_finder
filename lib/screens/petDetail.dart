@@ -24,6 +24,7 @@ import 'globals.dart' as globals;
 import 'package:get/get.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import '../theme.dart';
+import '../network_utils.dart';
 import '../gold_frame/gold_frame_panel.dart';
 
 class petDetail extends StatefulWidget {
@@ -69,7 +70,7 @@ class petDetailState extends State<petDetail>
       textAlign: TextAlign.center,
       style: TextStyle(fontSize: 15),
     ),
-    image: Image.asset("assets/icon/icon.png"),
+    image: Image.asset("assets/Icons/icon.png"),
     submitButtonText: 'Submit',
     commentHint: 'Please provide a comment here.',
     onCancelled: () => print('cancelled'),
@@ -107,6 +108,7 @@ class petDetailState extends State<petDetail>
           getPetDetail(widget.petID);
           _controller.addListener(_scrollListener);
         });
+        if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
       }
     }();
 
@@ -126,20 +128,25 @@ class petDetailState extends State<petDetail>
 
     print("URL = $url");
 
-    var response = await http.get(Uri.parse(url), headers: {
-      'Content-Type': 'application/json',
-      'Authorization': rescueGroupApi!
-    });
-
-    if (response.statusCode == 200) {
-      print("status 200");
-      setState(() {
-        shelterDetailInstance = Shelter.fromJson(jsonDecode(response.body));
-        loadAsset();
+    try {
+      var response = await http.get(Uri.parse(url), headers: {
+        'Content-Type': 'application/json',
+        'Authorization': rescueGroupApi!
       });
-    } else {
-      print("response.statusCode = ${response.statusCode}");
-      throw Exception('Failed to load pet ${response.body}');
+
+      if (response.statusCode == 200) {
+        print("status 200");
+        if (mounted) {
+          setState(() {
+            shelterDetailInstance = Shelter.fromJson(jsonDecode(response.body));
+            loadAsset();
+          });
+        }
+      } else {
+        print("response.statusCode = ${response.statusCode}");
+      }
+    } catch (e) {
+      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
     }
   }
 
@@ -170,27 +177,41 @@ class petDetailState extends State<petDetail>
 
     var data2 = RescueGroupsQuery.fromJson(data);
 
-    var response = await http.get(Uri.parse(url), headers: {
-      'Content-Type': 'application/json',
-      'Authorization': rescueGroupApi!
-    });
-
-    if (response.statusCode == 200) {
-      print("status 200");
-      var petDecoded = pet.fromJson(jsonDecode(response.body));
-      setState(() {
-        petDetailInstance = PetDetailData(
-          petDecoded.data![0],
-          petDecoded.included!,
-          petDecoded.data![0].relationships!.values.toList(),
-        );
-        getShelterDetail(petDetailInstance!.organizationID!);
-        loadAsset();
+    try {
+      var response = await http.get(Uri.parse(url), headers: {
+        'Content-Type': 'application/json',
+        'Authorization': rescueGroupApi!
       });
-      print("********DD = ${petDetailInstance?.media}");
-    } else {
-      print("response.statusCode = ${response.statusCode}");
-      throw Exception('Failed to load pet ${response.body}');
+
+      if (response.statusCode == 200) {
+        print("status 200");
+        var petDecoded = pet.fromJson(jsonDecode(response.body));
+        if (mounted) {
+          setState(() {
+            petDetailInstance = PetDetailData(
+              petDecoded.data![0],
+              petDecoded.included!,
+              petDecoded.data![0].relationships!.values.toList(),
+            );
+            getShelterDetail(petDetailInstance!.organizationID!);
+            loadAsset();
+          });
+        }
+        print("********DD = ${petDetailInstance?.media}");
+      } else {
+        print("response.statusCode = ${response.statusCode}");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not load pet details. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
     }
   }
 
@@ -300,11 +321,19 @@ class petDetailState extends State<petDetail>
               onTap: () async {
                 print("userID = $userID petID = ${widget.petID}");
                 if (isFavorited) {
-                  widget.server.unfavoritePet(userID, widget.petID);
-                  setState(() {
-                    isFavorited = false;
-                  });
-                  globals.listOfFavorites.remove(widget.petID);
+                  try {
+                    await widget.server.unfavoritePet(userID, widget.petID);
+                    if (mounted) {
+                      setState(() {
+                        isFavorited = false;
+                      });
+                      globals.listOfFavorites.remove(widget.petID);
+                    }
+                  } catch (e) {
+                    if (mounted && isNetworkError(e)) {
+                      showNetworkErrorSnackBar(context);
+                    }
+                  }
                 } else {
                   final SharedPreferences prefs =
                       await SharedPreferences.getInstance();
@@ -316,32 +345,40 @@ class petDetailState extends State<petDetail>
                     );
                   }
                   globals.listOfFavorites.add(widget.petID);
-                  widget.server.favoritePet(userID, widget.petID);
-                  setState(() {
-                    isFavorited = true;
-                  });
-                  
-                  // Show snackbar when cat is favorited
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text(
-                        'Saved! Return to main screen to see saves tab.',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      backgroundColor: Colors.blue,
-                      behavior: SnackBarBehavior.floating,
-                      margin: EdgeInsets.only(
-                        bottom: MediaQuery.of(context).size.height * 0.1,
-                        left: 16,
-                        right: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  );
+                  try {
+                    await widget.server.favoritePet(userID, widget.petID);
+                    if (mounted) {
+                      setState(() {
+                        isFavorited = true;
+                      });
+                      // Show snackbar when cat is favorited
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            'Saved! Return to main screen to see saves tab.',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.blue,
+                          behavior: SnackBarBehavior.floating,
+                          margin: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).size.height * 0.1,
+                            left: 16,
+                            right: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    globals.listOfFavorites.remove(widget.petID);
+                    if (mounted && isNetworkError(e)) {
+                      showNetworkErrorSnackBar(context);
+                    }
+                  }
                 }
-                print("Set changed to $isFavorited");
+                if (mounted) print("Set changed to $isFavorited");
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
@@ -561,7 +598,7 @@ class petDetailState extends State<petDetail>
                                         );
                                       },
                                     ),
-                                    // Page indicator dots at the bottom
+                                    // Page indicator dots at the bottom (play icon for video items); tap to go to that page
                                     if (petDetailInstance!.media.length > 1)
                                       Positioned(
                                         bottom: 10,
@@ -571,17 +608,40 @@ class petDetailState extends State<petDetail>
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: List.generate(
                                             petDetailInstance!.media.length,
-                                            (index) => Container(
-                                              width: 8,
-                                              height: 8,
-                                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: currentIndexPage == index
-                                                    ? AppTheme.goldBase
-                                                    : Colors.white.withOpacity(0.5),
-                                              ),
-                                            ),
+                                            (index) {
+                                              final isVideo = petDetailInstance!.media[index] is YouTubeVideo;
+                                              final isSelected = currentIndexPage == index;
+                                              final color = isSelected
+                                                  ? AppTheme.goldBase
+                                                  : Colors.white.withOpacity(0.5);
+                                              return GestureDetector(
+                                                onTap: () {
+                                                  _pageController.animateToPage(
+                                                    index,
+                                                    duration: const Duration(milliseconds: 300),
+                                                    curve: Curves.easeInOut,
+                                                  );
+                                                },
+                                                behavior: HitTestBehavior.opaque,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                                  child: isVideo
+                                                      ? Icon(
+                                                          Icons.play_circle_fill,
+                                                          size: 20,
+                                                          color: color,
+                                                        )
+                                                      : Container(
+                                                          width: 8,
+                                                          height: 8,
+                                                          decoration: BoxDecoration(
+                                                            shape: BoxShape.circle,
+                                                            color: color,
+                                                          ),
+                                                        ),
+                                                ),
+                                              );
+                                            },
                                           ),
                                         ),
                                       ),
@@ -634,7 +694,7 @@ class petDetailState extends State<petDetail>
               // Contact section using thin gold outline
               ThinGoldSection(
                 title: "Contact",
-                icon: Icons.location_on_outlined,
+                icon: Icons.public,
                 child: Text(
                   getAddress(petDetailInstance),
                   style: GoogleFonts.karla(

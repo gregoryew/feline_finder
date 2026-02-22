@@ -8,6 +8,7 @@ import '../services/appointment_service.dart';
 import '../services/email_service.dart';
 import '../services/content_moderator.dart';
 import '../config.dart';
+import '../network_utils.dart';
 import '../screens/globals.dart' as globals;
 
 class ScheduleAppointmentDialog extends StatefulWidget {
@@ -958,6 +959,13 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
       }
     } on FirebaseException catch (e) {
       print('❌ Firestore error: ${e.code} - ${e.message}');
+      if (e.code == 'unavailable' || isNetworkError(e)) {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+          showNetworkErrorSnackBar(context);
+        }
+        return;
+      }
       String errorMessage = 'Failed to create appointment';
       if (e.code == 'permission-denied') {
         errorMessage =
@@ -1015,6 +1023,10 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
       }
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog if any
+        if (isNetworkError(e)) {
+          showNetworkErrorSnackBar(context);
+          return;
+        }
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -1369,6 +1381,13 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
     } on FirebaseException catch (e) {
       print('❌ Firestore error: ${e.code} - ${e.message}');
       print('   Stack trace: ${e.stackTrace}');
+      if (e.code == 'unavailable' || isNetworkError(e)) {
+        if (context.mounted) {
+          Navigator.of(context).pop();
+          showNetworkErrorSnackBar(context);
+        }
+        return;
+      }
       String errorMessage = 'Failed to create booking';
       if (e.code == 'permission-denied') {
         errorMessage =
@@ -1434,6 +1453,10 @@ class _ScheduleAppointmentDialogState extends State<ScheduleAppointmentDialog> {
       }
       if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog if any
+        if (isNetworkError(e)) {
+          showNetworkErrorSnackBar(context);
+          return;
+        }
         showDialog(
           context: context,
           builder: (context) => AlertDialog(

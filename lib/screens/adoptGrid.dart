@@ -15,6 +15,8 @@ import '/screens/petDetail.dart';
 import '/screens/search.dart';
 import '../config.dart';
 import '../services/description_cat_type_scorer.dart';
+import '../services/cat_type_filter_mapping.dart';
+import '/models/catType.dart';
 import 'globals.dart' as globals;
 
 // GOLD UI COMPONENTS
@@ -23,6 +25,7 @@ import '../widgets/gold/gold_zip_button.dart';
 
 import '../theme.dart';
 import '../models/searchPageConfig.dart' as searchConfig;
+import '../network_utils.dart';
 import '../widgets/status_chip_bar.dart';
 
 class AdoptGrid extends StatefulWidget {
@@ -106,7 +109,7 @@ class AdoptGridState extends State<AdoptGrid> {
           }
         });
       } catch (e) {
-        // Fallback when Firestore fails
+        // Fallback when Firestore/auth fails
         setState(() {
           userID = "demo-user";
           favorites = [];
@@ -117,6 +120,7 @@ class AdoptGridState extends State<AdoptGrid> {
             count = "?";
           }
         });
+        if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
       }
     }();
   }
@@ -665,25 +669,75 @@ void search() async {
 
   if (result != null) {
     setState(() {
-      if (result is FilterResult) {
-        filters = result.filters;
-        filterprocessing = result.filterprocessing;
-      } else if (result is List<Filters>) {
-        filters = result;
-        filterprocessing = null;
-      }
-      filters_backup = filters;
-      tiles = [];
-      loadedPets = 0;
-      maxPets = -1;
-      _videoBadgeSeenIds.clear();
-      _videoBadgeGlowIds.clear();
-      main.favoritesSelected = false;
-      widget.setFav?.call(false);
-      getPets();
+      applySearchResult(result);
     });
   }
 }
+
+  /// Open SearchScreen with a single shelter pre-selected (e.g. from Shelters tab "Select").
+  void openSearchWithShelter(String orgId, String orgName) async {
+    var result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchScreen(
+          categories: _buildCategories(),
+          filteringOptions: filteringOptions,
+          userID: userID ?? "demo-user",
+          initialShelterOrgIds: [orgId],
+          initialShelterNames: [orgName],
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        applySearchResult(result);
+      });
+    }
+  }
+
+  /// Apply personality (Fit tab sliders) to current filter options and run search. Called when user taps Adopt from Fit and confirms "Search by your cat personality?".
+  Future<void> applyPersonalityAndSearch() async {
+    final top = CatTypeFilterMapping.getTopPersonalityCatType(server);
+    if (top == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Set your preferences on the Fit tab first'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+    CatTypeFilterMapping.applyCatTypeToFilterOptions(top, filteringOptions, server: server);
+    server.setSelectedPersonalityCatTypeName(top.name);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lastSearchCatType', 'my_type');
+    final result = SearchScreenState.generateFiltersFromOptions(filteringOptions);
+    if (mounted) setState(() => applySearchResult(result));
+  }
+
+  /// Apply a search result (FilterResult or List<Filters>) and run getPets. Used when returning from SearchScreen or when switching from Shelters + Find Cats.
+  void applySearchResult(dynamic result) {
+    if (result is FilterResult) {
+      filters = result.filters;
+      filterprocessing = result.filterprocessing;
+    } else if (result is List<Filters>) {
+      filters = result;
+      filterprocessing = null;
+    } else {
+      return;
+    }
+    filters_backup = filters;
+    tiles = [];
+    loadedPets = 0;
+    maxPets = -1;
+    _videoBadgeSeenIds.clear();
+    _videoBadgeGlowIds.clear();
+    main.favoritesSelected = false;
+    widget.setFav?.call(false);
+    getPets();
+  }
 
 // ----------------------------------------------------------------------
 //                           FAVORITES HANDLER
@@ -847,6 +901,7 @@ void getPets() async {
 
   print('🔗 Find animals search URL: $encodedUrl');
 
+  try {
   // RescueGroups API requires application/vnd.api+json; using application/json can cause filters to be ignored
   var response = await http.post(
     Uri.parse(encodedUrl),
@@ -936,6 +991,28 @@ void getPets() async {
       _videoBadgeSeenIds.clear();
       _videoBadgeGlowIds.clear();
     });
+  }
+  } catch (e) {
+    loadedPets -= tilesPerLoad;
+    if (mounted) {
+      setState(() {
+        if (tiles.isEmpty) {
+          count = "No Matches";
+        }
+      });
+      if (isNetworkError(e)) {
+        showNetworkErrorSnackBar(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Something went wrong. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+    print('🔗 Animals search failed: $e');
   }
   }
 

@@ -12,6 +12,7 @@ import '../config.dart';
 import 'package:uuid/uuid.dart';
 import 'schedule_appointment.dart';
 import '../theme.dart';
+import '../network_utils.dart';
 
 enum toolType { schedule, phone, map, email, share, meet }
 
@@ -104,7 +105,7 @@ class Tool extends StatelessWidget {
         return InkWell(
             child: Center(
                 child: _buildCircularIcon(
-                    context, Icons.map, AppTheme.traitCardBackground)),
+                    context, Icons.public, AppTheme.traitCardBackground)),
             onTap: () {
               map(context);
             });
@@ -244,6 +245,9 @@ class Tool extends StatelessWidget {
         text: detail?.description ?? "",
       );
     } catch (e) {
+      if (context.mounted && isNetworkError(e)) {
+        showNetworkErrorSnackBar(context);
+      }
       // Fallback to text-only sharing if file sharing fails
       await Share.share(
         '${detail?.name ?? "Pet"} - ${detail?.description ?? ""}',

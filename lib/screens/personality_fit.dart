@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:image/image.dart' as img;
 import 'package:video_player/video_player.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '/models/catType.dart';
 import '/models/question_cat_types.dart';
@@ -33,10 +34,13 @@ class _CatTypeVideoThenImage extends StatefulWidget {
   State<_CatTypeVideoThenImage> createState() => _CatTypeVideoThenImageState();
 }
 
-class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage> {
+class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage>
+    with SingleTickerProviderStateMixin {
   VideoPlayerController? _controller;
-  bool _showImage = false;
+  bool _showImage = true; // Start with image; play only when user taps play button
   bool _initialized = false;
+  bool _disposed = false;
+  AnimationController? _playButtonPulseController;
 
   // Video name matches the image name (base name) except extension.
   String get _videoAssetPath => 'assets/cat_types/${widget.baseName}_resized.mp4';
@@ -45,6 +49,10 @@ class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage> {
   @override
   void initState() {
     super.initState();
+    _playButtonPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     _init();
   }
 
@@ -55,10 +63,11 @@ class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage> {
       await controller.initialize();
       controller.setLooping(false);
       controller.addListener(_onTick);
-      await controller.play();
+      // Do not autoplay; wait for user to tap play button
       if (mounted) {
         setState(() {
           _initialized = true;
+          _showImage = true;
         });
       }
     } catch (_) {
@@ -91,71 +100,151 @@ class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage> {
     }
   }
 
+  void _replay() {
+    if (!mounted || _disposed) return;
+    final c = _controller;
+    if (c == null || !c.value.isInitialized) return;
+    c.seekTo(Duration.zero).then((_) {
+      if (!mounted || _disposed) return;
+      final controller = _controller;
+      if (controller == null) return;
+      setState(() => _showImage = false);
+      controller.play();
+    });
+  }
+
   @override
   void dispose() {
+    _disposed = true;
+    _playButtonPulseController?.dispose();
     final c = _controller;
     if (c != null) {
+      _controller = null;
       c.removeListener(_onTick);
-      c.dispose();
+      // Defer dispose so in-flight seekTo completion (which calls _updatePosition) can finish first
+      Future.delayed(const Duration(milliseconds: 200), () => c.dispose());
     }
     super.dispose();
   }
+
+  Widget _buildPlayButtonOverlay() {
+    final pulse = _playButtonPulseController;
+    final child = Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.black.withOpacity(0.7),
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.play_arrow,
+        size: 28,
+        color: Colors.white,
+      ),
+    );
+    return Positioned(
+      bottom: 12,
+      right: 12,
+      child: GestureDetector(
+        onTap: _replay,
+        child: pulse != null
+            ? AnimatedBuilder(
+                animation: pulse,
+                builder: (context, _) {
+                  final scale = 1.0 + (pulse.value * 0.05);
+                  return Transform.scale(scale: scale, child: child);
+                },
+              )
+            : child,
+      ),
+    );
+  }
+
+  static const double _visibilityThreshold = 0.15;
 
   @override
   Widget build(BuildContext context) {
     final c = _controller;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final dimension = constraints.maxWidth.isFinite
-            ? constraints.maxWidth.clamp(0.0, widget.size)
-            : widget.size;
+    return VisibilityDetector(
+      key: Key('cat_type_video_${widget.baseName}'),
+      onVisibilityChanged: (info) {
+        final fraction = info.visibleFraction;
+        final pulse = _playButtonPulseController;
+        if (pulse == null) return;
+        if (fraction < _visibilityThreshold) {
+          if (pulse.isAnimating) pulse.stop();
+        } else {
+          if (!pulse.isAnimating) pulse.repeat(reverse: true);
+        }
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final dimension = constraints.maxWidth.isFinite
+              ? constraints.maxWidth.clamp(0.0, widget.size)
+              : widget.size;
 
-        return Center(
-          child: SizedBox.square(
-            dimension: dimension,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                decoration: const BoxDecoration(gradient: AppTheme.purpleGradient),
-                child: _showImage
-                    ? Image.asset(
-                        _imageAssetPath,
-                        fit: BoxFit.cover,
-                        width: dimension,
-                        height: dimension,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(Icons.pets, color: AppTheme.offWhite, size: 48),
-                          );
-                        },
-                      )
-                    : (!_initialized || c == null || !c.value.isInitialized)
-                        ? const Center(
-                            child: SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppTheme.goldBase),
-                              ),
-                            ),
-                          )
-                        : FittedBox(
-                            fit: BoxFit.cover,
-                            clipBehavior: Clip.hardEdge,
-                            child: SizedBox(
-                              width: c.value.size.width,
-                              height: c.value.size.height,
-                              child: VideoPlayer(c),
-                            ),
-                          ),
+          return Center(
+            child: SizedBox.square(
+              dimension: dimension,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  decoration: const BoxDecoration(gradient: AppTheme.purpleGradient),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _showImage
+                          ? Image.asset(
+                              _imageAssetPath,
+                              fit: BoxFit.cover,
+                              width: dimension,
+                              height: dimension,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Center(
+                                  child: Icon(Icons.pets, color: AppTheme.offWhite, size: 48),
+                                );
+                              },
+                            )
+                          : (!_initialized || c == null || !c.value.isInitialized)
+                              ? const Center(
+                                  child: SizedBox(
+                                    width: 28,
+                                    height: 28,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppTheme.goldBase),
+                                    ),
+                                  ),
+                                )
+                              : FittedBox(
+                                  fit: BoxFit.cover,
+                                  clipBehavior: Clip.hardEdge,
+                                  child: SizedBox(
+                                    width: c.value.size.width,
+                                    height: c.value.size.height,
+                                    child: VideoPlayer(c),
+                                  ),
+                                ),
+                      if (_showImage && c != null && c.value.isInitialized)
+                        _buildPlayButtonOverlay(),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -248,6 +337,436 @@ class _CardVideoOverlayOnceState extends State<_CardVideoOverlayOnce> {
   }
 }
 
+class _GoldTrianglePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width * 0.5, 0) // point at top center
+      ..lineTo(0, size.height)
+      ..lineTo(size.width, size.height)
+      ..close();
+    final fillPaint = Paint()
+      ..color = AppTheme.goldBase
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, fillPaint);
+    final strokePaint = Paint()
+      ..color = Color(0xFF2B1E3A).withOpacity(0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawPath(path, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+const String _kCatTypeDetailPositivesExpandedKey = 'cat_type_detail_positives_expanded';
+const String _kCatTypeDetailNegativesExpandedKey = 'cat_type_detail_negatives_expanded';
+const String _kCatTypeDetailTraitsExpandedKey = 'cat_type_detail_traits_expanded';
+const String _kCatTypeDetailShowOnlyChosenStatsKey = 'cat_type_detail_show_only_chosen_stats';
+
+class _CatTypeDetailContent extends StatefulWidget {
+  final CatType type;
+  final bool initialTraitsExpanded;
+  final bool initialPositivesExpanded;
+  final bool initialNegativesExpanded;
+  final bool initialShowOnlyChosenStats;
+  final double? Function(String) userPreferenceForStat;
+
+  const _CatTypeDetailContent({
+    required this.type,
+    required this.initialTraitsExpanded,
+    required this.initialPositivesExpanded,
+    required this.initialNegativesExpanded,
+    required this.initialShowOnlyChosenStats,
+    required this.userPreferenceForStat,
+  });
+
+  @override
+  State<_CatTypeDetailContent> createState() => _CatTypeDetailContentState();
+}
+
+class _CatTypeDetailContentState extends State<_CatTypeDetailContent> {
+  late bool _traitsExpanded;
+  late bool _positivesExpanded;
+  late bool _negativesExpanded;
+  late bool _showOnlyChosenStats;
+
+  @override
+  void initState() {
+    super.initState();
+    _traitsExpanded = widget.initialTraitsExpanded;
+    _positivesExpanded = widget.initialPositivesExpanded;
+    _negativesExpanded = widget.initialNegativesExpanded;
+    _showOnlyChosenStats = widget.initialShowOnlyChosenStats;
+  }
+
+  Future<void> _toggleShowOnlyChosenStats() async {
+    final next = !_showOnlyChosenStats;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kCatTypeDetailShowOnlyChosenStatsKey, next);
+    if (mounted) setState(() => _showOnlyChosenStats = next);
+  }
+
+  Future<void> _toggleTraits() async {
+    final next = !_traitsExpanded;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kCatTypeDetailTraitsExpandedKey, next);
+    if (mounted) setState(() => _traitsExpanded = next);
+  }
+
+  Future<void> _togglePositives() async {
+    final next = !_positivesExpanded;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kCatTypeDetailPositivesExpandedKey, next);
+    if (mounted) setState(() => _positivesExpanded = next);
+  }
+
+  Future<void> _toggleNegatives() async {
+    final next = !_negativesExpanded;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kCatTypeDetailNegativesExpandedKey, next);
+    if (mounted) setState(() => _negativesExpanded = next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final type = widget.type;
+    const double stickyBarPadding = 5.0;
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  type.name,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                if (type.tagline.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    type.tagline,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontStyle: FontStyle.italic,
+                      color: AppTheme.goldBase,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Text(
+                  type.description,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.white,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                RepaintBoundary(
+                  child: Center(
+                    child: _CatTypeVideoThenImage(baseName: type.imageName, size: 200),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: _toggleTraits,
+                  child: Row(
+                    children: [
+                      Text(
+                        'Personality traits',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.goldBase,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        _traitsExpanded ? Icons.expand_less : Icons.expand_more,
+                        color: AppTheme.goldBase,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                if (_traitsExpanded) ...[
+                  const SizedBox(height: 8),
+                  ...() {
+                    final statsToShow = _showOnlyChosenStats
+                        ? type.stats.where((s) => widget.userPreferenceForStat(s.name) != null).toList()
+                        : type.stats;
+                    if (statsToShow.isEmpty && _showOnlyChosenStats) {
+                      return [
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'No preferences set for this cat type.',
+                            style: TextStyle(fontSize: 12, color: Colors.white54),
+                          ),
+                        ),
+                      ];
+                    }
+                    return statsToShow.map<Widget>((s) {
+                    // Independence: leave alone. Others: 1=1, 2=2, 3=3, 4=4, 5=5. Empty bar is 0.
+                    final statVal = s.value;
+                    final filledSegments = statVal <= 0 ? 0 : statVal.clamp(1.0, 5.0).round();
+                    final userPref = widget.userPreferenceForStat(s.name);
+                    // Except Independence: 0 = no triangle, 1=1, 2=2, 3=3, 4=4, 5=5. Independence: leave alone.
+                    final showTriangle = userPref != null &&
+                        (s.name == 'Independence' || userPref > 0);
+                    const triangleWidth = 14.0;
+                    const triangleHeight = 14.0;
+                    const barHeight = 8.0;
+                    const rowHeight = 14.0;
+                    const segmentCount = 5;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 110,
+                            child: Text(
+                              s.name,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: SizedBox(
+                              height: rowHeight,
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final barWidth = constraints.maxWidth;
+                                  // Triangle at center of segment: segment n has center at (n - 0.5) / 5
+                                  final left = showTriangle && userPref != null
+                                      ? (barWidth * ((userPref - 0.5) / segmentCount) - triangleWidth / 2)
+                                          .clamp(0.0, barWidth - triangleWidth)
+                                      : 0.0;
+                                  return Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Positioned(
+                                        left: 0,
+                                        right: 0,
+                                        top: (rowHeight - barHeight) / 2,
+                                        height: barHeight,
+                                        child: Row(
+                                          children: List.generate(segmentCount, (i) {
+                                            final segmentIndex = i + 1;
+                                            final isFilled = segmentIndex <= filledSegments;
+                                            final isFirst = i == 0;
+                                            final isLast = i == segmentCount - 1;
+                                            return Expanded(
+                                              child: Container(
+                                                margin: EdgeInsets.only(
+                                                  right: isLast ? 0 : 1,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: isFilled
+                                                      ? AppTheme.goldBase
+                                                      : Colors.white24,
+                                                  borderRadius: BorderRadius.horizontal(
+                                                    left: Radius.circular(isFirst ? 4 : 0),
+                                                    right: Radius.circular(isLast ? 4 : 0),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }),
+                                        ),
+                                      ),
+                                      if (showTriangle)
+                                        Positioned(
+                                          left: left,
+                                          top: 0,
+                                          child: CustomPaint(
+                                            size: const Size(triangleWidth, triangleHeight),
+                                            painter: _GoldTrianglePainter(),
+                                          ),
+                                        ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList();
+                  }(),
+                ],
+                const SizedBox(height: 14),
+                if (type.positives.isNotEmpty) ...[
+                  GestureDetector(
+                    onTap: _togglePositives,
+                    child: Row(
+                      children: [
+                        Icon(Icons.favorite_border, size: 18, color: AppTheme.goldBase),
+                        const SizedBox(width: 6),
+                        Text(
+                          'What You\'ll Love',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.goldBase,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          _positivesExpanded ? Icons.expand_less : Icons.expand_more,
+                          color: AppTheme.goldBase,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_positivesExpanded) ...[
+                    const SizedBox(height: 6),
+                    ...type.positives.map((p) => Padding(
+                      padding: const EdgeInsets.only(left: 24, bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '• ',
+                            style: TextStyle(fontSize: 13, color: AppTheme.goldBase),
+                          ),
+                          Expanded(
+                            child: Text(
+                              p,
+                              style: const TextStyle(fontSize: 13, color: Colors.white, height: 1.35),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                    const SizedBox(height: 10),
+                  ],
+                ],
+                if (type.negatives.isNotEmpty) ...[
+                  GestureDetector(
+                    onTap: _toggleNegatives,
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, size: 18, color: Colors.white70),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Good To Know',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white70,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          _negativesExpanded ? Icons.expand_less : Icons.expand_more,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_negativesExpanded) ...[
+                    const SizedBox(height: 6),
+                    ...type.negatives.map((n) => Padding(
+                      padding: const EdgeInsets.only(left: 24, bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('• ', style: TextStyle(fontSize: 13, color: Colors.white54)),
+                          Expanded(
+                            child: Text(
+                              n,
+                              style: const TextStyle(fontSize: 13, color: Colors.white70, height: 1.35),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
+                    const SizedBox(height: 14),
+                  ],
+                ],
+              ],
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.only(top: stickyBarPadding, bottom: stickyBarPadding, left: 24, right: 7),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              InkWell(
+                onTap: _toggleShowOnlyChosenStats,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        value: _showOnlyChosenStats,
+                        onChanged: (_) => _toggleShowOnlyChosenStats(),
+                        activeColor: AppTheme.goldBase,
+                        checkColor: const Color(0xFF2B1E3A),
+                        fillColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.selected)) return AppTheme.goldBase;
+                          return Colors.white24;
+                        }),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      const SizedBox(width: 0),
+                      Text(
+                        'See My Prefs (▲) Only',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  backgroundColor: AppTheme.goldBase.withOpacity(0.2),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(color: AppTheme.goldBase, width: 1),
+                  ),
+                ),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: AppTheme.goldBase, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class PersonalityFit extends StatefulWidget {
   const PersonalityFit({Key? key}) : super(key: key);
 
@@ -311,6 +830,22 @@ class PersonalityFitState extends State<PersonalityFit> {
     'Intelligence': 'Intelligence',
   };
 
+  /// User's preference for a stat (1-5 scale), or null if Flexible / no preference.
+  /// Independence bar is reversed so high bar = more independent, low bar = more affectionate.
+  double? _userPreferenceForStat(String statName) {
+    for (var q in Question_Cat_Types.questions) {
+      final mapped = _questionToStatName[q.name] ?? q.name;
+      if (mapped != statName) continue;
+      final sliderVal = (_sliderValues[q.id] ?? 0.0).round();
+      if (sliderVal <= 0 || sliderVal >= q.choices.length) return null;
+      final choice = q.choices[sliderVal];
+      if (choice.lowRange <= 0) return null; // Flexible
+      // Return 1-5 so popup segment/triangle: 1 = first segment, 5 = fifth segment
+      return choice.lowRange.toDouble().clamp(1.0, 5.0);
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -321,9 +856,18 @@ class PersonalityFitState extends State<PersonalityFit> {
       _sliderValues[question.id] = server.getPersonalityFitSliderValue(question.id).toDouble();
     }
 
-    // Initialize display order and match % from catType (no mutation of global list)
+    // Initialize display order and match % from catType (no mutation of global list).
+    // Always sort by score (desc) then alphabetically by name.
     _displayOrder = catType.map((c) => c.id).toList();
     _displayPercentMatch = { for (var c in catType) c.id: 1.0 };
+    _displayOrder.sort((a, b) {
+      final scoreComparison =
+          (_displayPercentMatch[b] ?? 0.0).compareTo(_displayPercentMatch[a] ?? 0.0);
+      if (scoreComparison != 0) return scoreComparison;
+      final nameA = catType.firstWhere((c) => c.id == a).name;
+      final nameB = catType.firstWhere((c) => c.id == b).name;
+      return nameA.compareTo(nameB);
+    });
     _lastTopId = _displayOrder.isNotEmpty ? _displayOrder.first : null;
     _hasAnyPreference = Question_Cat_Types.questions.any(
         (q) => server.getPersonalityFitSliderValue(q.id) > 0);
@@ -454,15 +998,20 @@ class PersonalityFitState extends State<PersonalityFit> {
     );
   }
 
-  void _showCatTypeDetail(BuildContext context, CatType type) {
+  Future<void> _showCatTypeDetail(BuildContext context, CatType type) async {
+    final prefs = await SharedPreferences.getInstance();
+    final initialT = prefs.getBool(_kCatTypeDetailTraitsExpandedKey) ?? false;
+    final initialP = prefs.getBool(_kCatTypeDetailPositivesExpandedKey) ?? false;
+    final initialN = prefs.getBool(_kCatTypeDetailNegativesExpandedKey) ?? false;
+    final initialShowOnly = prefs.getBool(_kCatTypeDetailShowOnlyChosenStatsKey) ?? false;
+    if (!context.mounted) return;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
-            padding: const EdgeInsets.all(24.0),
+            constraints: const BoxConstraints(maxWidth: 420, maxHeight: 700),
             decoration: BoxDecoration(
               gradient: AppTheme.purpleGradient,
               borderRadius: BorderRadius.circular(16.0),
@@ -474,79 +1023,13 @@ class PersonalityFitState extends State<PersonalityFit> {
                 ),
               ],
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        type.name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white70),
-                      onPressed: () => Navigator.of(context).pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                if (type.tagline.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    type.tagline,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                      color: AppTheme.goldBase,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Text(
-                  type.description,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.white,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _CatTypeVideoThenImage(baseName: type.imageName, size: 220),
-                const SizedBox(height: 24),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppTheme.goldBase.withOpacity(0.2),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(color: AppTheme.goldBase, width: 1),
-                      ),
-                    ),
-                    child: const Text(
-                      'Close',
-                      style: TextStyle(
-                        color: AppTheme.goldBase,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            child: _CatTypeDetailContent(
+              type: type,
+              initialTraitsExpanded: initialT,
+              initialPositivesExpanded: initialP,
+              initialNegativesExpanded: initialN,
+              initialShowOnlyChosenStats: initialShowOnly,
+              userPreferenceForStat: _userPreferenceForStat,
             ),
           ),
         );
@@ -693,6 +1176,97 @@ class PersonalityFitState extends State<PersonalityFit> {
 
     // Bump the key so external callers relying on it still see "a resort happened".
     _catTypeListKey++;
+  }
+
+  /// Heavy work: build desired from sliders, compute match %, sort. Called after slider change (deferred).
+  void _runResortAfterSliderChange() {
+    final server = globals.FelineFinderServer.instance;
+    final desired = <Map<String, dynamic>>[];
+    for (var q in Question_Cat_Types.questions) {
+      final sliderVal = server.getPersonalityFitSliderValue(q.id);
+      if (sliderVal > 0 && sliderVal < q.choices.length) {
+        final choice = q.choices[sliderVal];
+        final value = q.name == 'Independence' && choice.lowRange > 0
+            ? (6.0 - choice.lowRange)
+            : choice.lowRange.toDouble();
+        desired.add({
+          'questionId': q.id,
+          'name': q.name,
+          'value': value,
+        });
+      }
+    }
+
+    final newPercentMatch = <int, double>{};
+    for (var i = 0; i < catType.length; i++) {
+      final ct = catType[i];
+      double sum = 0;
+      for (var j = 0; j < desired.length; j++) {
+        try {
+          final questionId = desired[j]['questionId'] as int;
+          final questionName = desired[j]['name'] as String;
+          final desiredValue = desired[j]['value'] as double;
+
+          StatValue? stat;
+          try {
+            final statName = _questionToStatName[questionName] ?? questionName;
+            stat = ct.stats.firstWhere((s) => s.name == statName);
+          } catch (_) {
+            continue;
+          }
+
+          Question_Cat_Types? q;
+          try {
+            q = Question_Cat_Types.questions.firstWhere((q) => q.id == questionId);
+          } catch (_) {
+            continue;
+          }
+
+          final statVal = stat!.name == 'Independence' ? independenceStatValueMapped(stat.value) : stat.value;
+          if (stat.isPercent) {
+            sum += 1.0 -
+                (desiredValue - statVal).abs() / (q.choices.length - 1);
+          } else {
+            final traitValues = q.choices
+                .where((c) => c.lowRange > 0)
+                .map((c) => c.lowRange.toDouble())
+                .toList();
+            final range = traitValues.isEmpty
+                ? 4.0
+                : (traitValues.reduce((a, b) => a > b ? a : b) -
+                    traitValues.reduce((a, b) => a < b ? a : b));
+            final maxDistance = range < 1.0 ? 1.0 : range;
+            final score = maxDistance <= 0
+                ? (desiredValue == statVal ? 1.0 : 0.0)
+                : (1.0 - (desiredValue - statVal).abs() / maxDistance)
+                    .clamp(0.0, 1.0);
+            sum += score;
+          }
+        } catch (_) {
+          continue;
+        }
+      }
+      if (desired.isEmpty) {
+        newPercentMatch[ct.id] = 1.0;
+      } else {
+        newPercentMatch[ct.id] =
+            ((sum / desired.length) * 100).floorToDouble() / 100;
+      }
+    }
+
+    if (!mounted) return;
+    _hasAnyPreference = desired.isNotEmpty;
+    final newOrder = List<int>.from(catType.map((c) => c.id));
+    newOrder.sort((a, b) {
+      final matchComparison =
+          (newPercentMatch[b] ?? 0.0).compareTo(newPercentMatch[a] ?? 0.0);
+      if (matchComparison != 0) return matchComparison;
+      final nameA = catType.firstWhere((c) => c.id == a).name;
+      final nameB = catType.firstWhere((c) => c.id == b).name;
+      return nameA.compareTo(nameB);
+    });
+
+    _scheduleResort(newOrder: newOrder, newPercentMatch: newPercentMatch);
   }
 
   void _scheduleResort({
@@ -882,115 +1456,13 @@ class PersonalityFitState extends State<PersonalityFit> {
                           _sliderValues[question.id] = newValue;
                           globals.FelineFinderServer.instance
                               .setPersonalityFitSliderValue(question.id, roundedValue);
+                          setState(() {}); // Update slider thumb immediately
 
-                          // Build desired list from PersonalityFit slider storage
-                          final desired = <Map<String, dynamic>>[];
-                          final server = globals.FelineFinderServer.instance;
-                          for (var q in Question_Cat_Types.questions) {
-                            final sliderVal = server.getPersonalityFitSliderValue(q.id);
-                            if (sliderVal > 0 && sliderVal < q.choices.length) {
-                              final choice = q.choices[sliderVal];
-                              // Independence question: 1=Very Independent, 5=Very Affectionate;
-                              // stat scale: 1=low independence, 5=high. Invert so match is correct.
-                              final value = q.name == 'Independence' && choice.lowRange > 0
-                                  ? (6.0 - choice.lowRange)
-                                  : choice.lowRange.toDouble();
-                              desired.add({
-                                'questionId': q.id,
-                                'name': q.name,
-                                'value': value,
-                              });
-                            }
-                          }
-
-                          // Calculate percentMatch for each cat type (store in local state, do not mutate global catType)
-                          final newPercentMatch = <int, double>{};
-                          for (var i = 0; i < catType.length; i++) {
-                            final ct = catType[i];
-                            double sum = 0;
-                            for (var j = 0; j < desired.length; j++) {
-                              try {
-                                final questionId =
-                                    desired[j]['questionId'] as int;
-                                final questionName =
-                                    desired[j]['name'] as String;
-                                final desiredValue =
-                                    desired[j]['value'] as double;
-
-                                StatValue? stat;
-                                try {
-                                  final statName =
-                                      _questionToStatName[questionName] ??
-                                          questionName;
-                                  stat = ct.stats.firstWhere(
-                                    (s) => s.name == statName,
-                                  );
-                                } catch (_) {
-                                  continue;
-                                }
-
-                                Question_Cat_Types? q;
-                                try {
-                                  q = Question_Cat_Types.questions.firstWhere(
-                                    (q) => q.id == questionId,
-                                  );
-                                } catch (_) {
-                                  continue;
-                                }
-
-                                if (stat.isPercent) {
-                                  sum += 1.0 -
-                                      (desiredValue - stat.value).abs() /
-                                          (q.choices.length - 1);
-                                } else {
-                                  // Distance-based partial credit for trait scale (e.g. 1-5)
-                                  // so "High" energy (4) matches Zoomie Rocket (5) well, not "Not a Match"
-                                  final traitValues = q.choices
-                                      .where((c) => c.lowRange > 0)
-                                      .map((c) => c.lowRange.toDouble())
-                                      .toList();
-                                  final range = traitValues.isEmpty
-                                      ? 4.0
-                                      : (traitValues.reduce((a, b) => a > b ? a : b) -
-                                          traitValues.reduce((a, b) => a < b ? a : b));
-                                  final maxDistance = range < 1.0 ? 1.0 : range;
-                                  final score = maxDistance <= 0
-                                      ? (desiredValue == stat.value ? 1.0 : 0.0)
-                                      : (1.0 -
-                                              (desiredValue - stat.value).abs() / maxDistance)
-                                          .clamp(0.0, 1.0);
-                                  sum += score;
-                                }
-                              } catch (_) {
-                                continue;
-                              }
-                            }
-                            if (desired.isEmpty) {
-                              newPercentMatch[ct.id] = 1.0;
-                            } else {
-                              newPercentMatch[ct.id] =
-                                  ((sum / desired.length) * 100)
-                                          .floorToDouble() /
-                                      100;
-                            }
-                          }
-
-                          _hasAnyPreference = desired.isNotEmpty;
-                          final newOrder = List<int>.from(catType.map((c) => c.id));
-                          newOrder.sort((a, b) {
-                            final matchComparison = (newPercentMatch[b] ?? 0.0)
-                                .compareTo(newPercentMatch[a] ?? 0.0);
-                            if (matchComparison != 0) return matchComparison;
-                            final nameA = catType.firstWhere((c) => c.id == a).name;
-                            final nameB = catType.firstWhere((c) => c.id == b).name;
-                            return nameA.compareTo(nameB);
+                          // Defer heavy match/sort work so UI stays responsive for the next slider drag
+                          Future.microtask(() {
+                            if (!mounted) return;
+                            _runResortAfterSliderChange();
                           });
-
-                          setState(() {});
-                          _scheduleResort(
-                            newOrder: newOrder,
-                            newPercentMatch: newPercentMatch,
-                          );
                         } catch (e, stackTrace) {
                           // Log errors but don't crash the UI
                           // ignore: avoid_print

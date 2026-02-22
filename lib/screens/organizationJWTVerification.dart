@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/organization_verification_service.dart';
 import '../models/organization.dart';
 import '../services/portal_user_service.dart';
+import '../network_utils.dart';
 import '../widgets/organization_setup_dialog.dart';
 import 'errorPage.dart';
 
@@ -146,7 +147,11 @@ class _OrganizationJWTVerificationScreenState
         _showErrorDialog('Failed to complete verification. Please try again.');
       }
     } catch (e) {
-      _showErrorDialog('Error completing verification: $e');
+      if (mounted && isNetworkError(e)) {
+        showNetworkErrorSnackBar(context);
+      } else {
+        _showErrorDialog('Error completing verification. Please try again.');
+      }
     } finally {
       setState(() {
         _isCompleting = false;

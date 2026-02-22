@@ -2,6 +2,7 @@ import 'dart:async';
 
 import "package:firebase_auth/firebase_auth.dart";
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
@@ -9,9 +10,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:google_map_dynamic_key/google_map_dynamic_key.dart';
+import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import 'services/search_ai_service.dart';
 import 'services/key_store_service.dart';
 import 'theme.dart';
+import 'network_utils.dart';
 import 'screens/globals.dart' as globals;
 import 'config.dart';
 // Import webview platform implementations to ensure they're registered
@@ -21,12 +25,84 @@ import '/screens/breedList.dart';
 import '/screens/fit.dart';
 import '/screens/personality_fit.dart';
 import '/screens/favoritesList.dart';
+import '/screens/shelters_near_you_screen.dart';
 import '/widgets/gold/gold_circle_icon_button.dart';
 
 FirebaseAuth? auth;
 // final gsi.GoogleSignIn googleSignIn = gsi.GoogleSignIn();
 
 final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
+
+/// If non-null, startup failed critically; show blocking screen and do not let user continue.
+/// User must correct the situation and tap Retry (or close the app).
+String? startupFailureMessage;
+
+/// Retries the startup steps that can fail due to network. Returns true if retry succeeded.
+Future<bool> retryStartup() async {
+  startupFailureMessage = null;
+
+  try {
+    final connectivity = FlutterNetworkConnectivity(
+      isContinousLookUp: false,
+      lookUpDuration: const Duration(seconds: 5),
+    );
+    final hasNetwork = await connectivity.isInternetConnectionAvailable();
+    if (hasNetwork != true) {
+      startupFailureMessage =
+          'No internet connection. Please check your network and try again.';
+      return false;
+    }
+  } catch (e) {
+    startupFailureMessage =
+        'No internet connection. Please check your network and try again.';
+    return false;
+  }
+
+  if (auth == null) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      auth = FirebaseAuth.instance;
+    } catch (e) {
+      print('Firebase initialization retry failed: $e');
+      startupFailureMessage =
+          'The app could not connect. Please check your internet connection and try again.';
+      return false;
+    }
+  }
+
+  await _initializeAuth();
+  if (startupFailureMessage != null) return false;
+
+  if (auth != null) {
+    try {
+      await KeyStoreService.instance.load();
+      if (KeyStoreService.instance.loadFailedWithNetworkError) {
+        startupFailureMessage =
+            'The app could not load required data. Please check your internet connection and try again.';
+        return false;
+      }
+      final mapsKey = KeyStoreService.instance.getKey('GOOGLE_MAPS_API_KEY');
+      if (mapsKey.isNotEmpty) {
+        try {
+          await GoogleMapDynamicKey().setGoogleApiKey(mapsKey);
+        } catch (e) {
+          print('Google Maps API key set failed: $e');
+        }
+      }
+    } catch (e) {
+      print('KeyStore retry failed: $e');
+      if (isNetworkError(e)) {
+        startupFailureMessage =
+            'The app could not load required data. Please check your internet connection and try again.';
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
 
 class _ManualZipResult {
   final String zip;
@@ -37,12 +113,7 @@ class _ManualZipResult {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Track start time to ensure minimum 3-second display
-  final startTime = DateTime.now();
-
-  // Add a small delay to prevent Firestore lock errors
-  await Future.delayed(const Duration(milliseconds: 500));
-
+  // Block only on Firebase so the first frame can paint quickly (splash visible).
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -50,51 +121,93 @@ void main() async {
     auth = FirebaseAuth.instance;
   } catch (e) {
     print('Firebase initialization failed: $e');
-    // Continue without Firebase for now
     auth = null;
   }
 
-  // Initialize authentication
-  await _initializeAuth();
+  // Lazy-load the rest of startup after first frame so splash appears immediately.
+  final completer = Completer<void>();
+  runApp(MyApp(initFuture: completer.future));
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _initializeAppRest().then((_) {
+      if (!completer.isCompleted) completer.complete();
+    }).catchError((e, st) {
+      if (!completer.isCompleted) completer.complete();
+    });
+  });
+}
 
-  // Seed + load API keys from Firestore (in-memory only)
+/// Runs post-Firebase startup work in the background; splash stays visible until this completes.
+Future<void> _initializeAppRest() async {
+  // Explicit connectivity check: if device has no network (e.g. airplane mode),
+  // show the failure screen immediately.
+  try {
+    final connectivity = FlutterNetworkConnectivity(
+      isContinousLookUp: false,
+      lookUpDuration: const Duration(seconds: 5),
+    );
+    final hasNetwork = await connectivity.isInternetConnectionAvailable();
+    if (hasNetwork != true) {
+      startupFailureMessage =
+          'No internet connection. Please check your network and try again.';
+      return;
+    }
+  } catch (e) {
+    startupFailureMessage =
+        'No internet connection. Please check your network and try again.';
+    return;
+  }
+
+  if (auth == null) {
+    startupFailureMessage ??=
+        'The app could not connect. Please check your internet connection and try again.';
+    return;
+  }
+
+  await _initializeAuth();
+  if (startupFailureMessage != null) return;
+
   if (auth != null) {
     try {
       await KeyStoreService.instance.seedFromDefinesIfEnabled();
       await KeyStoreService.instance.load();
+      if (KeyStoreService.instance.loadFailedWithNetworkError) {
+        startupFailureMessage ??=
+            'The app could not load required data. Please check your internet connection and try again.';
+        return;
+      }
+      final mapsKey = KeyStoreService.instance.getKey('GOOGLE_MAPS_API_KEY');
+      if (mapsKey.isNotEmpty) {
+        try {
+          await GoogleMapDynamicKey().setGoogleApiKey(mapsKey);
+        } catch (e) {
+          print('Google Maps API key set failed: $e');
+        }
+      }
     } catch (e) {
       print('KeyStore initialization failed: $e');
-      // Continue without remote keys
+      if (isNetworkError(e)) {
+        startupFailureMessage ??=
+            'The app could not load required data. Please check your internet connection and try again.';
+        return;
+      }
     }
   }
 
-  // Initialize AI services (Gemini key may come from KeyStore)
   try {
     final searchAIService = SearchAIService();
     searchAIService.initialize();
   } catch (e) {
     print('AI service initialization failed: $e');
-    // Continue without AI - search will still work
   }
 
-  // Reset search animation flag for new app session
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('searchAnimationShownThisSession', false);
   await prefs.setString('appStartTime', DateTime.now().toIso8601String());
 
-  // Load zip code at app start (same storage as adoption screen)
   final savedZip = prefs.getString('zipCode');
   if (savedZip != null && savedZip.isNotEmpty && savedZip.length == 5) {
     globals.FelineFinderServer.instance.zip = savedZip;
   }
-
-  // Ensure minimum 3 seconds have passed (launch screen will show during this time)
-  final elapsed = DateTime.now().difference(startTime);
-  if (elapsed.inSeconds < 3) {
-    await Future.delayed(Duration(seconds: 3 - elapsed.inSeconds));
-  }
-
-  runApp(const MyApp());
 }
 
 Future<void> _initializeAuth() async {
@@ -150,7 +263,11 @@ Future<void> _signinAnon() async {
   try {
     await auth!.signInAnonymously();
     print("Signed in with temporary account.");
-  } on FirebaseAuthException catch (e) {
+  }   on FirebaseAuthException catch (e) {
+    if (isNetworkError(e)) {
+      startupFailureMessage ??=
+          'The app could not sign in. Please check your internet connection and try again.';
+    }
     switch (e.code) {
       case "operation-not-allowed":
         print("Anonymous auth hasn't been enabled for this project.");
@@ -166,20 +283,181 @@ Future<void> _signinAnon() async {
         print("Stack trace: ${e.stackTrace}");
     }
   } catch (e, stackTrace) {
+    if (isNetworkError(e)) {
+      startupFailureMessage ??=
+          'The app could not sign in. Please check your internet connection and try again.';
+    }
     print("Unexpected error during anonymous sign-in: $e");
     print("Error type: ${e.runtimeType}");
     print("Stack trace: $stackTrace");
   }
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+/// Full-screen blocking message when startup failed. Message stays until user corrects the situation and Retry succeeds.
+class _StartupFailureScreen extends StatefulWidget {
+  final String message;
+  final VoidCallback onRetrySuccess;
+
+  const _StartupFailureScreen({
+    required this.message,
+    required this.onRetrySuccess,
+  });
+
+  @override
+  State<_StartupFailureScreen> createState() => _StartupFailureScreenState();
+}
+
+class _StartupFailureScreenState extends State<_StartupFailureScreen> {
+  bool _retrying = false;
+
+  Future<void> _onRetry() async {
+    if (_retrying) return;
+    setState(() => _retrying = true);
+    final success = await retryStartup();
+    if (!mounted) return;
+    setState(() => _retrying = false);
+    if (success) {
+      widget.onRetrySuccess();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Still no connection. Check your network and try again.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    return Material(
+      color: Colors.grey[900],
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.wifi_off, size: 64, color: Colors.orange[300]),
+              const SizedBox(height: 24),
+              Text(
+                widget.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Please correct the situation and tap Retry. The message will not go away until the app can start successfully.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 40),
+              FilledButton.icon(
+                onPressed: _retrying ? null : _onRetry,
+                icon: _retrying
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.refresh),
+                label: Text(_retrying ? 'Retrying…' : 'Retry'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: _retrying ? null : () => SystemNavigator.pop(),
+                icon: const Icon(Icons.close, size: 18),
+                label: const Text('Close app'),
+                style: TextButton.styleFrom(foregroundColor: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows splash image full-screen until [initFuture] completes, then [child] or startup failure screen.
+class _SplashUntilReady extends StatefulWidget {
+  final Future<void> initFuture;
+  final Widget child;
+
+  const _SplashUntilReady({required this.initFuture, required this.child});
+
+  @override
+  State<_SplashUntilReady> createState() => _SplashUntilReadyState();
+}
+
+class _SplashUntilReadyState extends State<_SplashUntilReady> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.initFuture.then((_) {
+      if (mounted) setState(() => _ready = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) {
+      return Material(
+        color: Colors.black,
+        child: SizedBox.expand(
+          child: Image.asset(
+            'assets/splash/splash.png',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.expand(),
+          ),
+        ),
+      );
+    }
+    if (startupFailureMessage != null) {
+      return _StartupFailureScreen(
+        message: startupFailureMessage!,
+        onRetrySuccess: () => setState(() {}),
+      );
+    }
+    return widget.child;
+  }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key, this.initFuture}) : super(key: key);
+
+  final Future<void>? initFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    final home = initFuture != null
+        ? _SplashUntilReady(initFuture: initFuture!, child: const HomeScreen(title: 'Feline Finder'))
+        : const HomeScreen(title: 'Feline Finder');
+
     return GetMaterialApp(
       title: 'Feline Finder',
-      showPerformanceOverlay: false, // Red number in corner is FPS/ms overlay; keep off in debug
+      showPerformanceOverlay: false,
       theme: ThemeData(
         fontFamily: 'Poppins',
         primarySwatch: Colors.blue,
@@ -216,7 +494,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       navigatorObservers: [routeObserver],
-      home: const HomeScreen(title: 'Feline Finder'),
+      home: home,
     );
   }
 }
@@ -262,6 +540,28 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     ));
     // Ask for zip code at app start if not already loaded (same storage as adoption screen)
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensureZipCode());
+
+    // When SearchScreen is opened from Shelters and user taps Find Cats, switch to Adopt tab and apply result
+    globals.onApplySearchAndSwitchToAdopt = (dynamic result) {
+      if (result == null) return;
+      setState(() => _selectedIndex = 1);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AdoptionGridKey.currentState?.applySearchResult(result);
+      });
+    };
+    // When user taps Shelters on the search screen, pop search and switch to Shelters tab
+    globals.onNavigateToSheltersTab = (BuildContext ctx) {
+      if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+      globals.sheltersOpenedFromSearch = true;
+      setState(() => _selectedIndex = 4);
+    };
+    // When user taps "Select" on a shelter (from search flow), switch to Adopt and open search with that shelter selected
+    globals.onSelectShelterAndOpenSearch = (String orgId, String orgName) {
+      setState(() => _selectedIndex = 1);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AdoptionGridKey.currentState?.openSearchWithShelter(orgId, orgName);
+      });
+    };
   }
 
   /// 1) Ask for location permission (reason: find cats near you). 2) If denied, ask for zip via dialog with validation; allow retry or skip.
@@ -435,18 +735,56 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton), // Index 1 - Adopt
     BreedList(title: "Breed List"), // Index 2 - Breeds
     const FavoritesListScreen(), // Index 3 - Saved
+    const SheltersNearYouScreen(), // Index 4 - Shelters Near You
   ];
 
 // 9
   void _onItemTapped(int index) {
+    if (index == 1 && _selectedIndex == 0) {
+      _askSearchByPersonalityThenSwitchToAdopt();
+      return;
+    }
     // When user taps 🐈 (Adopt) tab, dismiss fit help so "tap 🐈 to see your matches" is completed
     if (index == 1) {
       PersonalityFitScreenKey.currentState?.dismissHelpAndSave();
       FitScreenKey.currentState?.dismissHelpAndSave();
     }
+    if (index != 4) globals.sheltersOpenedFromSearch = false;
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  Future<void> _askSearchByPersonalityThenSwitchToAdopt() async {
+    final searchByPersonality = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Search by your cat personality?'),
+        content: const Text(
+          'Apply your Fit tab preferences to the adoption search and see cats that match your personality.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    globals.sheltersOpenedFromSearch = false;
+    PersonalityFitScreenKey.currentState?.dismissHelpAndSave();
+    FitScreenKey.currentState?.dismissHelpAndSave();
+    setState(() => _selectedIndex = 1);
+    if (searchByPersonality == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AdoptionGridKey.currentState?.applyPersonalityAndSearch();
+      });
+    }
   }
 
   List<Widget>? getTrailingButtons(selectedIndex) {
@@ -558,7 +896,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
                     ),
-                    child: pages[_selectedIndex],
+                    child: IndexedStack(
+                      index: _selectedIndex,
+                      children: pages,
+                    ),
                   ),
                 ),
               ),
@@ -736,6 +1077,30 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                 ),
                 label: 'Saved',
+              ),
+              BottomNavigationBarItem(
+                backgroundColor: Colors.white,
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 4
+                        ? AppTheme.deepPurple.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(AppTheme.buttonBorderRadius),
+                  ),
+                  child: _selectedIndex == 4
+                      ? Icon(
+                          Icons.location_on,
+                          size: 24,
+                          color: AppTheme.goldBase,
+                        )
+                      : Icon(
+                          Icons.location_on,
+                          size: 24,
+                          color: AppTheme.textSecondary,
+                        ),
+                ),
+                label: 'Shelters',
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:catapp/models/searchPageConfig.dart';
+import '../network_utils.dart';
 import '../screens/filterBreedSelection.dart';
 import '../models/breed.dart';
 import '../screens/globals.dart' as globals;
@@ -69,13 +70,17 @@ class _FilterRow extends State<FilterRow> {
   }
 
   Future<void> deleteQuery(String name) async {
-    String localUserID = "";
-    var userID = await widget.server.getUser();
-    setState(() {
-      localUserID = userID;
-    });
-    await widget.server.deleteQuery(localUserID, name);
-    await widget.getQueries();
+    try {
+      String localUserID = "";
+      var userID = await widget.server.getUser();
+      setState(() {
+        localUserID = userID;
+      });
+      await widget.server.deleteQuery(localUserID, name);
+      await widget.getQueries();
+    } catch (e) {
+      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
+    }
   }
 
   @override

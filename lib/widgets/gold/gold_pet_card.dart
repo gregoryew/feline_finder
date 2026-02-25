@@ -61,6 +61,7 @@ class GoldPetCard extends StatelessWidget {
           const SizedBox(height: 10),
           _buildTraits(),
           const SizedBox(height: 10),
+          _buildSuggestedCatType(),
           _buildOrganizationName(),
           _buildLocation(),
         ],
@@ -70,6 +71,35 @@ class GoldPetCard extends StatelessWidget {
   }
 
   static const double _iconSlotWidth = 22.0; // Same for org and location so icons align
+
+  Widget _buildSuggestedCatType() {
+    final name = tile.suggestedCatTypeName;
+    if (name == null || name.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0, left: 16, right: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: Text(
+              name.trim(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: AppTheme.fontSizeS,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.goldBase.withOpacity(0.95),
+                fontFamily: AppTheme.fontFamily,
+              ),
+              softWrap: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildOrganizationName() {
     final orgName = tile.organizationName;

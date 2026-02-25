@@ -12,6 +12,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_map_dynamic_key/google_map_dynamic_key.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'services/search_ai_service.dart';
 import 'services/key_store_service.dart';
 import 'theme.dart';
@@ -113,6 +114,8 @@ class _ManualZipResult {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await Hive.initFlutter();
+
   // Block only on Firebase so the first frame can paint quickly (splash visible).
   try {
     await Firebase.initializeApp(
@@ -198,6 +201,13 @@ Future<void> _initializeAppRest() async {
     searchAIService.initialize();
   } catch (e) {
     print('AI service initialization failed: $e');
+  }
+
+  try {
+    final box = await Hive.openBox('cat_fit_scores');
+    await box.clear();
+  } catch (e) {
+    print('Hive cat_fit_scores box open failed: $e');
   }
 
   final prefs = await SharedPreferences.getInstance();

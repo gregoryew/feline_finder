@@ -9,6 +9,25 @@ import 'package:catapp/screens/globals.dart' as globals;
 class CatTypeFilterMapping {
   CatTypeFilterMapping._();
 
+  /// Search-screen slider filter name -> CatType stat name (for setting slider to 1-5 from cat type).
+  static const Map<String, String> _sliderFilterToStatName = {
+    'Energy Level': 'Energy Level',
+    'Playfulness': 'Playfulness',
+    'Affectionate': 'Affection Level',
+    'Independence': 'Independence',
+    'Sociability': 'Sociability',
+    'Vocalization': 'Vocality',
+    'Adaptability': 'Adaptability',
+    'Intelligence': 'Intelligence',
+    'Calmness': 'Confidence',
+    'Gentleness': 'Sensitivity',
+    'Lap Cat': 'Affection Level',
+    'Likes toys': 'Playfulness',
+    'Timid / shy': 'Confidence',
+    'Curious': 'Adaptability',
+    'New People': 'New People', // derived from Sociability + Confidence
+  };
+
   /// Stat name (on CatType) -> list of (filter option name, value to set).
   /// Value is either String (for choosenValue) or List<int> (for choosenListValues).
   /// Energy Level is handled separately: Activity/Energy are set from the cat type's Energy stat (1-2→low, 3→medium, 4-5→high).
@@ -40,6 +59,48 @@ class CatTypeFilterMapping {
     // Confidence: no personality filter for "confident"; skip
   };
 
+  /// Returns target slider values (1–5) for each personality slider filter from the cat type.
+  /// Used when applying a cat type so sliders can be set and optionally animated.
+  /// Keys are filter names; values are in range 1–5 (0 = Any is not used for targets).
+  static Map<String, int> getSliderTargetValuesForCatType(CatType type) {
+    final Map<String, int> out = {};
+    double? sociability;
+    double? confidence;
+    for (final s in type.stats) {
+      if (s.name == 'Sociability') sociability = s.value;
+      if (s.name == 'Confidence') confidence = s.value;
+    }
+    for (final entry in _sliderFilterToStatName.entries) {
+      final filterName = entry.key;
+      final statName = entry.value;
+      int value;
+      if (statName == 'New People') {
+        final s = (sociability ?? 3).round().clamp(1, 5);
+        final c = (confidence ?? 3).round().clamp(1, 5);
+        value = ((s + c) / 2).round().clamp(1, 5);
+      } else {
+        try {
+          final stat = type.stats.firstWhere((s) => s.name == statName);
+          value = stat.value.round().clamp(1, 5);
+        } catch (_) {
+          continue;
+        }
+      }
+      out[filterName] = value;
+    }
+    return out;
+  }
+
+  /// Returns trait profile (stat name → 1–5) for fit scoring against cat traits.
+  /// Use this when a cat type is selected so ordering uses the chosen type's profile, not slider state.
+  static Map<String, int> getTraitProfileForCatType(CatType type) {
+    final Map<String, int> profile = {};
+    for (final s in type.stats) {
+      profile[s.name] = s.value.round().clamp(1, 5);
+    }
+    return profile;
+  }
+
   /// Returns the personality filter updates for this cat type (traits >= 4).
   /// Key = filter option name, value = String for choosenValue or List<int> for choosenListValues.
   static Map<String, dynamic> getPersonalityFiltersForCatType(CatType type) {
@@ -56,6 +117,7 @@ class CatTypeFilterMapping {
   }
 
   /// Sets all personality filters to "Any" so a cat type mapping starts from a clean state.
+  /// Slider filters are set to 0 (Any); other list filters to the "Any" option.
   static void setPersonalityFiltersToAny(List<filterOption> filteringOptions) {
     final personalityFilters = filteringOptions
         .where((f) => f.classification == CatClassification.personality)
@@ -66,8 +128,12 @@ class CatTypeFilterMapping {
 
       if (filter.list) {
         if (filter.options.isNotEmpty) {
-          final anyOption = filter.options.last;
-          filter.choosenListValues = [anyOption.value];
+          if (filter.slider) {
+            filter.choosenListValues = [0]; // 0 = Any for personality sliders
+          } else {
+            final anyOption = filter.options.last;
+            filter.choosenListValues = [anyOption.value];
+          }
         }
       } else {
         if (filter.options.isNotEmpty) {
@@ -116,22 +182,14 @@ class CatTypeFilterMapping {
     }
   }
 
-  /// Maps Vocality stat value (1–5) to "Likes to vocalize" filter: 1–2→Quiet, 3→Some, 4–5→Lots.
+  /// Maps Vocality stat value (1–5) to "Likes to vocalize" filter: 5 levels from Quiet (1) to Lots (5).
   static void _applyVocalityToFilters(
     double vocalityValue,
     List<filterOption> filteringOptions,
   ) {
-    final v = vocalityValue.round();
-    if (v < 1 || v > 5) return;
-
-    List<int> vocalizeListValues;
-    if (v == 1 || v == 2) {
-      vocalizeListValues = [0]; // Quiet
-    } else if (v == 3) {
-      vocalizeListValues = [1]; // Some
-    } else {
-      vocalizeListValues = [2]; // Lots
-    }
+    final v = vocalityValue.round().clamp(1, 5);
+    // 1 → Quiet (0), 2 → A Little (1), 3 → Some (2), 4 → Talkative (3), 5 → Lots (4)
+    final vocalizeListValues = [v - 1];
 
     for (final filter in filteringOptions) {
       if (filter.classification != CatClassification.personality) continue;
@@ -171,9 +229,54 @@ class CatTypeFilterMapping {
     }
   }
 
+  /// Applies only non-slider parts of a cat type: resets to Any, then sets Activity Level,
+  /// Energy level, Likes to vocalize, New People, and any chip-based personality filters.
+  /// Does not set slider values; use with animated slider application in the UI.
+  static void applyCatTypeNonSliderParts(
+    CatType type,
+    List<filterOption> filteringOptions,
+  ) {
+    setPersonalityFiltersToAny(filteringOptions);
+    try {
+      final energyStat = type.stats.firstWhere((s) => s.name == 'Energy Level');
+      _applyEnergyToFilters(energyStat.value, filteringOptions);
+    } catch (_) {}
+    try {
+      final vocalityStat = type.stats.firstWhere((s) => s.name == 'Vocality');
+      _applyVocalityToFilters(vocalityStat.value, filteringOptions);
+    } catch (_) {}
+    double? sociability;
+    double? confidence;
+    for (final s in type.stats) {
+      if (s.name == 'Sociability') sociability = s.value;
+      if (s.name == 'Confidence') confidence = s.value;
+    }
+    if (sociability != null || confidence != null) {
+      _applyNewPeopleToFilters(
+        sociability ?? 3,
+        confidence ?? 3,
+        filteringOptions,
+      );
+    }
+    final updates = getPersonalityFiltersForCatType(type);
+    final personalityFilters = filteringOptions
+        .where((f) => f.classification == CatClassification.personality && !f.slider)
+        .toList();
+    for (final filter in personalityFilters) {
+      final value = updates[filter.name];
+      if (value == null) continue;
+      if (filter.list && value is List<int> && value.isNotEmpty) {
+        filter.choosenListValues = List<int>.from(value);
+      } else if (value is String) {
+        filter.choosenValue = value;
+      }
+    }
+  }
+
   /// Applies a cat type's personality filters to [filteringOptions].
-  /// Activity Level and Energy level are always set from the cat type's Energy Level stat
-  /// (1–2→low, 3→medium, 4–5→high), e.g. Professional Napper → Low, Zoomie Rocket → High.
+  /// Slider personality filters are set to the cat type's trait value (1–5); range is 1–5 (0 = Any).
+  /// Activity Level and Energy level are set from the cat type's Energy Level stat
+  /// (1–2→low, 3→medium, 4–5→high). Non-slider chip filters use getPersonalityFiltersForCatType.
   static void applyCatTypeToFilterOptions(
     CatType type,
     List<filterOption> filteringOptions, {
@@ -181,13 +284,24 @@ class CatTypeFilterMapping {
   }) {
     setPersonalityFiltersToAny(filteringOptions);
 
-    final updates = getPersonalityFiltersForCatType(type);
+    final sliderTargets = getSliderTargetValuesForCatType(type);
     final personalityFilters = filteringOptions
         .where((f) => f.classification == CatClassification.personality)
         .toList();
 
     for (final filter in personalityFilters) {
-      final value = updates[filter.name];
+      if (filter.slider && filter.list && filter.options.isNotEmpty) {
+        final value = sliderTargets[filter.name];
+        if (value != null) {
+          final clamped = value.clamp(1, 5);
+          if (filter.options.any((o) => o.value == clamped)) {
+            filter.choosenListValues = [clamped];
+          }
+        }
+        continue;
+      }
+
+      final value = getPersonalityFiltersForCatType(type)[filter.name];
       if (value == null) continue;
 
       if (filter.list) {
@@ -213,8 +327,7 @@ class CatTypeFilterMapping {
       _applyVocalityToFilters(vocalityStat.value, filteringOptions);
     } catch (_) {}
 
-    // Set New People from Sociability and Confidence (high → Friendly, low → Cautious, same for both).
-    // e.g. Welcome Committee (Sociability 5, Confidence 5) → Friendly.
+    // Set New People (chip) from Sociability and Confidence (high → Friendly, low → Cautious).
     double? sociability;
     double? confidence;
     for (final s in type.stats) {

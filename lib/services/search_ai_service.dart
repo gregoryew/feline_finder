@@ -74,13 +74,13 @@ class SearchAIService {
     }
   }
 
-  /// List available models for debugging
+  /// List available models for debugging (optional; failure does not affect Search AI or personality fit).
   Future<void> _listAvailableModels(String apiKey) async {
     try {
       print('\n🔍 Checking available Gemini models...');
       final url = Uri.parse(
           'https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey');
-      final response = await http.get(url).timeout(const Duration(seconds: 5));
+      final response = await http.get(url).timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -109,10 +109,10 @@ class SearchAIService {
         print('⚠️ Failed to list models: ${response.statusCode}');
         print('   Response: ${response.body}');
       }
+    } on TimeoutException {
+      print('⚠️ List-models check timed out (diagnostic only; Search AI and personality fit are unaffected).');
     } catch (e) {
-      print('⚠️ Error listing models: $e');
-      print(
-          '   This might indicate the Generative Language API is not enabled.');
+      print('⚠️ List-models check failed: $e (diagnostic only; Search AI and personality fit are unaffected).');
     }
   }
 
@@ -594,7 +594,7 @@ IMPORTANT - Handling OR conditions:
   * activityLevel (e.g., ["Low", "Medium", "High"])
   * energyLevel (e.g., ["Low", "High"])
   * exerciseNeeds (e.g., ["Low", "Medium"])
-  * vocalLevel (e.g., ["Quiet", "Some", "Lots"])
+  * vocalLevel (e.g., ["Quiet", "A Little", "Some", "Talkative", "Lots"])
   * colorDetails (e.g., ["Black", "White", "Gray"])
   * eyeColor (e.g., ["Blue", "Green", "Gold"])
   * tailType (e.g., ["Long", "Short", "Bob"])
@@ -607,7 +607,7 @@ IMPORTANT - Handling OR conditions:
   * "small or medium cat" → {"sizeGroup": ["Small", "Medium"]}
   * "baby or young cat" → {"ageGroup": ["Baby", "Young"]}
   * "Persian or Maine Coon" → {"breed": ["Persian", "Maine Coon"]}
-  * "quiet or some vocalization" → {"vocalLevel": ["Quiet", "Some"]}
+  * "quiet or some vocalization" → {"vocalLevel": ["Quiet", "A Little", "Some"]}
   * "low or medium grooming needs" → {"groomingNeeds": ["Low", "Medium"]}
   * "none or some shedding" → {"sheddingLevel": ["None", "Some"]}
 - CRITICAL: When user uses "or" with ANY of the filters listed above, you MUST return an array with ALL the options mentioned

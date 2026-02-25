@@ -12,7 +12,7 @@ enum CatClassification {
   basic
 }
 
-enum FilterType { simple, advanced }
+enum FilterType { simple, advanced, fit }
 
 class filterOption {
   String name;
@@ -35,6 +35,9 @@ class filterOption {
   /// Optional label for the chip instead of deriving from filter value.
   String? statusLabelOverride;
 
+  /// When true, this filter is rendered as a slider (e.g. personality traits).
+  bool slider;
+
   filterOption(
       this.name,
       this.choosenValue,
@@ -51,6 +54,7 @@ class filterOption {
     this.statusPriority,
     this.statusGroup,
     this.statusLabelOverride,
+    this.slider = false,
   }) : synonyms = synonyms ?? const [];
 }
 
@@ -126,6 +130,7 @@ bool isFilterActive(filterOption f) {
 }
 
 bool _isAnyOption(listOption o) {
+  if (o.displayName == 'Any') return true;
   final search = o.search?.toString().trim().toLowerCase() ?? '';
   return search == 'any' || search == 'any type';
 }
@@ -526,13 +531,26 @@ List<filterOption> filteringOptions = [
       statusPriority: 66,
   ),
   filterOption(
+    "Companion Cat?",
+    "",
+    "animals.NeedsCompanionAnimal",
+    false,
+    false, 
+    CatClassification.compatibility,
+    15,
+    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
+    [],
+    false,
+    FilterType.advanced
+  ),
+  filterOption(
        "Adults",
        "",
        "animals.adultSexesOk",
        false,
        false,
        CatClassification.compatibility,
-       15,
+       16,
        [
          listOption("All", "All", 0),
          listOption("Men", "Men Only", 1),
@@ -550,7 +568,7 @@ List<filterOption> filteringOptions = [
       true,
       false,
       CatClassification.compatibility,
-      16,
+      17,
       [
         listOption("Yes", "Yes", 0),
         listOption("No", "No", 1),
@@ -562,116 +580,330 @@ List<filterOption> filteringOptions = [
       statusPriority: 65,
   ),
   //Personality
-   filterOption(
-       "New People",
-       "",
-       "animals.newPeopleReaction",
-       false,
-       true,
-       CatClassification.personality,
-       17,
-       [
-         listOption("Cautious", "Cautious", 0),
-         listOption("Friendly", "Friendly", 1),
-         listOption("Any", "Any", 2)
-       ],
-       [],
-       false,
-       FilterType.advanced
-  ),
   filterOption(
-      "Activity Level",
+      "Energy Level",
       "",
-      "animals.activityLevel",
+      "energyLevel",
       true,
       true,
       CatClassification.personality,
       18,
       [
-        listOption("None", "Not Active", 0),
-        listOption("Low", "Slightly Active", 1),
-        listOption("Medium", "Moderately Active", 2),
-        listOption("High", "Highly Active", 3),
-        listOption("Any", "Any", 4)
+        listOption("Any", "0", 0),
+        listOption("Very Low", "1", 1),
+        listOption("Low", "2", 2),
+        listOption("Medium", "3", 3),
+        listOption("High", "4", 4),
+        listOption("Very High", "5", 5),
       ],
-      [],
+      [0],
       false,
-      FilterType.simple
+      FilterType.advanced,
+      slider: true
   ),
   filterOption(
-      "Energy level",
-      "",
-      "animals.energyLevel",
-      true,
-      true,
-      CatClassification.personality,
-      19,
-      [
-        listOption("Low", "Low", 0),
-        listOption("Medium", "Moderate", 1),
-        listOption("High", "High", 2),
-        listOption("Any", "Any", 3)
-      ],
-      [],
-      false,
-      FilterType.simple
-  ),
-  filterOption(
-       "Likes to vocalize",
-       "",
-       "animals.vocalLevel",
-       false,
-       true,
-       CatClassification.personality,
-       20,
-       [
-         listOption("Quiet", "Quiet", 0),
-         listOption("Some", "Some", 1),
-         listOption("Lots", "Lots", 2),
-         listOption("Any", "Any", 3)
-       ],
-       [],
-       false,
-       FilterType.advanced
+    "Playfulness",
+    "",
+    "playfulness", 
+    true,
+    true, 
+    CatClassification.personality,
+    19,
+    [
+      listOption("Any", "0", 0),
+      listOption("Very Low", "1", 1),
+      listOption("Low", "2", 2),
+      listOption("Medium", "3", 3),
+      listOption("High", "4", 4),
+      listOption("Very High", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true
   ),
   filterOption(
       "Affectionate",
       "",
-      "animals.descriptionText",
+      "affectionate",
       true,
-      false,
+      true,
       CatClassification.personality,
-      21,
+      20,
       [
-        listOption("Yes", "Yes", 0),
-        listOption("Any", "Any", 1)
+        listOption("Any", "0", 0),
+        listOption("Very Low", "1", 1),
+        listOption("Low", "2", 2),
+        listOption("Medium", "3", 3),
+        listOption("High", "4", 4),
+        listOption("Very High", "5", 5),
       ],
-      [],
+      [0],
       false,
-      FilterType.simple,
-      synonyms: ['affectionate', 'loving', 'cuddly', 'snuggly', 'friendly', 'devoted', 'social', 'socialable', 'socializable', 'socialize', 'socialized', 'socializing', 'socialized', 'socializing']
+      FilterType.advanced,
+      slider: true,
   ),
   filterOption(
-    "Even-tempered",
+    "Independence",
     "",
-    "animals.evenTempered",
+    "independence",
+    true,
+    true, 
+    CatClassification.personality,
+    21,
+    [
+      listOption("Any", "0", 0),
+      listOption("Very Independent", "1", 1),
+      listOption("Independent", "2", 2),
+      listOption("Balanced", "3", 3),
+      listOption("Somewhat Dependent", "4", 4),
+      listOption("Very Dependent", "5", 5),
+    ],
+    [0],
     false,
-    false,
+    FilterType.advanced,
+    slider: true,
+  ),
+  filterOption(
+    "Sociability",
+    "",
+    "sociability",
+    true,
+    true, 
     CatClassification.personality,
     22,
-    [listOption("Yes", "Yes", 0), listOption("Any", "Any", 1)],
-    [],
+    [
+      listOption("Any", "0", 0),
+      listOption("Very Unsocial", "1", 1),
+      listOption("Unsocial", "2", 2),
+      listOption("Moderate", "3", 3),
+      listOption("Social", "4", 4),
+      listOption("Very Social", "5", 5),
+    ],
+    [0],
     false,
-    FilterType.advanced
+    FilterType.advanced,
+    slider: true,
   ),
+  filterOption(
+       "Vocalization",
+       "",
+       "vocalLevel",
+       true,
+       true,
+       CatClassification.personality,
+       24,
+       [
+         listOption("Any", "0", 0),
+         listOption("Very Quiet", "1", 1),
+         listOption("Quiet", "2", 2),
+         listOption("Moderate", "3", 3),
+         listOption("Talkative", "4", 4),
+         listOption("Very Talkative", "5", 5),
+       ],
+       [0],
+       false,
+       FilterType.advanced,
+       slider: true
+  ),
+  filterOption(
+    "Adaptability",
+    "",
+    "adaptability",
+    true,
+    true,
+    CatClassification.personality,
+    25,
+    [
+      listOption("Any", "0", 0),
+      listOption("Very Unadaptable", "1", 1),
+      listOption("Unadaptable", "2", 2),
+      listOption("Moderate", "3", 3),
+      listOption("Adaptable", "4", 4),
+      listOption("Very Adaptable", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true
+  ),
+  filterOption(
+    "Intelligence",
+    "",
+    "intelligence",
+    true,
+    true,
+    CatClassification.personality,
+    26,
+    [
+      listOption("Any", "0", 0),
+      listOption("Dim", "1", 1),
+      listOption("Below Average", "2", 2),
+      listOption("Average", "3", 3),
+      listOption("Above Average", "4", 4),
+      listOption("Bright", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true
+  ),
+  filterOption(
+    "New People",
+    "",
+    "newPeopleReaction",
+    false,
+    true,
+    CatClassification.personality,
+    27,
+    [
+      listOption("Any", "0", 0),
+      listOption("Wary", "1", 1),
+      listOption("Cautious", "2", 2),
+      listOption("Neutral", "3", 3),
+      listOption("Friendly", "4", 4),
+      listOption("Sociable", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true
+  ),
+  filterOption(
+    "Calmness",
+    "", 
+    "calmness", 
+    true,
+    true,
+    CatClassification.personality,
+    28, 
+    [
+      listOption("Any", "0", 0),
+      listOption("Very Nervous", "1", 1),
+      listOption("Nervous", "2", 2),
+      listOption("Neutral", "3", 3),
+      listOption("Calm", "4", 4),
+      listOption("Very Calm", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true
+  ),
+  filterOption(
+    "Gentleness",
+    "",
+    "gentleness",
+    true,
+    true,
+    CatClassification.personality,
+    29,
+    [
+      listOption("Any", "0", 0),
+      listOption("Very Firm", "1", 1),
+      listOption("Firm", "2", 2),
+      listOption("Moderate", "3", 3),
+      listOption("Gentle", "4", 4),
+      listOption("Very Gentle", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true
+  ),
+  filterOption(
+    "Lap Cat",
+    "", 
+    "lapCat",
+    true,
+    true,
+    CatClassification.personality,
+    30,
+    [
+      listOption("Any", "0", 0),
+      listOption("Very Unlap Cat", "1", 1),
+      listOption("Unlap Cat", "2", 2),
+      listOption("Moderate", "3", 3),
+      listOption("Lap Cat", "4", 4),
+      listOption("Lap Cat Legend", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true,
+  ),
+  filterOption(
+    "Likes toys",
+    "", 
+    "animals.descriptionText", 
+    true,
+    true, 
+    CatClassification.personality,
+    31,
+    [
+      listOption("Any", "0", 0),
+      listOption("Not Interested", "1", 1),
+      listOption("Low Interest", "2", 2),
+      listOption("Moderate", "3", 3),
+      listOption("Very Playful", "4", 4),
+      listOption("Loves Toys", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true,
+  ),
+  filterOption(
+    "Timid / shy",
+    "",
+    "shy", 
+    true,
+    true,
+    CatClassification.personality,
+    32,
+    [
+      listOption("Any", "0", 0),
+      listOption("Very Shy", "1", 1),
+      listOption("Shy", "2", 2),
+      listOption("Moderate", "3", 3),
+      listOption("Social", "4", 4),
+      listOption("Very Social", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true
+  ),
+  filterOption(
+    "Curious",
+    "",
+    "curious",
+    true,
+    true,
+    CatClassification.personality,
+    33,
+    [
+      listOption("Any", "0", 0),
+      listOption("Uninterested", "1", 1),
+      listOption("Low Interest", "2", 2),
+      listOption("Moderate", "3", 3),
+      listOption("Very Interested", "4", 4),
+      listOption("Loves to Explore", "5", 5),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+    slider: true,
+  ),
+  //physical
   filterOption(
        "Housetrained",
        "",
        "animals.isHousetrained",
        false,
        false,
-       CatClassification.personality,
-       23,
+       CatClassification.physical,
+       34,
        [
          listOption("Yes", "Yes", 0),
          listOption("No", "No", 1),
@@ -681,147 +913,6 @@ List<filterOption> filteringOptions = [
        false,
        FilterType.advanced
   ),
-  filterOption(
-    "Independent/aloof",
-    "",
-    "animals.descriptionText",
-    false,
-    false, 
-    CatClassification.personality,
-    24,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['independent', 'aloof', 'standoffish', 'distant', 'unfriendly', 'unapproachable', 'uncommunicative', 'unfriendly', 'unapproachable', 'uncommunicative']
-  ),
-  filterOption(
-    "Calmness",
-    "", 
-    "animals.descriptionText", 
-    false,
-    false,
-    CatClassification.personality,
-    25, 
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['calm', 'quiet', 'laid back', 'relaxed']
-  ),
-  filterOption(
-    "Gentleness", 
-    "",
-    "animals.descriptionText",
-    false,
-    false,
-    CatClassification.personality,
-    26,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['gentle', 'gentleness', 'soft', 'sweet', 'mild', 'kind']
-  ),
-  filterOption(
-    "Lap Cat",
-    "", 
-    "animals.descriptionText",
-    false,
-    false,
-    CatClassification.personality,
-    27,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['lap', 'lap cat', 'on your lap', 'loves laps']
-  ),
-  filterOption(
-    "Companion Cat?",
-    "",
-    "animals.NeedsCompanionAnimal",
-    false,
-    false, 
-    CatClassification.personality,
-    28,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['companion cat', 'needs companion', 'wants companion', 'wants company']
-  ),
-  filterOption(
-    "Playful",
-    "", 
-    "animals.descriptionText", 
-    false,
-    false, 
-    CatClassification.personality,
-    29,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['playful', 'energetic', 'lively', 'active', 'pounces', 'toys', 'zoomies']
-  ),
-  filterOption(
-    "Likes toys",
-    "", 
-    "animals.descriptionText", 
-    false,
-    false, 
-    CatClassification.personality,
-    30,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['toys', 'plays with toys', 'chews toys', 'loves toys']
-  ),
-  filterOption(
-    "Timid / shy",
-    "",
-    "animals.descriptionText", 
-    false,
-    false,
-    CatClassification.personality,
-    31,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['shy', 'timid', 'fearful', 'reserved', 'skittish', 'nervous', 'hesitant']
-  ),
-  filterOption(
-    "outgoing",
-    "",
-    "animals.descriptionText",
-    false,
-    false,
-    CatClassification.personality,
-    32,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['outgoing', 'friendly', 'social', 'socialable', 'socializable', 'socialize', 'socialized', 'socializing']
-  ),
-  filterOption(
-    "curious",
-    "",
-    "animals.descriptionText",
-    false,
-    false,
-    CatClassification.personality,
-    33,
-    [listOption("Yes","Yes", 0),listOption("Any","Any", 1)],
-    [],
-    false,
-    FilterType.advanced,
-    synonyms: ['mischievous', 'curious', 'explores', 'gets into things', 'trouble']
-  ),
-  //physical
   filterOption(
       "Color",
       "",
@@ -924,8 +1015,8 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       38,
       [
-        listOption("Yes", true, 0),
-        listOption("No", false, 1),
+        listOption("Yes", "Yes", 0),
+        listOption("No", "No", 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -941,8 +1032,8 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       39,
       [
-        listOption("Yes", true, 0),
-        listOption("No", false, 1),
+        listOption("Yes", "Yes", 0),
+        listOption("No", "No", 1),
         listOption("Any", "Any", 2)
       ],
       [],
@@ -958,13 +1049,13 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       40,
       [
-        listOption("Yes", true, 0),
-        listOption("No", false, 1),
+        listOption("Yes", "Yes", 0),
+        listOption("No", "No", 1),
         listOption("Any", "Any", 2)
       ],
       [],
       false,
-      FilterType.advanced
+      FilterType.simple
   ),
   filterOption(
       "Has special needs",
@@ -975,8 +1066,8 @@ List<filterOption> filteringOptions = [
       CatClassification.physical,
       41,
       [
-        listOption("Yes", true, 0),
-        listOption("No", false, 1),
+        listOption("Yes", "Yes", 0),
+        listOption("No", "No", 1),
         listOption("Any", "Any", 2)
       ],
       [],

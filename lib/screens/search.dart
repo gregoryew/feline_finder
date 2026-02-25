@@ -30,7 +30,9 @@ const String _kCustomId = 'custom';
 class FilterResult {
   final List<Filters> filters;
   final String filterprocessing;
-  FilterResult(this.filters, this.filterprocessing);
+  /// When set, adopt grid uses this cat type's profile for fit scoring and sort order (e.g. "Puzzle Pro").
+  final String? selectedCatTypeName;
+  FilterResult(this.filters, this.filterprocessing, {this.selectedCatTypeName});
 }
 
 class SearchScreen extends StatefulWidget {
@@ -78,7 +80,7 @@ class SearchScreenState extends State<SearchScreen> {
   final Map<String, dynamic> _highlightedOptions = {}; // Key: "filterKey:value"
 
   /// Unique key per filter (avoids duplicate keys when multiple filters share fieldName e.g. animals.description).
-  String _filterKeyFor(filterOption filter) => '${filter.fieldName}::${filter.name}';
+  String _filterKeyFor(filterOption filter) => '${filter.fieldName}::${filter.name}::${filter.sequence}';
   // Track ZIP code validation state
   bool _zipCodeValidated = false;
   bool? _zipCodeIsValid;
@@ -691,7 +693,7 @@ class SearchScreenState extends State<SearchScreen> {
           // Find the "Any" option and set it as default
           if (filter.options.isNotEmpty) {
             var anyOption = filter.options.firstWhere(
-              (option) => option.search == "Any" || option.search == "Any Type",
+              (option) => option.search == "Any" || option.search == "Any Type" || option.displayName == "Any",
               orElse: () => filter.options.first,
             );
             filter.choosenValue = anyOption.search;
@@ -704,7 +706,7 @@ class SearchScreenState extends State<SearchScreen> {
               (option) => option.search == filter.choosenValue,
               orElse: () => filter.options.firstWhere(
                 (option) =>
-                    option.search == "Any" || option.search == "Any Type",
+                    option.search == "Any" || option.search == "Any Type" || option.displayName == "Any",
                 orElse: () => filter.options.first,
               ),
             );
@@ -1100,16 +1102,20 @@ class SearchScreenState extends State<SearchScreen> {
                         value == _kCustomId ? 'Custom' : toApply?.name,
                       );
                       if (toApply != null) {
-                        CatTypeFilterMapping.applyCatTypeToFilterOptions(
+                        CatTypeFilterMapping.applyCatTypeNonSliderParts(
                           toApply,
                           widget.filteringOptions,
-                          server: globals.FelineFinderServer.instance,
                         );
                       }
                     });
                     _saveCatTypeToPrefs(value);
                     if (toApply != null && mounted) {
                       WidgetsBinding.instance.addPostFrameCallback((_) async {
+                        if (!mounted) return;
+                        setState(() {
+                          _expandedCategories[CatClassification.personality] = true;
+                        });
+                        await _animateSlidersToCatType(toApply!);
                         if (!mounted) return;
                         final showAnimation = await showDialog<bool>(
                           context: context,
@@ -1272,6 +1278,8 @@ class SearchScreenState extends State<SearchScreen> {
               _buildZipCodeInput(filter)
             else if (filter.classification == CatClassification.breed)
               _buildBreedSelector(filter)
+            else if (filter.slider)
+              _buildSliderSelector(filter)
             else if (filter.list)
               _buildChipSelector(filter)
             else
@@ -1550,6 +1558,62 @@ class SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Widget _buildSliderSelector(filterOption filter) {
+    final options = filter.options;
+    if (options.isEmpty) return const SizedBox.shrink();
+
+    // Resolve current index from choosenListValues; default to 0 (Any) when empty
+    int currentIndex;
+    if (filter.choosenListValues.isNotEmpty) {
+      final idx = options.indexWhere((o) => o.value == filter.choosenListValues.first);
+      currentIndex = idx >= 0 ? idx : 0;
+    } else {
+      currentIndex = 0;
+    }
+
+    final currentOption = options[currentIndex];
+    final divisions = options.length > 1 ? options.length - 1 : 1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            currentOption.displayName,
+            style: TextStyle(
+              color: SearchScreenStyle.gold,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: SearchScreenStyle.gold,
+            inactiveTrackColor: SearchScreenStyle.gold.withOpacity(0.3),
+            thumbColor: SearchScreenStyle.gold,
+          ),
+          child: Slider(
+            value: currentIndex.toDouble(),
+            min: 0,
+            max: (options.length - 1).toDouble(),
+            divisions: divisions,
+            onChanged: (value) {
+              final index = value.round().clamp(0, options.length - 1);
+              setState(() {
+                filter.choosenListValues = [options[index].value];
+              });
+              if (filter.classification == CatClassification.personality) {
+                _switchToCustomPersonalityIfPresetSelected();
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildChipSelector(filterOption filter) {
     return Theme(
       data: Theme.of(context).copyWith(
@@ -1562,7 +1626,7 @@ class SearchScreenState extends State<SearchScreen> {
         children: filter.options.map((option) {
           bool isSelected = filter.choosenListValues.contains(option.value);
           bool isAnyOption =
-              option.search == "Any" || option.search == "Any Type";
+              option.search == "Any" || option.search == "Any Type" || option.displayName == "Any";
 
           final highlightKey = '${_filterKeyFor(filter)}:${option.value}';
           final isHighlighted = _highlightedOptions.containsKey(highlightKey);
@@ -1587,7 +1651,7 @@ class SearchScreenState extends State<SearchScreen> {
                       filter.choosenListValues = [option.value];
                     } else {
                       var anyOption = filter.options.firstWhere(
-                        (opt) => opt.search == "Any" || opt.search == "Any Type",
+                        (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
                         orElse: () => filter.options.last,
                       );
                       filter.choosenListValues.remove(anyOption.value);
@@ -1598,7 +1662,7 @@ class SearchScreenState extends State<SearchScreen> {
 
                     if (filter.choosenListValues.isEmpty) {
                       var anyOption = filter.options.firstWhere(
-                        (opt) => opt.search == "Any" || opt.search == "Any Type",
+                        (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
                         orElse: () => filter.options.last,
                       );
                       filter.choosenListValues = [anyOption.value];
@@ -1812,6 +1876,12 @@ class SearchScreenState extends State<SearchScreen> {
               // Save search state before navigating
               await _saveSearchState();
               var result = generateFilters();
+              final server = globals.FelineFinderServer.instance;
+              final resultWithCatType = FilterResult(
+                result.filters,
+                result.filterprocessing,
+                selectedCatTypeName: server.selectedPersonalityCatTypeName,
+              );
               print("Generated ${result.filters.length} filters, filterprocessing: ${result.filterprocessing}");
               
               // Write out the find-animals search URL (same as adoptGrid.getPets() first page)
@@ -1827,7 +1897,7 @@ class SearchScreenState extends State<SearchScreen> {
               // Save filters and filterProcessing to SharedPreferences (so synonym OR groups are preserved)
               await _saveFiltersToPrefs(result.filters, result.filterprocessing);
               
-              Navigator.pop(context, result);
+              Navigator.pop(context, resultWithCatType);
             } catch (e) {
               print("Error in Find Cats button: $e");
               Navigator.pop(context, null);
@@ -2271,7 +2341,7 @@ class SearchScreenState extends State<SearchScreen> {
           // Find and select "Any" option
           var anyOption = filter.options.isNotEmpty
               ? filter.options.firstWhere(
-                  (opt) => opt.search == "Any" || opt.search == "Any Type",
+                  (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
                   orElse: () => filter.options.last,
                 )
               : filter.options
@@ -2281,7 +2351,7 @@ class SearchScreenState extends State<SearchScreen> {
           // For single-select filters, find and select "Any" option
           if (filter.options.isNotEmpty) {
             var anyOption = filter.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
               orElse: () => filter.options.first,
             );
             filter.choosenValue = anyOption.search;
@@ -2684,7 +2754,7 @@ class SearchScreenState extends State<SearchScreen> {
             final hasAppliedValues =
                 filter.list && filter.choosenListValues.isNotEmpty;
             final anyOption = filter.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
               orElse: () => filter.options.isNotEmpty
                   ? filter.options.last
                   : filter.options.first,
@@ -2901,7 +2971,7 @@ class SearchScreenState extends State<SearchScreen> {
 
           // Remove "Any" option if present
           var anyOption = filter.options.firstWhere(
-            (opt) => opt.search == "Any" || opt.search == "Any Type",
+            (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
             orElse: () => filter.options.isNotEmpty
                 ? filter.options.last
                 : filter.options.first,
@@ -2933,7 +3003,7 @@ class SearchScreenState extends State<SearchScreen> {
 
         if (matchingOption != null) {
           var anyOption = filter.options.firstWhere(
-            (opt) => opt.search == "Any" || opt.search == "Any Type",
+            (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
             orElse: () => filter.options.isNotEmpty
                 ? filter.options.last
                 : filter.options.first,
@@ -3392,6 +3462,32 @@ class SearchScreenState extends State<SearchScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  /// Animates each personality slider to the corresponding trait value (1–5) for the chosen cat type.
+  /// Sliders are updated one by one with a short delay so each move is visible.
+  Future<void> _animateSlidersToCatType(CatType type) async {
+    final targets = CatTypeFilterMapping.getSliderTargetValuesForCatType(type);
+    if (targets.isEmpty) return;
+    final sliderFilters = widget.filteringOptions
+        .where((f) =>
+            f.classification == CatClassification.personality &&
+            f.slider &&
+            f.list &&
+            f.options.isNotEmpty)
+        .toList();
+    const staggerDuration = Duration(milliseconds: 80);
+    for (final filter in sliderFilters) {
+      final value = targets[filter.name];
+      if (value == null) continue;
+      final clamped = value.clamp(1, 5);
+      if (!filter.options.any((o) => o.value == clamped)) continue;
+      if (!mounted) return;
+      setState(() {
+        filter.choosenListValues = [clamped];
+      });
+      await Future.delayed(staggerDuration);
+    }
   }
 
   /// Enhanced animation with visible filter updates
@@ -4517,7 +4613,7 @@ class SearchScreenState extends State<SearchScreen> {
         if (filter.list) {
           var anyOption = filter.options.isNotEmpty
               ? filter.options.firstWhere(
-                  (opt) => opt.search == "Any" || opt.search == "Any Type",
+                  (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
                   orElse: () => filter.options.last,
                 )
               : filter.options.first;
@@ -4526,7 +4622,7 @@ class SearchScreenState extends State<SearchScreen> {
           // For single-select filters, set to "Any"
           if (filter.options.isNotEmpty) {
             var anyOption = filter.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
               orElse: () => filter.options.first,
             );
             filter.choosenValue = anyOption.search;
@@ -4864,6 +4960,10 @@ class SearchScreenState extends State<SearchScreen> {
       if (item.classification == CatClassification.saves) {
         continue;
       }
+      // Exclude personality from RescueGroups API; used only for client-side fit scoring.
+      if (item.classification == CatClassification.personality) {
+        continue;
+      }
       if (item.classification == CatClassification.sort) {
         if (item.fieldName == "sortBy") {
           if (item.choosenValue == "date") {
@@ -4916,7 +5016,7 @@ class SearchScreenState extends State<SearchScreen> {
           int? anyOptionValue;
           try {
             final anyOption = item.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
             );
             anyOptionValue = anyOption.value;
           } catch (e) {
@@ -4963,7 +5063,7 @@ class SearchScreenState extends State<SearchScreen> {
           int? anyOptionValue;
           try {
             final anyOption = item.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
             );
             anyOptionValue = anyOption.value;
           } catch (e) {
@@ -4982,7 +5082,7 @@ class SearchScreenState extends State<SearchScreen> {
               final option = item.options.firstWhere(
                 (element) => element.value == choosenValue,
               );
-              if (option.search == "Any" || option.search == "Any Type") {
+              if (option.search == "Any" || option.search == "Any Type" || option.displayName == "Any") {
                 print("Skipping 'Any' option in ${item.fieldName}");
                 continue;
               }
@@ -5090,6 +5190,8 @@ class SearchScreenState extends State<SearchScreen> {
 
     for (var item in filteringOptions) {
       if (item.classification == CatClassification.saves) continue;
+      // Exclude personality from RescueGroups API; used only for client-side fit scoring.
+      if (item.classification == CatClassification.personality) continue;
       if (item.classification == CatClassification.sort) {
         if (item.fieldName == "sortBy") {
           // skip; sortMethod not added as filter
@@ -5125,7 +5227,7 @@ class SearchScreenState extends State<SearchScreen> {
           int? anyOptionValue;
           try {
             final anyOption = item.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
             );
             anyOptionValue = anyOption.value;
           } catch (e) {
@@ -5169,7 +5271,7 @@ class SearchScreenState extends State<SearchScreen> {
           int? anyOptionValue;
           try {
             final anyOption = item.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type",
+              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
             );
             anyOptionValue = anyOption.value;
           } catch (e) {
@@ -5185,7 +5287,7 @@ class SearchScreenState extends State<SearchScreen> {
               final option = item.options.firstWhere(
                 (element) => element.value == choosenValue,
               );
-              if (option.search == "Any" || option.search == "Any Type") continue;
+              if (option.search == "Any" || option.search == "Any Type" || option.displayName == "Any") continue;
               OptionsList.add(option.search.toString());
             } catch (e) {}
           }

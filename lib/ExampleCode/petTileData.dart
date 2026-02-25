@@ -20,10 +20,17 @@ class PetTileData {
   String? descriptionText;
   /// Suggested personality cat type name from description (e.g. "Lap Legend").
   String? suggestedCatTypeName;
+  /// AI-derived personality traits (CatType stat names → 1–5). Filled by CatFitService.
+  Map<String, int>? personalityFitTraits;
+  /// Fit score 0–100 vs current user sliders. Computed client-side from personalityFitTraits.
+  double? personalityFitScore;
+  /// Animal updatedDate from API (for cache invalidation).
+  String? updatedDate;
 
   PetTileData(petDatum pet, List<Included> included) {
     id = pet.id;
     descriptionText = pet.attributes?.descriptionText;
+    updatedDate = pet.attributes?.updatedDate?.toIso8601String();
     name = pet.attributes!.name;
     primaryBreed = pet.attributes!.breedPrimary;
     var locationsList = findAllOfACertainType(

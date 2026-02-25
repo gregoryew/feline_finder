@@ -15,6 +15,7 @@ import '/screens/petDetail.dart';
 import '/screens/search.dart';
 import '../config.dart';
 import '../services/description_cat_type_scorer.dart';
+import '../services/cat_fit_service.dart';
 import '../services/cat_type_filter_mapping.dart';
 import '/models/catType.dart';
 import 'globals.dart' as globals;
@@ -722,6 +723,10 @@ void search() async {
     if (result is FilterResult) {
       filters = result.filters;
       filterprocessing = result.filterprocessing;
+      if (result.selectedCatTypeName != null) {
+        server.setSelectedPersonalityCatTypeName(result.selectedCatTypeName);
+        _saveCatTypeToPrefsForSort(result.selectedCatTypeName!);
+      }
     } else if (result is List<Filters>) {
       filters = result;
       filterprocessing = null;
@@ -737,6 +742,14 @@ void search() async {
     main.favoritesSelected = false;
     widget.setFav?.call(false);
     getPets();
+  }
+
+  /// Persist selected cat type name so fit scoring uses it (e.g. when reopening app).
+  Future<void> _saveCatTypeToPrefsForSort(String name) async {
+    try {
+      final prefs = await _prefs;
+      await prefs.setString(_kLastSearchCatTypeKey, name);
+    } catch (_) {}
   }
 
 // ----------------------------------------------------------------------
@@ -777,6 +790,92 @@ void _scrollListener() {
     if (loadedPets < maxPets) {
       setState(() {
         getPets();
+      });
+    }
+  }
+}
+
+// ----------------------------------------------------------------------
+//                    PERSONALITY FIT (HIVE / FIRESTORE / CALLABLE)
+// ----------------------------------------------------------------------
+static const int _fitBatchSize = 10;
+
+Future<void> _resolvePersonalityFitForTiles() async {
+  if (tiles.isEmpty || !mounted) return;
+  // When a cat type is selected (e.g. Puzzle Pro), score by type-to-type match so Toy Addict ranks above Lap Legend.
+  final selectedName = server.selectedPersonalityCatTypeName;
+  CatType? selectedType;
+  Map<String, int> userProfile;
+  if (selectedName != null &&
+      selectedName.trim().isNotEmpty &&
+      selectedName != 'Custom') {
+    final nameLower = selectedName.trim().toLowerCase();
+    for (final ct in catType) {
+      if (ct.name.toLowerCase() == nameLower) {
+        selectedType = ct;
+        break;
+      }
+    }
+    userProfile = selectedType != null
+        ? CatTypeFilterMapping.getTraitProfileForCatType(selectedType!)
+        : CatFitService.userTraitProfileFromFilterOptions(filteringOptions);
+  } else {
+    userProfile = CatFitService.userTraitProfileFromFilterOptions(filteringOptions);
+  }
+  final selectedTypeProfile = selectedType != null ? userProfile : null;
+  final list = List<PetTileData>.from(tiles);
+  for (var i = 0; i < list.length; i += _fitBatchSize) {
+    if (!mounted) return;
+    final batch = list.skip(i).take(_fitBatchSize).toList();
+    await Future.wait(batch.map((tile) async {
+      if (tile.id == null || tile.id!.isEmpty) return;
+      if (tile.personalityFitTraits != null && tile.personalityFitTraits!.isNotEmpty) return;
+      try {
+        final record = await CatFitService.instance.getFitForAnimal(
+          tile.id!,
+          description: tile.descriptionText,
+          name: tile.name,
+          shelterName: tile.organizationName,
+          updatedDate: tile.updatedDate,
+        );
+        if (record != null && mounted) {
+          tile.personalityFitTraits = record.traitScores;
+          if (record.suggestedCatTypeName != null) {
+            tile.suggestedCatTypeName = record.suggestedCatTypeName;
+          }
+          // When a cat type is selected, score by suggested-type vs selected-type so order is consistent (e.g. Toy Addict before Lap Legend for Puzzle Pro).
+          if (selectedTypeProfile != null &&
+              record.suggestedCatTypeName != null &&
+              record.suggestedCatTypeName!.trim().isNotEmpty) {
+            CatType? suggestedType;
+            final suggestedLower = record.suggestedCatTypeName!.trim().toLowerCase();
+            for (final ct in catType) {
+              if (ct.name.toLowerCase() == suggestedLower) {
+                suggestedType = ct;
+                break;
+              }
+            }
+            if (suggestedType != null) {
+              final suggestedProfile = CatTypeFilterMapping.getTraitProfileForCatType(suggestedType);
+              tile.personalityFitScore = CatFitService.computeFitScore(suggestedProfile, selectedTypeProfile);
+            } else {
+              tile.personalityFitScore = CatFitService.computeFitScore(record.traitScores, userProfile);
+            }
+          } else {
+            tile.personalityFitScore = CatFitService.computeFitScore(record.traitScores, userProfile);
+          }
+        }
+      } catch (e) {
+        print('Personality fit for ${tile.id}: $e');
+      }
+    }));
+    if (mounted) {
+      setState(() {
+        tiles.sort((a, b) {
+          final sa = a.personalityFitScore ?? -1.0;
+          final sb = b.personalityFitScore ?? -1.0;
+          return sb.compareTo(sa);
+        });
       });
     }
   }
@@ -981,6 +1080,7 @@ void getPets() async {
           }
         }
       });
+      _resolvePersonalityFitForTiles();
     }
   } catch (e) {
     print("🔗 Animals search: request succeeded (200) but JSON parse failed: $e");

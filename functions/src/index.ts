@@ -62,6 +62,110 @@ const CAT_TYPE_PROFILES: ReadonlyArray<{ name: string; traits: number[] }> = [
   { name: 'Little Professor', traits: [2, 2, 3, 4, 2, 1, 4, 1, 4, 5] },
 ];
 
+/** Fixed prompt prefix for personality extraction (cacheable). Ends with "<<<\n" before the cat description. */
+const FIXED_PROMPT_PREFIX = `You are an information extraction system for animal adoption profiles.
+
+You MUST ONLY use the provided cat description text as evidence.
+Do NOT use outside knowledge, breed stereotypes, or assumptions.
+If the description does not support a trait, you MUST return:
+  "score": null,
+  "confidence": 0.0,
+  "evidence": []
+
+MANDATORY: For every trait where you set "score" to a number (1–5), you MUST also set "confidence" to a number 0.0–1.0 and "evidence" to an array of 1–3 verbatim words or phrases from the description (a sentence or less each). Do NOT leave evidence empty or confidence at 0 when you have assigned a score. Only use score: null, confidence: 0.0, evidence: [] when there is truly no evidence for that trait.
+
+Do NOT guess. Be conservative.
+
+TASK:
+Analyze the cat description and score each trait on a 1–5 scale:
+1 = very low
+3 = neutral / average
+5 = very high
+
+For each trait return:
+- score: 1–5 or null
+- confidence: 0.0–1.0 — how confident you are in this evaluation (see CONFIDENCE GUIDELINES below)
+- evidence: one or two words or phrases (a sentence or less) that provide evidence for the trait being evaluated. Copy EXACTLY from the description; do not paraphrase. Use 0–3 items; each item should be a short phrase or sentence (max ~15 words). Empty array [] when there is no evidence.
+
+Evidence must be verbatim excerpts from the description that support why you assigned this score and confidence.
+Do NOT paraphrase.
+
+CONFIDENCE GUIDELINES (how confident you are in this evaluation):
+0.90–1.00 = explicitly stated in the description
+0.60–0.89 = strongly implied by specific behaviors or wording
+0.30–0.59 = weakly implied / ambiguous
+0.00 = no evidence
+
+IMPORTANT RULES:
+- For each trait, extract one or two words or phrases (a sentence or less) as evidence; state how confident you are in that evaluation (confidence 0.0–1.0).
+- Generic praise words like "sweet", "loving", "nice" are NOT strong evidence by themselves.
+- For "Intelligence" and "Adaptability", require explicit evidence (e.g., "learns quickly", "easy to train", "adjusted fast").
+- Prefer null over guessing.
+- Keep scoring conservative.
+- Output MUST be valid JSON ONLY: a single object. No trailing commas in arrays or objects (JSON does not allow them). No markdown, no code fence, no backticks, no text before or after the JSON. Use compact formatting (minimal whitespace) so the response is not truncated.
+- In "evidence" strings, escape any double quote as \\" so the output stays valid JSON.
+
+TRAITS (exactly 10; use these exact keys in the "traits" object):
+
+DEFINITIONS (1 = very low, 5 = very high for each):
+- Energy Level: How active and physically energetic the cat is.
+- Playfulness: How much the cat seeks and enjoys play (toys, chasing, interactive games).
+- Affection Level: How much the cat seeks and shows physical closeness and comfort (cuddling, lap time).
+- Independence: How much the cat is fine on its own vs. needing people around.
+- Sociability: How well the cat gets along with people and other animals; comfort with guests and multi-pet homes.
+- Vocality: How much the cat meows or makes other sounds to communicate.
+- Confidence: How bold and at ease the cat is in new places, with new people, or in unfamiliar situations.
+- Sensitivity: How easily the cat is stressed or upset by changes, loud noise, or handling.
+- Adaptability: How quickly and well the cat adjusts to new homes, routines, or changes.
+- Intelligence: How quickly the cat learns (e.g. tricks, routines, puzzles) and how curious or problem-solving it is.
+
+Energy Level
+Playfulness
+Affection Level
+Independence
+Sociability
+Vocality
+Confidence
+Sensitivity
+Adaptability
+Intelligence
+
+OUTPUT JSON FORMAT. "traits" must be a single object with exactly these 10 keys. Each value is an object with score, confidence, and evidence. When you assign a score, always include confidence and evidence:
+
+{
+  "traits": {
+    "Energy Level": { "score": 2, "confidence": 0.7, "evidence": ["loves napping", "low key"] },
+    "Playfulness": { "score": null, "confidence": 0.0, "evidence": [] },
+    "Affection Level": { "score": null, "confidence": 0.0, "evidence": [] },
+    "Independence": { "score": null, "confidence": 0.0, "evidence": [] },
+    "Sociability": { "score": null, "confidence": 0.0, "evidence": [] },
+    "Vocality": { "score": null, "confidence": 0.0, "evidence": [] },
+    "Confidence": { "score": null, "confidence": 0.0, "evidence": [] },
+    "Sensitivity": { "score": null, "confidence": 0.0, "evidence": [] },
+    "Adaptability": { "score": null, "confidence": 0.0, "evidence": [] },
+    "Intelligence": { "score": null, "confidence": 0.0, "evidence": [] }
+  },
+  "notes": {
+    "summary_tags": [],
+    "data_quality": "low"
+  }
+}
+
+DATA QUALITY:
+- low: fewer than 4 traits have score != null
+- medium: 4–9 traits have score != null
+- high: 10+ traits have score != null
+
+CAT DESCRIPTION (ONLY SOURCE OF TRUTH):
+<<<
+`;
+
+/** Module-level cache for the fixed prompt (reused per Cloud Function instance). TTL 55 min. */
+let cachedPromptName: string | null = null;
+let cachedPromptExpiry = 0;
+const CACHE_TTL_MS = 55 * 60 * 1000;
+const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+
 if (!admin.apps.length) {
   admin.initializeApp();
 }
@@ -179,9 +283,14 @@ export const computeAnimalPersonalityFit = functions.https.onCall(
           }
         }
         const updatedAtStr = typeof d.updatedAt === 'string' ? d.updatedAt : new Date().toISOString();
+        const cachedHasAnyTraitScore = TRAIT_NAMES.some((n) => {
+          const t = traitsOut[n];
+          return t?.score != null && t.score >= 1 && t.score <= 5;
+        });
+        const cachedType = cachedHasAnyTraitScore ? ((d.suggestedCatTypeName as string) ?? null) : null;
         return {
           traits: traitsOut,
-          suggestedCatTypeName: (d.suggestedCatTypeName as string) ?? null,
+          suggestedCatTypeName: cachedType,
           updatedAt: updatedAtStr,
           dataQuality: (d.dataQuality as string) ?? null,
         };
@@ -207,106 +316,93 @@ export const computeAnimalPersonalityFit = functions.https.onCall(
     }
 
     const descriptionBlock = description.slice(0, 8000);
-    const prompt = `You are an information extraction system for animal adoption profiles.
+    const variablePart =
+      descriptionBlock +
+      '\n>>>' +
+      (name?.trim() ? `\nCat name: ${name.trim()}` : '') +
+      (shelterName?.trim() ? `\nShelter/Organization: ${shelterName.trim()}` : '');
 
-You MUST ONLY use the provided cat description text as evidence.
-Do NOT use outside knowledge, breed stereotypes, or assumptions.
-If the description does not support a trait, you MUST return:
-  "score": null,
-  "confidence": 0.0,
-  "evidence": []
+    const generationConfig = {
+      temperature: 0.2,
+      maxOutputTokens: 4096,
+      responseMimeType: 'application/json' as const,
+    };
 
-MANDATORY: For every trait where you set "score" to a number (1–5), you MUST also set "confidence" to a number 0.0–1.0 and "evidence" to an array of 1–3 verbatim words or phrases from the description (a sentence or less each). Do NOT leave evidence empty or confidence at 0 when you have assigned a score. Only use score: null, confidence: 0.0, evidence: [] when there is truly no evidence for that trait.
+    let res: Response | undefined;
+    const now = Date.now();
+    const cacheValid = cachedPromptName && now < cachedPromptExpiry;
 
-Do NOT guess. Be conservative.
+    if (cacheValid && cachedPromptName) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cachedContent: cachedPromptName,
+          contents: [{ role: 'user', parts: [{ text: variablePart }] }],
+          generationConfig,
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        if (res.status === 404 || errText.includes('not found') || errText.includes('expired')) {
+          cachedPromptName = null;
+          cachedPromptExpiry = 0;
+        }
+      }
+    }
 
-TASK:
-Analyze the cat description and score each trait on a 1–5 scale:
-1 = very low
-3 = neutral / average
-5 = very high
+    if (!res || !res.ok) {
+      if (!cacheValid) {
+        const createRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: `models/${GEMINI_MODEL}`,
+              contents: [{ role: 'user', parts: [{ text: FIXED_PROMPT_PREFIX }] }],
+              ttl: '3600s',
+            }),
+          }
+        );
+        if (createRes.ok) {
+          const createJson = (await createRes.json()) as { name?: string };
+          if (createJson.name) {
+            cachedPromptName = createJson.name;
+            cachedPromptExpiry = now + CACHE_TTL_MS;
+          }
+        }
+      }
 
-For each trait return:
-- score: 1–5 or null
-- confidence: 0.0–1.0 — how confident you are in this evaluation (see CONFIDENCE GUIDELINES below)
-- evidence: one or two words or phrases (a sentence or less) that provide evidence for the trait being evaluated. Copy EXACTLY from the description; do not paraphrase. Use 0–3 items; each item should be a short phrase or sentence (max ~15 words). Empty array [] when there is no evidence.
+      if (cachedPromptName && cachedPromptExpiry > Date.now()) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cachedContent: cachedPromptName,
+            contents: [{ role: 'user', parts: [{ text: variablePart }] }],
+            generationConfig,
+          }),
+        });
+      } else {
+        const fullPrompt = FIXED_PROMPT_PREFIX + variablePart;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+            generationConfig,
+          }),
+        });
+      }
+    }
 
-Evidence must be verbatim excerpts from the description that support why you assigned this score and confidence.
-Do NOT paraphrase.
-
-CONFIDENCE GUIDELINES (how confident you are in this evaluation):
-0.90–1.00 = explicitly stated in the description
-0.60–0.89 = strongly implied by specific behaviors or wording
-0.30–0.59 = weakly implied / ambiguous
-0.00 = no evidence
-
-IMPORTANT RULES:
-- For each trait, extract one or two words or phrases (a sentence or less) as evidence; state how confident you are in that evaluation (confidence 0.0–1.0).
-- Generic praise words like "sweet", "loving", "nice" are NOT strong evidence by themselves.
-- For "Intelligence" and "Adaptability", require explicit evidence (e.g., "learns quickly", "easy to train", "adjusted fast").
-- Prefer null over guessing.
-- Keep scoring conservative.
-- Output MUST be valid JSON ONLY: a single object. No trailing commas in arrays or objects (JSON does not allow them). No markdown, no code fence, no backticks, no text before or after the JSON. Use compact formatting (minimal whitespace) so the response is not truncated.
-- In "evidence" strings, escape any double quote as \\" so the output stays valid JSON.
-
-TRAITS (exactly 10; use these exact keys in the "traits" object):
-Energy Level
-Playfulness
-Affection Level
-Independence
-Sociability
-Vocality
-Confidence
-Sensitivity
-Adaptability
-Intelligence
-
-OUTPUT JSON FORMAT. "traits" must be a single object with exactly these 10 keys. Each value is an object with score, confidence, and evidence. When you assign a score, always include confidence and evidence:
-
-{
-  "traits": {
-    "Energy Level": { "score": 2, "confidence": 0.7, "evidence": ["loves napping", "low key"] },
-    "Playfulness": { "score": null, "confidence": 0.0, "evidence": [] },
-    "Affection Level": { "score": null, "confidence": 0.0, "evidence": [] },
-    "Independence": { "score": null, "confidence": 0.0, "evidence": [] },
-    "Sociability": { "score": null, "confidence": 0.0, "evidence": [] },
-    "Vocality": { "score": null, "confidence": 0.0, "evidence": [] },
-    "Confidence": { "score": null, "confidence": 0.0, "evidence": [] },
-    "Sensitivity": { "score": null, "confidence": 0.0, "evidence": [] },
-    "Adaptability": { "score": null, "confidence": 0.0, "evidence": [] },
-    "Intelligence": { "score": null, "confidence": 0.0, "evidence": [] }
-  },
-  "notes": {
-    "summary_tags": [],
-    "data_quality": "low"
-  }
-}
-
-DATA QUALITY:
-- low: fewer than 4 traits have score != null
-- medium: 4–9 traits have score != null
-- high: 10+ traits have score != null
-
-CAT DESCRIPTION (ONLY SOURCE OF TRUTH):
-<<<
-${descriptionBlock}
->>>
-${name ? `\nCat name: ${name}` : ''}${shelterName ? `\nShelter/Organization: ${shelterName}` : ''}`;
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 4096,
-          responseMimeType: 'application/json',
-        },
-      }),
-    });
-
+    if (!res) {
+      throw new functions.https.HttpsError('internal', 'Personality analysis failed');
+    }
     if (!res.ok) {
       const text = await res.text();
       console.error('Gemini API error', res.status, text);
@@ -369,20 +465,26 @@ ${name ? `\nCat name: ${name}` : ''}${shelterName ? `\nShelter/Organization: ${s
 
     const updatedAt = new Date().toISOString();
     const validTypeNames = new Set(CAT_TYPE_PROFILES.map((t) => t.name));
+    const hasAnyTraitScore = TRAIT_NAMES.some((n) => {
+      const t = traits[n];
+      return t?.score != null && t.score >= 1 && t.score <= 5;
+    });
     const traitVector = TRAIT_NAMES.map((n) => {
       const s = traits[n]?.score;
       return s != null && s >= 1 && s <= 5 ? s : 3;
     });
     let suggestedName: string | null = null;
-    let bestDist = Infinity;
-    for (const profile of CAT_TYPE_PROFILES) {
-      let dist = 0;
-      for (let i = 0; i < TRAIT_NAMES.length; i++) {
-        dist += (traitVector[i] - profile.traits[i]) ** 2;
-      }
-      if (dist < bestDist) {
-        bestDist = dist;
-        suggestedName = profile.name;
+    if (hasAnyTraitScore) {
+      let bestDist = Infinity;
+      for (const profile of CAT_TYPE_PROFILES) {
+        let dist = 0;
+        for (let i = 0; i < TRAIT_NAMES.length; i++) {
+          dist += (traitVector[i] - profile.traits[i]) ** 2;
+        }
+        if (dist < bestDist) {
+          bestDist = dist;
+          suggestedName = profile.name;
+        }
       }
     }
     const dataQuality = parsed.notes?.data_quality?.trim();
@@ -430,9 +532,14 @@ ${name ? `\nCat name: ${name}` : ''}${shelterName ? `\nShelter/Organization: ${s
           }
         }
         const updatedAtStr = typeof d.updatedAt === 'string' ? d.updatedAt : new Date().toISOString();
+        const beforeWriteHasAny = TRAIT_NAMES.some((n) => {
+          const t = traitsOut[n];
+          return t?.score != null && t.score >= 1 && t.score <= 5;
+        });
+        const beforeWriteType = beforeWriteHasAny ? ((d.suggestedCatTypeName as string) ?? null) : null;
         return {
           traits: traitsOut,
-          suggestedCatTypeName: (d.suggestedCatTypeName as string) ?? null,
+          suggestedCatTypeName: beforeWriteType,
           updatedAt: updatedAtStr,
           dataQuality: (d.dataQuality as string) ?? null,
         };

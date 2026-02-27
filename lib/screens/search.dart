@@ -74,6 +74,8 @@ class SearchScreenState extends State<SearchScreen> {
   final Map<CatClassification, GlobalKey> _categoryKeys = {};
   // Keys for FilterType-based categories (Core/Advanced)
   final Map<String, GlobalKey> _filterTypeCategoryKeys = {};
+  /// Key for zip code input so we can scroll it to center when keyboard opens
+  final GlobalKey _zipCodeKey = GlobalKey();
   // Track which categories are expanded (supports both CatClassification and string keys)
   final Map<dynamic, bool> _expandedCategories = {};
   // Track which specific option values are being highlighted
@@ -207,8 +209,30 @@ class SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  /// Handle ZIP code validation when field loses focus
+  /// Handle ZIP code validation when field loses focus; when gaining focus, scroll zip to center
   Future<void> _onZipCodeFocusChange() async {
+    if (_zipCodeFocusNode.hasFocus) {
+      // Keyboard opening: scroll zip code to center and select all text so user can overwrite easily
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final context = _zipCodeKey.currentContext;
+        if (context != null) {
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+        if (_zipCodeController.text.isNotEmpty) {
+          _zipCodeController.selection = TextSelection(
+            baseOffset: 0,
+            extentOffset: _zipCodeController.text.length,
+          );
+        }
+      });
+      return;
+    }
     // Only validate when losing focus (not gaining focus)
     if (!_zipCodeFocusNode.hasFocus) {
       // Ensure keyboard is hidden when focus is lost
@@ -1275,7 +1299,7 @@ class SearchScreenState extends State<SearchScreen> {
             if (filter.classification == CatClassification.saves)
               _buildSavedSearchesSection(filter)
             else if (filter.fieldName == "zipCode")
-              _buildZipCodeInput(filter)
+              Container(key: _zipCodeKey, child: _buildZipCodeInput(filter))
             else if (filter.classification == CatClassification.breed)
               _buildBreedSelector(filter)
             else if (filter.slider)
@@ -3744,8 +3768,10 @@ class SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    // Body is above bottom bar; keyboard overlays from screen bottom. So toolbar must sit (bottomBar + safe area) lower to touch keyboard top.
+    // Body Stack ends at top of bottom bar, not screen bottom. Done bar bottom = (keyboardHeight - bottomBarHeight).
+    // Subtract a small correction so the bar sits flush with the keypad (viewInsets can leave a gap on iOS).
     final bottomBarHeight = MediaQuery.of(context).padding.bottom + 56;
+    const _doneBarGapCorrection = 30.0;
 
     // Back button behavior: Cancel (exits without searching)
     // "Find Cats" button: Saves and performs search
@@ -3792,22 +3818,20 @@ class SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
-          // Keyboard toolbar - appears above keyboard when visible
-          // Only show when search field is focused AND keyboard is actually visible
-          // Position at keyboardHeight - 80 from bottom (moved down 20 pixels from previous position)
+          // Keyboard toolbar - bottom of bar touches top of keyboard
           if (_searchFocusNode.hasFocus && keyboardHeight > 100)
             Positioned(
               left: 0,
               right: 0,
-              bottom: keyboardHeight - 80,
+              bottom: (keyboardHeight - bottomBarHeight - _doneBarGapCorrection).clamp(0.0, double.infinity),
               child: _buildKeyboardToolbar(),
             ),
-          // Zip code keyboard toolbar - appears above keyboard when zip code field is focused (iOS only; Android has its own done key)
+          // Zip code Done bar - bottom touches top of numeric keypad (iOS only)
           if (_zipCodeFocusNode.hasFocus && keyboardHeight > 100 && !Platform.isAndroid)
             Positioned(
               left: 0,
               right: 0,
-              bottom: (keyboardHeight - bottomBarHeight).clamp(0.0, double.infinity),
+              bottom: (keyboardHeight - bottomBarHeight - _doneBarGapCorrection).clamp(0.0, double.infinity),
               child: _buildZipCodeKeyboardToolbar(),
             ),
         ],

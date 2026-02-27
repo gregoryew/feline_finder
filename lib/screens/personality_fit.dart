@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:image/image.dart' as img;
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -1927,65 +1928,96 @@ class PersonalityFitState extends State<PersonalityFit> {
                       ),
                     ],
                   ),
-                  SfSliderTheme(
-                    data: SfSliderThemeData(
-                      inactiveTrackColor: AppTheme.deepPurple,
-                      activeTrackColor: AppTheme.goldBase,
-                      inactiveDividerColor: Colors.transparent,
-                      activeDividerColor: Colors.transparent,
-                      activeTrackHeight: 12,
-                      inactiveTrackHeight: 12,
-                      activeDividerRadius: 2,
-                      inactiveDividerRadius: 2,
-                    ),
-                    child: SfSlider(
-                      min: 0,
-                      max: question.choices.length.toDouble() - 1.0,
-                      interval: 1,
-                      showTicks: false,
-                      showDividers: false,
-                      enableTooltip: false,
-                      value: (_sliderValues[question.id] ?? 0.0).clamp(0.0, question.choices.length - 1.0),
-                      thumbIcon: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppTheme.goldHighlight,
-                              AppTheme.goldBase,
-                              AppTheme.goldShadow,
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.goldBase.withOpacity(0.5),
-                              blurRadius: 6,
-                              spreadRadius: 1,
-                              offset: const Offset(0, 2),
+                  // Static slider lookalike for capture (avoids SfSlider layout in overlay)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth;
+                      final value = (_sliderValues[question.id] ?? 0.0).clamp(0.0, (question.choices.length - 1).toDouble().clamp(0.0, double.infinity));
+                      final max = (question.choices.length - 1).toDouble().clamp(1.0, double.infinity);
+                      final fraction = max > 0 ? value / max : 0.0;
+                      final thumbSize = 28.0;
+                      final trackHeight = 12.0;
+                      final left = (width * fraction - thumbSize / 2).clamp(0.0, width - thumbSize);
+                      return SizedBox(
+                        height: thumbSize + 4,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: (fraction * 100).round().clamp(0, 99),
+                                    child: Container(
+                                      height: trackHeight,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.goldBase,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 100 - (fraction * 100).round().clamp(0, 99),
+                                    child: Container(
+                                      height: trackHeight,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.deepPurple,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                            Positioned(
+                              left: left,
+                              bottom: 0,
+                              child: Container(
+                                width: thumbSize,
+                                height: thumbSize,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppTheme.goldHighlight,
+                                      AppTheme.goldBase,
+                                      AppTheme.goldShadow,
+                                    ],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.goldBase.withOpacity(0.5),
+                                      blurRadius: 6,
+                                      spreadRadius: 1,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Container(
+                                    margin: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withOpacity(0.3),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        child: Container(
-                          margin: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.3),
-                          ),
-                        ),
-                      ),
-                      onChanged: (newValue) {
-                        // No-op during capture
-                      },
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -1996,127 +2028,172 @@ class PersonalityFitState extends State<PersonalityFit> {
     );
   }
 
-  // Build full content for capture - all question cards and matching cat type cards
+  static const String _felineFinderUrl = 'https://www.felinefinder.info';
+
+  // Build capture content: black box (text + QR) then top 3 cat type cards
   Widget _buildFullContentForCapture() {
-    // Show only the top 6 cat type cards in the generated image
-    const int maxCatTypeCardsToShow = 6;
+    const int maxCatTypeCardsToShow = 3;
     final int catTypeCardsToShow = maxCatTypeCardsToShow.clamp(0, _displayOrder.length);
-    
-    // Get the top cat type name from display order (no mutation of global catType)
+
     final String topCatTypeName = _displayOrder.isNotEmpty
         ? catType.firstWhere((c) => c.id == _displayOrder[0], orElse: () => catType.first).name
         : (catType.isNotEmpty ? catType[0].name : 'Unknown');
-    final String shareText = 'My purrfect personality match is $topCatTypeName! What\'s yours? Find out:';
-    
+    final String promoText =
+        'I took the Feline Finder quiz and discovered I\'m a $topCatTypeName cat person. '
+        'Take the quiz and find your purrfect match — free at felinefinder.info';
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Black text box at the TOP (so it's visible in Facebook feed preview)
-        Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 60),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          color: Colors.black,
-          child: ClipRect(
-            clipBehavior: Clip.hardEdge,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SizedBox(
-                  width: constraints.maxWidth,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
+        // App screenshot on top: question cards left, 3 cat type cards right, with bottom fade.
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: Question_Cat_Types.questions.asMap().entries.take(5).map((entry) {
+                          final index = entry.key;
+                          final question = entry.value;
+                          return _buildQuestionCardForCapture(question, index);
+                        }).toList(),
+                      ),
+                    ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 140,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_helpPhase != 2)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12.0, left: 5.0, right: 5.0),
+                            padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 12.0, bottom: 12.0),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.purpleGradient,
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            child: _helpPhase == 0
+                                ? const Center(
+                                    child: Text(
+                                      'Adjust sliders to see your top personality matches',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        decoration: TextDecoration.none,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.visible,
+                                      softWrap: true,
+                                    ),
+                                  )
+                                : const Center(
+                                    child: Text(
+                                      "When you're ready, tap 🐈 tab to see your matches",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        decoration: TextDecoration.none,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.visible,
+                                      softWrap: true,
+                                    ),
+                                  ),
+                          ),
+                        ..._displayOrder.take(catTypeCardsToShow).map((id) {
+                          final type = catType.firstWhere((c) => c.id == id);
+                          final percentMatch = _displayPercentMatch[id] ?? 1.0;
+                          return _buildCatTypeCardForCapture(type, percentMatch);
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Fade overlay at bottom so screenshot fades into background
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        AppTheme.royalPurple,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        // Black box at bottom: promo text (wraps as needed, readable on mobile) + QR code
+        DefaultTextStyle(
+          style: const TextStyle(decoration: TextDecoration.none, decorationColor: Colors.transparent),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 100, maxHeight: 320),
+            padding: const EdgeInsets.all(10),
+            color: Colors.black,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 10, top: 6, bottom: 6),
                     child: Text(
-                      shareText,
-                      textAlign: TextAlign.center,
+                      promoText,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 24,
                         fontWeight: FontWeight.w600,
-                        height: 1.4,
+                        height: 1.35,
+                        decoration: TextDecoration.none,
+                        decorationColor: Colors.transparent,
                       ),
-                      maxLines: 3,
+                      maxLines: null,
                       overflow: TextOverflow.clip,
                       softWrap: true,
                     ),
                   ),
-                );
-              },
+                ),
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.all(6),
+                  child: QrImageView(
+                    data: _felineFinderUrl,
+                    version: QrVersions.auto,
+                    size: 72,
+                    backgroundColor: Colors.white,
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: Colors.black,
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        // Main content row
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left column - ALL question cards
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: Question_Cat_Types.questions.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final question = entry.value;
-                  return _buildQuestionCardForCapture(question, index);
-                }).toList(),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Right column - enough breed cards to match height
-            SizedBox(
-              width: 140,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Help message (same phase as main view)
-                  if (_helpPhase != 2)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 12.0, left: 5.0, right: 5.0),
-                      padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 12.0, bottom: 12.0),
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.purpleGradient,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: _helpPhase == 0
-                          ? const Center(
-                              child: Text(
-                                'Adjust sliders to see your top personality matches',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.none,
-                                ),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.visible,
-                                softWrap: true,
-                              ),
-                            )
-                          : const Center(
-                              child: Text(
-                                "When you're ready, tap 🐈 tab to see your matches",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.none,
-                                ),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.visible,
-                                softWrap: true,
-                              ),
-                            ),
-                    ),
-                  // Show only the top 6 breed cards in the generated image
-                  // Use capture-specific breed card builder with correct width
-                  ..._displayOrder.take(catTypeCardsToShow).map((id) {
-                    final type = catType.firstWhere((c) => c.id == id);
-                    final percentMatch = _displayPercentMatch[id] ?? 1.0;
-                    return _buildCatTypeCardForCapture(type, percentMatch);
-                  }),
-                ],
-              ),
-            ),
-          ],
         ),
       ],
     );

@@ -72,30 +72,70 @@ class GoldPetCard extends StatelessWidget {
 
   static const double _iconSlotWidth = 22.0; // Same for org and location so icons align
 
+  static const TextStyle _bodyTextStyle = TextStyle(
+    fontSize: AppTheme.fontSizeM,
+    fontWeight: FontWeight.w500,
+    color: Colors.white,
+    fontFamily: AppTheme.fontFamily,
+  );
+
   Widget _buildSuggestedCatType() {
-    final name = tile.suggestedCatTypeName;
-    if (name == null || name.trim().isEmpty) {
+    final hasDescription = tile.descriptionText != null &&
+        tile.descriptionText!.trim().isNotEmpty;
+    final fitDone = tile.personalityFitTraits != null &&
+        tile.personalityFitTraits!.isNotEmpty;
+    final name = tile.suggestedCatTypeName?.trim();
+
+    final isLoading = hasDescription && !fitDone;
+    final noDescription = !hasDescription;
+    final noTraitsOrType = fitDone && (name == null || name.isEmpty);
+    final displayText = noDescription
+        ? 'No description provided'
+        : noTraitsOrType
+            ? 'Unknown'
+            : (name != null && name.isNotEmpty)
+                ? name
+                : null;
+    if (!isLoading && displayText == null) {
       return const SizedBox.shrink();
     }
+
+    final IconData typeRowIcon = noDescription
+        ? Icons.not_interested
+        : (isLoading
+            ? Icons.hourglass_empty
+            : (noTraitsOrType ? Icons.help_outline : Icons.psychology));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 16, right: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Flexible(
-            child: Text(
-              name.trim(),
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: AppTheme.fontSizeS,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.goldBase.withOpacity(0.95),
-                fontFamily: AppTheme.fontFamily,
-              ),
-              softWrap: true,
+          SizedBox(
+            width: _iconSlotWidth,
+            child: Icon(
+              typeRowIcon,
+              size: 16,
+              color: AppTheme.goldBase,
             ),
           ),
+          const SizedBox(width: 6),
+          if (isLoading)
+            Text(
+              'Loading...',
+              textAlign: TextAlign.left,
+              style: _bodyTextStyle,
+            )
+          else
+            Flexible(
+              child: Text(
+                displayText!,
+                textAlign: TextAlign.left,
+                style: _bodyTextStyle,
+                softWrap: true,
+              ),
+            ),
         ],
       ),
     );

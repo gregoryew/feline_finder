@@ -702,8 +702,10 @@ void search() async {
     if (top == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Set your preferences on the Fit tab first'),
+          SnackBar(
+            content: Text(
+              'Set your cat type on the Fit tab first (e.g. ${catType.take(3).map((t) => t.name).join(', ')}).',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -798,6 +800,8 @@ void _scrollListener() {
 // ----------------------------------------------------------------------
 //                    PERSONALITY FIT (HIVE / FIRESTORE / CALLABLE)
 // ----------------------------------------------------------------------
+// High-volume Gemini path: one getFitForAnimal per tile without cached fit.
+// Protected by Hive → Firestore → callable: same animal never hits Gemini twice.
 static const int _fitBatchSize = 10;
 
 Future<void> _resolvePersonalityFitForTiles() async {
@@ -840,9 +844,11 @@ Future<void> _resolvePersonalityFitForTiles() async {
         );
         if (record != null && mounted) {
           tile.personalityFitTraits = record.traitScores;
-          if (record.suggestedCatTypeName != null) {
-            tile.suggestedCatTypeName = record.suggestedCatTypeName;
-          }
+          // Always use fit result: if no suggested type, clear so card shows "Unknown" not description guess (e.g. "Mood Ring Cat")
+          tile.suggestedCatTypeName = record.suggestedCatTypeName != null &&
+                  record.suggestedCatTypeName!.trim().isNotEmpty
+              ? record.suggestedCatTypeName
+              : null;
           // When a cat type is selected, score by suggested-type vs selected-type so order is consistent (e.g. Toy Addict before Lap Legend for Puzzle Pro).
           if (selectedTypeProfile != null &&
               record.suggestedCatTypeName != null &&

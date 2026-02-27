@@ -1,3 +1,17 @@
+/// Ordered list of the 10 personality trait names (matches backend).
+const List<String> kPersonalityTraitNames = [
+  'Energy Level',
+  'Playfulness',
+  'Affection Level',
+  'Independence',
+  'Sociability',
+  'Vocality',
+  'Confidence',
+  'Sensitivity',
+  'Adaptability',
+  'Intelligence',
+];
+
 /// One trait: score (1–5 or null), confidence (0–1), evidence (verbatim phrases).
 class TraitDetail {
   final int? score;

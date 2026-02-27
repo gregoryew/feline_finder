@@ -7,21 +7,32 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:geocoding/geocoding.dart';
 import '../config.dart';
 
+class _SearchCacheEntry {
+  final Map<String, dynamic> result;
+  final DateTime expiresAt;
+  _SearchCacheEntry(this.result, this.expiresAt);
+}
+
 class SearchAIService {
   static final SearchAIService _instance = SearchAIService._internal();
   factory SearchAIService() => _instance;
   SearchAIService._internal();
 
   static Duration get _timeout => const Duration(seconds: 10);
+  static const Duration _searchCacheTtl = Duration(minutes: 10);
+  final Map<String, _SearchCacheEntry> _searchQueryCache = {};
+
   late GenerativeModel _model;
   bool _initialized = false;
   int _currentModelIndex = 0;
+  // Prefer cheaper models first to avoid high bills (2.5-flash-lite ~$0.10/1M in; 2.5-flash/1.5-pro are much higher).
   static const List<String> _modelCandidates = [
-    'gemini-2.0-flash-exp', // Preferred: was working well for query understanding
-    'gemini-2.0-flash',     // Fallback 1: stable version of 2.0
-    'gemini-2.5-flash',     // Fallback 2: newer stable version (recommended)
-    'gemini-1.5-pro',       // Fallback 3: more capable but slower
-    'gemini-1.5-flash',     // Fallback 4: faster but less capable
+    'gemini-2.5-flash-lite', // Cheapest: same as profile callable (~$0.10/1M in, $0.40/1M out)
+    'gemini-2.0-flash-exp',  // Fallback 1: was working well for query understanding
+    'gemini-2.0-flash',      // Fallback 2: stable 2.0
+    'gemini-2.5-flash',      // Fallback 3: newer stable (higher cost)
+    'gemini-1.5-flash',      // Fallback 4: faster, less capable
+    // 'gemini-1.5-pro' removed from default list — very expensive ($1.25/1M in, $5/1M out)
   ];
 
   void initialize() {
@@ -116,7 +127,8 @@ class SearchAIService {
     }
   }
 
-  /// Parse natural language search with comprehensive error handling
+  /// Parse natural language search with comprehensive error handling.
+  /// Results are cached in memory for [_searchCacheTtl] to avoid duplicate Gemini calls for the same query.
   Future<Map<String, dynamic>> parseSearchQuery(String query, {int retryCount = 0}) async {
     // Edge case: Empty or whitespace-only query
     if (query.trim().isEmpty) {
@@ -127,6 +139,14 @@ class SearchAIService {
     if (query.length > 500) {
       query = query.substring(0, 500);
     }
+
+    // Cache: same query within TTL returns cached result (no Gemini call)
+    final cacheKey = query.trim().toLowerCase();
+    final cached = _searchQueryCache[cacheKey];
+    if (cached != null && cached.expiresAt.isAfter(DateTime.now())) {
+      return Map<String, dynamic>.from(cached.result);
+    }
+    if (cached != null) _searchQueryCache.remove(cacheKey);
 
     if (!_initialized) {
       throw Exception(
@@ -706,6 +726,11 @@ IMPORTANT - Handling OR conditions:
       // Edge case: Normalize and validate response structure
       final normalized = await _normalizeResponse(jsonData);
       print('🤖 Normalized response: $normalized');
+      // Cache successful result to avoid duplicate Gemini calls for same query
+      _searchQueryCache[cacheKey] = _SearchCacheEntry(
+        Map<String, dynamic>.from(normalized),
+        DateTime.now().add(_searchCacheTtl),
+      );
       return normalized;
     } on TimeoutException catch (e) {
       print('AI request timeout: $e');

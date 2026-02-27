@@ -7,7 +7,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:linkfy_text/linkfy_text.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:catapp/ExampleCode/Media.dart';
+import 'package:catapp/models/animal_fit_record.dart';
+import 'package:catapp/services/cat_fit_service.dart';
+import 'package:catapp/models/catType.dart';
+import 'package:catapp/services/cat_type_filter_mapping.dart';
 import 'package:rating_dialog/rating_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,6 +31,7 @@ import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import '../theme.dart';
 import '../network_utils.dart';
 import '../gold_frame/gold_frame_panel.dart';
+import '../widgets/html_bold_key_extension.dart';
 
 class petDetail extends StatefulWidget {
   final String petID;
@@ -54,6 +60,10 @@ class petDetailState extends State<petDetail>
   late final ScrollController _controller = ScrollController();
   late final PageController _pageController = PageController();
   int currentIndexPage = 0;
+  AnimalFitRecord? _fitRecord;
+  List<String>? _highlightedTraitEvidence;
+  int _personalityChartMode = 0; // 0 = My Type, 1 = Suggested Type
+  final GlobalKey _descriptionHighlightKey = GlobalKey();
 
   final _dialog = RatingDialog(
     initialRating: 1.0,
@@ -195,6 +205,7 @@ class petDetailState extends State<petDetail>
             );
             getShelterDetail(petDetailInstance!.organizationID!);
             loadAsset();
+            _loadFitRecord();
           });
         }
         print("********DD = ${petDetailInstance?.media}");
@@ -213,6 +224,18 @@ class petDetailState extends State<petDetail>
     } catch (e) {
       if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
     }
+  }
+
+  Future<void> _loadFitRecord() async {
+    if (petDetailInstance?.id == null) return;
+    final record = await CatFitService.instance.getFitForAnimal(
+      petDetailInstance!.id!,
+      description: petDetailInstance!.description ?? '',
+      name: petDetailInstance!.name,
+      shelterName: petDetailInstance!.organizationName,
+      updatedDate: null,
+    );
+    if (mounted) setState(() => _fitRecord = record);
   }
 
   String getAddress(PetDetailData? petDetailInstance) {
@@ -679,18 +702,6 @@ class petDetailState extends State<petDetail>
               ),
               const SizedBox(height: 10),
 
-              const Center(
-                child: Text(
-                  "General Information",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-
               // Contact section using thin gold outline
               ThinGoldSection(
                 title: "Contact",
@@ -705,6 +716,31 @@ class petDetailState extends State<petDetail>
                   ),
                 ),
               ),
+
+              if (_fitRecord != null) ...[
+                const SizedBox(height: 12),
+                _buildPersonalityChart(),
+                const SizedBox(height: 12),
+              ],
+
+              const SizedBox(height: 12),
+              Divider(
+                color: Colors.white.withOpacity(0.5),
+                height: 1,
+                thickness: 1,
+              ),
+              const SizedBox(height: 12),
+              const Center(
+                child: Text(
+                  "General Information",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
 
               const SizedBox(height: 12),
               textBox("Description", petDetailInstance?.description ?? ""),
@@ -920,7 +956,330 @@ class petDetailState extends State<petDetail>
     );
   }
 
+  String get _adopterTypeLabel {
+    final name = widget.server.selectedPersonalityCatTypeName?.trim();
+    return (name != null && name.isNotEmpty) ? name : 'My Type';
+  }
+
+  String get _suggestedTypeLabel {
+    final name = _fitRecord?.suggestedCatTypeName?.trim();
+    return (name != null && name.isNotEmpty) ? name : 'Suggested Type';
+  }
+
+  /// Returns the trait profile (trait name -> 1-5) for the type to show as triangle.
+  Map<String, int>? _getTypeProfileForChart() {
+    String? name;
+    if (_personalityChartMode == 0) {
+      name = widget.server.selectedPersonalityCatTypeName;
+    } else {
+      name = _fitRecord?.suggestedCatTypeName;
+    }
+    if (name == null || name.trim().isEmpty) return null;
+    CatType? type;
+    try {
+      type = catType.firstWhere(
+          (t) => t.name.toLowerCase() == name!.trim().toLowerCase());
+    } catch (_) {
+      return null;
+    }
+    return CatTypeFilterMapping.getTraitProfileForCatType(type);
+  }
+
+  Widget _buildPersonalityChart() {
+    const segmentCount = 5;
+    const barHeight = 8.0;
+    const rowHeight = 14.0;
+    const triangleWidth = 14.0;
+    const triangleHeight = 14.0;
+    final typeProfile = _getTypeProfileForChart();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 11),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: AppTheme.purpleGradient,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                GoldIconBox(icon: Icons.psychology),
+                const SizedBox(width: 16),
+                const Text(
+                  'Personality',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...kPersonalityTraitNames.map((traitName) {
+              final detail = _fitRecord!.traits[traitName];
+              final score = detail?.score;
+              final filledSegments = (score != null && score >= 1 && score <= 5)
+                  ? score
+                  : 0;
+              final typeValue = typeProfile?[traitName];
+              final showTriangle = typeValue != null && typeValue >= 1 && typeValue <= 5;
+              final evidence = detail?.evidence ?? [];
+              final isActive = _highlightedTraitEvidence != null &&
+                  _highlightedTraitEvidence!.isNotEmpty &&
+                  identical(_highlightedTraitEvidence, evidence);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 110,
+                      child: Text(
+                        traitName,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isActive ? AppTheme.goldBase : Colors.white70,
+                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        height: rowHeight,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final barWidth = constraints.maxWidth;
+                            final left = showTriangle
+                                ? (barWidth * ((typeValue! - 0.5) / segmentCount) -
+                                        triangleWidth / 2)
+                                    .clamp(0.0, barWidth - triangleWidth)
+                                : 0.0;
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: (rowHeight - barHeight) / 2,
+                                  height: barHeight,
+                                  child: Row(
+                                    children: List.generate(segmentCount, (i) {
+                                      final segmentIndex = i + 1;
+                                      final isFilled =
+                                          segmentIndex <= filledSegments;
+                                      final isFirst = i == 0;
+                                      final isLast =
+                                          i == segmentCount - 1;
+                                      return Expanded(
+                                        child: Container(
+                                          margin: EdgeInsets.only(
+                                            right: isLast ? 0 : 1,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isFilled
+                                                ? AppTheme.goldBase
+                                                : Colors.white24,
+                                            borderRadius:
+                                                BorderRadius.horizontal(
+                                              left: Radius.circular(
+                                                  isFirst ? 4 : 0),
+                                              right: Radius.circular(
+                                                  isLast ? 4 : 0),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                ),
+                                if (showTriangle)
+                                  Positioned(
+                                    left: left,
+                                    top: 0,
+                                    child: CustomPaint(
+                                      size: const Size(
+                                          triangleWidth, triangleHeight),
+                                      painter: _GoldTrianglePainter(),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () {
+                        final willHighlight = evidence.isNotEmpty &&
+                            !(_highlightedTraitEvidence == evidence &&
+                                evidence.isNotEmpty);
+                        setState(() {
+                          if (_highlightedTraitEvidence == evidence &&
+                              evidence.isNotEmpty) {
+                            _highlightedTraitEvidence = null;
+                          } else {
+                            _highlightedTraitEvidence =
+                                evidence.isEmpty ? null : evidence;
+                          }
+                        });
+                        if (willHighlight &&
+                            evidence.isNotEmpty &&
+                            mounted) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            final ctx = _descriptionHighlightKey.currentContext;
+                            if (ctx != null) {
+                              Scrollable.ensureVisible(
+                                ctx,
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOut,
+                                alignment: 0.5,
+                              );
+                            }
+                          });
+                        }
+                      },
+                      child: Icon(
+                        isActive ? Icons.info : Icons.info_outline,
+                        size: 20,
+                        color: evidence.isEmpty
+                            ? Colors.white38
+                            : (isActive ? AppTheme.goldBase : Colors.white70),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Radio<int>(
+                  value: 0,
+                  groupValue: _personalityChartMode,
+                  onChanged: (v) => setState(() => _personalityChartMode = 0),
+                  activeColor: AppTheme.goldBase,
+                  fillColor: WidgetStateProperty.resolveWith((states) =>
+                      states.contains(WidgetState.selected)
+                          ? AppTheme.goldBase
+                          : Colors.white54),
+                ),
+                Text(
+                  _adopterTypeLabel,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.95),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Radio<int>(
+                  value: 1,
+                  groupValue: _personalityChartMode,
+                  onChanged: (v) => setState(() => _personalityChartMode = 1),
+                  activeColor: AppTheme.goldBase,
+                  fillColor: WidgetStateProperty.resolveWith((states) =>
+                      states.contains(WidgetState.selected)
+                          ? AppTheme.goldBase
+                          : Colors.white54),
+                ),
+                Text(
+                  _suggestedTypeLabel,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.95),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Wraps each evidence phrase in the description with <b></b> for highlighting.
+  /// Uses case-insensitive matching so "loves cuddling" matches "Loves cuddling" in the text.
+  static String _wrapEvidenceInBold(String description, List<String> evidence) {
+    String result = description;
+    for (final phrase in evidence) {
+      if (phrase.isEmpty) continue;
+      try {
+        final pattern = RegExp(RegExp.escape(phrase), caseSensitive: false);
+        final found = pattern.hasMatch(result);
+        print('Evidence highlight: searching for "${phrase}" -> ${found ? "found" : "NOT found"}');
+        if (found) {
+          result = result.replaceFirstMapped(
+            pattern,
+            (match) => '<b>${match.group(0)}</b>',
+          );
+        }
+      } catch (e) {
+        print('Evidence highlight: error for phrase "${phrase}": $e');
+      }
+    }
+    return result;
+  }
+
   Widget textBox(String title, String textBlock) {
+    if (title == 'Description') {
+      final htmlContent = (_highlightedTraitEvidence != null &&
+              _highlightedTraitEvidence!.isNotEmpty)
+          ? _wrapEvidenceInBold(textBlock, _highlightedTraitEvidence!)
+          : textBlock;
+      final hasHighlight = _highlightedTraitEvidence != null &&
+          _highlightedTraitEvidence!.isNotEmpty;
+      return ThinGoldSection(
+        title: title,
+        icon: Icons.description_outlined,
+        child: Html(
+          data: htmlContent,
+          extensions: hasHighlight
+              ? [BoldKeyExtension(_descriptionHighlightKey)]
+              : const [],
+          style: {
+            '*': Style(
+              fontFamily: GoogleFonts.karla().fontFamily,
+              fontSize: FontSize(16),
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+              lineHeight: LineHeight(1.5),
+            ),
+            'b': Style(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.goldBase,
+            ),
+            'strong': Style(
+              fontWeight: FontWeight.bold,
+              color: AppTheme.goldBase,
+            ),
+            'a': Style(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              textDecoration: TextDecoration.underline,
+            ),
+          },
+          onLinkTap: (url, _, __) {
+            if (url != null) _onOpen(url);
+          },
+        ),
+      );
+    }
+
     var document = parseFragment(textBlock);
     var textString = document.text ?? "";
     
@@ -1615,4 +1974,27 @@ class ThinGoldSection extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GoldTrianglePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width * 0.5, 0)
+      ..lineTo(0, size.height)
+      ..lineTo(size.width, size.height)
+      ..close();
+    final fillPaint = Paint()
+      ..color = AppTheme.goldBase
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, fillPaint);
+    final strokePaint = Paint()
+      ..color = const Color(0xFF2B1E3A).withOpacity(0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawPath(path, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

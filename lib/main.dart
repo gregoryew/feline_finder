@@ -15,6 +15,7 @@ import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'services/search_ai_service.dart';
 import 'services/key_store_service.dart';
+import 'services/cat_type_filter_mapping.dart';
 import 'theme.dart';
 import 'network_utils.dart';
 import 'screens/globals.dart' as globals;
@@ -204,8 +205,7 @@ Future<void> _initializeAppRest() async {
   }
 
   try {
-    final box = await Hive.openBox('cat_fit_scores');
-    await box.clear();
+    await Hive.openBox('cat_fit_scores');
   } catch (e) {
     print('Hive cat_fit_scores box open failed: $e');
   }
@@ -759,20 +759,23 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       PersonalityFitScreenKey.currentState?.dismissHelpAndSave();
       FitScreenKey.currentState?.dismissHelpAndSave();
     }
-    if (index != 4) globals.sheltersOpenedFromSearch = false;
+    // "Select" only when opened from search screen (onNavigateToSheltersTab sets true). Any tab tap clears it so button shows "View Cats".
+    globals.sheltersOpenedFromSearch = false;
     setState(() {
       _selectedIndex = index;
     });
   }
 
   Future<void> _askSearchByPersonalityThenSwitchToAdopt() async {
+    final top = CatTypeFilterMapping.getTopPersonalityCatType(globals.FelineFinderServer.instance);
+    final contentText = top != null
+        ? 'Apply your cat type, ${top.name}, to the adoption search and see cats that match your personality.'
+        : 'Apply your Fit tab preferences to the adoption search and see cats that match your personality.';
     final searchByPersonality = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('Search by your cat personality?'),
-        content: const Text(
-          'Apply your Fit tab preferences to the adoption search and see cats that match your personality.',
-        ),
+        content: Text(contentText),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),

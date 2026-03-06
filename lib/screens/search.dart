@@ -109,6 +109,38 @@ class SearchScreenState extends State<SearchScreen> {
     _saveCatTypeToPrefs(_kCustomId);
   }
 
+  /// Match threshold (0–1): only set dropdown to a cat type when fit score >= this.
+  static const double _kCatTypeMatchThreshold = 0.85;
+
+  /// Run fit from current personality sliders: if they match a cat type, set dropdown to that type; else set to Custom.
+  void _updateCatTypeDropdownFromSliders() {
+    if (!mounted) return;
+    final hasPreference = CatTypeFilterMapping.hasPersonalityPreferenceFromSearchFilters(widget.filteringOptions);
+    final result = CatTypeFilterMapping.getTopCatTypeFromSearchFilters(widget.filteringOptions);
+    final top = result.type;
+    final matchPercent = result.matchPercent;
+    final bool goodMatch = top != null && matchPercent >= _kCatTypeMatchThreshold;
+    Object? newValue;
+    String? nameToSave;
+    if (!hasPreference) {
+      newValue = null;
+      nameToSave = null;
+    } else if (goodMatch) {
+      newValue = top;
+      nameToSave = top!.name;
+    } else {
+      newValue = _kCustomId;
+      nameToSave = 'Custom';
+    }
+    final current = _selectedCatTypeValue;
+    if (current == newValue) return;
+    setState(() {
+      _selectedCatTypeValue = newValue;
+    });
+    globals.FelineFinderServer.instance.setSelectedPersonalityCatTypeName(nameToSave);
+    _saveCatTypeToPrefs(newValue);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -781,7 +813,22 @@ class SearchScreenState extends State<SearchScreen> {
                       }
                     },
                     onChanged: (_) => setState(() {}),
-                    decoration: SearchScreenStyle.searchFieldDecoration(),
+                    decoration: SearchScreenStyle.searchFieldDecoration().copyWith(
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          controller2.clear();
+                          setState(() {});
+                        },
+                        icon: Icon(
+                          Icons.cancel,
+                          color: SearchScreenStyle.gold,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        tooltip: 'Clear',
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1178,12 +1225,15 @@ class SearchScreenState extends State<SearchScreen> {
                             await Future.delayed(const Duration(milliseconds: 200));
                           }
                           if (!mounted) return;
-                          final updates = CatTypeFilterMapping.getPersonalityFiltersForCatType(toApply!);
+                          final personalityUpdates = CatTypeFilterMapping.getPersonalityFiltersForCatType(toApply!);
+                          final sliderTargets = CatTypeFilterMapping.getSliderTargetValuesForCatType(toApply!);
                           final personalityFilters = widget.filteringOptions
                               .where((f) => f.classification == CatClassification.personality)
                               .toList();
                           final filtersToUpdate = personalityFilters
-                              .where((f) => updates.containsKey(f.name))
+                              .where((f) =>
+                                  personalityUpdates.containsKey(f.name) ||
+                                  (f.slider && sliderTargets.containsKey(f.name)))
                               .toList();
                           if (filtersToUpdate.isNotEmpty) {
                             await _animateFilterUpdates(
@@ -1304,6 +1354,8 @@ class SearchScreenState extends State<SearchScreen> {
               _buildBreedSelector(filter)
             else if (filter.slider)
               _buildSliderSelector(filter)
+            else if (_isDropdownOnlyPersonalityFilter(filter))
+              _buildDropdownSelector(filter)
             else if (filter.list)
               _buildChipSelector(filter)
             else
@@ -1312,6 +1364,11 @@ class SearchScreenState extends State<SearchScreen> {
         ),
       ),
     );
+  }
+
+  /// Calmness and Gentleness are always shown as dropdowns (Yes/Any), not chips.
+  bool _isDropdownOnlyPersonalityFilter(filterOption filter) {
+    return filter.name == 'Calmness' || filter.name == 'Gentleness';
   }
 
   Widget _buildZipCodeInput(filterOption filter) {
@@ -1595,47 +1652,68 @@ class SearchScreenState extends State<SearchScreen> {
       currentIndex = 0;
     }
 
-    final currentOption = options[currentIndex];
     final divisions = options.length > 1 ? options.length - 1 : 1;
+    final maxIndex = (options.length - 1).toDouble();
+    final isAnimating = _isFilterAnimating(filter);
+    final shouldAnimateFromZero = isAnimating && currentIndex > 0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            currentOption.displayName,
-            style: TextStyle(
-              color: SearchScreenStyle.gold,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+    Widget sliderBody(double value) {
+      final index = value.round().clamp(0, options.length - 1);
+      final option = options[index];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              option.displayName,
+              style: TextStyle(
+                color: SearchScreenStyle.gold,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-        ),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: SearchScreenStyle.gold,
-            inactiveTrackColor: SearchScreenStyle.gold.withOpacity(0.3),
-            thumbColor: SearchScreenStyle.gold,
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: SearchScreenStyle.gold,
+              inactiveTrackColor: SearchScreenStyle.gold.withOpacity(0.3),
+              thumbColor: SearchScreenStyle.gold,
+            ),
+            child: Slider(
+              value: value.clamp(0.0, maxIndex),
+              min: 0,
+              max: maxIndex,
+              divisions: divisions,
+              onChanged: shouldAnimateFromZero
+                  ? null
+                  : (value) {
+                      final index = value.round().clamp(0, options.length - 1);
+                      setState(() {
+                        filter.choosenListValues = [options[index].value];
+                      });
+                      if (filter.classification == CatClassification.personality) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) _updateCatTypeDropdownFromSliders();
+                        });
+                      }
+                    },
+            ),
           ),
-          child: Slider(
-            value: currentIndex.toDouble(),
-            min: 0,
-            max: (options.length - 1).toDouble(),
-            divisions: divisions,
-            onChanged: (value) {
-              final index = value.round().clamp(0, options.length - 1);
-              setState(() {
-                filter.choosenListValues = [options[index].value];
-              });
-              if (filter.classification == CatClassification.personality) {
-                _switchToCustomPersonalityIfPresetSelected();
-              }
-            },
-          ),
-        ),
-      ],
-    );
+        ],
+      );
+    }
+
+    if (shouldAnimateFromZero) {
+      return TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: currentIndex.toDouble()),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) => sliderBody(value),
+      );
+    }
+
+    return sliderBody(currentIndex.toDouble());
   }
 
   Widget _buildChipSelector(filterOption filter) {
@@ -1694,7 +1772,9 @@ class SearchScreenState extends State<SearchScreen> {
                   }
                 });
                 if (filter.classification == CatClassification.personality) {
-                  _switchToCustomPersonalityIfPresetSelected();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _updateCatTypeDropdownFromSliders();
+                  });
                 }
               },
 
@@ -2049,7 +2129,7 @@ class SearchScreenState extends State<SearchScreen> {
       // Apply filters with animation (controlled by toggle) and navigate directly to results
       await _applyAIFilters(filterData,
           animate: _animateFilters, navigateDirect: true);
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Close loading dialog
       Navigator.of(context).pop();
 
@@ -2057,6 +2137,9 @@ class SearchScreenState extends State<SearchScreen> {
         showNetworkErrorSnackBar(context);
         return;
       }
+      // Log full error and stack for debugging
+      print('🔴 [Search] parseSearchQuery error: $e');
+      print('🔴 [Search] stackTrace: $stackTrace');
       final errorMsg = e.toString();
       if (errorMsg.contains('not initialized')) {
         _showError(
@@ -2168,7 +2251,7 @@ class SearchScreenState extends State<SearchScreen> {
 
       // Apply filters with animation (controlled by toggle)
       await _applyAIFilters(filterData, animate: _animateFilters);
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Close loading dialog
       Navigator.of(context).pop();
 
@@ -2176,6 +2259,9 @@ class SearchScreenState extends State<SearchScreen> {
         showNetworkErrorSnackBar(context);
         return;
       }
+      // Log full error and stack for debugging
+      print('🔴 [Search] parseSearchQuery error: $e');
+      print('🔴 [Search] stackTrace: $stackTrace');
       final errorMsg = e.toString();
       if (errorMsg.contains('not initialized')) {
         _showError(
@@ -2614,13 +2700,13 @@ class SearchScreenState extends State<SearchScreen> {
       'ageGroup': 'animals.ageGroup',
       'sex': 'animals.sex',
       'coatLength': 'animals.coatLength',
-      'affectionate': 'animals.descriptionText',
-      'playful': 'animals.descriptionText',
-      'energyLevel': 'animals.energyLevel',
+      'affectionate': 'affectionate',
+      'playful': 'playfulness',
+      'energyLevel': 'energyLevel',
       'activityLevel': 'animals.activityLevel',
       'exerciseNeeds': 'animals.exerciseNeeds',
       'vocalLevel': 'animals.vocalLevel',
-      'newPeopleReaction': 'animals.newPeopleReaction',
+      'newPeopleReaction': '', // New People filter has empty fieldName; lookup by name
       'isHousetrained': 'animals.isHousetrained',
       'isDogsOk': 'animals.isDogsOk',
       'isCatsOk': 'animals.isCatsOk',
@@ -2647,7 +2733,7 @@ class SearchScreenState extends State<SearchScreen> {
       'isCurrentVaccinations': 'animals.isCurrentVaccinations',
       'updatedDate': 'animals.updatedDate',
       // Personality / description-based and other added schema keys
-      'independentAloof': 'animals.descriptionText',
+      'independentAloof': 'independence', // maps to Independence slider (Yes → 1)
       'calmness': 'animals.descriptionText',
       'gentleness': 'animals.descriptionText',
       'lapCat': 'animals.descriptionText',
@@ -2658,13 +2744,31 @@ class SearchScreenState extends State<SearchScreen> {
       'adultSexesOk': 'animals.adultSexesOk',
       'evenTempered': 'animals.evenTempered',
       'needsCompanionAnimal': 'animals.NeedsCompanionAnimal',
+      'apartmentOk': 'animals.isYardRequired',
+      // Personality sliders (1-5 scale; fieldName = filter fieldName)
+      'personalityEnergyLevel': 'energyLevel',
+      'personalityPlayfulness': 'playfulness',
+      'personalityAffectionate': 'affectionate',
+      'personalityIndependence': 'independence',
+      'personalitySociability': 'sociability',
+      'personalityVocalization': 'vocalLevel',
+      'personalityAdaptability': 'adaptability',
+      'personalityIntelligence': 'intelligence',
+      'personalityConfidence': 'confidence',
+      'personalitySensitivity': 'sensitivity',
+      'confidence': 'confidence', // AI may return short name from schema "field"
+      'sensitivity': 'sensitivity',
+      'adaptability': 'adaptability', // AI sometimes returns without "personality" prefix
+      'intelligence': 'intelligence',
+      'sociability': 'sociability',
+      'independence': 'independence',
     };
 
     // When multiple filters share the same fieldName (e.g. animals.description), pick by filter name
     final aiFieldToFilterName = <String, String>{
       'affectionate': 'Affectionate',
-      'playful': 'Playful',
-      'independentAloof': 'Independent/aloof',
+      'playful': 'Playfulness',
+      'independentAloof': 'Independence', // slider name (Yes → set to 1)
       'calmness': 'Calmness',
       'gentleness': 'Gentleness',
       'lapCat': 'Lap Cat',
@@ -2672,6 +2776,58 @@ class SearchScreenState extends State<SearchScreen> {
       'outgoing': 'outgoing',
       'curious': 'curious',
       'timidShy': 'Timid / shy',
+      'newPeopleReaction': 'New People',
+      'needsCompanionAnimal': 'Companion Cat?',
+      'apartmentOk': 'Apartment OK',
+      'personalityEnergyLevel': 'Energy Level',
+      'personalityPlayfulness': 'Playfulness',
+      'personalityAffectionate': 'Affectionate',
+      'personalityIndependence': 'Independence',
+      'personalitySociability': 'Sociability',
+      'personalityVocalization': 'Vocalization',
+      'personalityAdaptability': 'Adaptability',
+      'personalityIntelligence': 'Intelligence',
+      'personalityConfidence': 'Confidence',
+      'personalitySensitivity': 'Sensitivity',
+      'confidence': 'Confidence',
+      'sensitivity': 'Sensitivity',
+      'adaptability': 'Adaptability',
+      'intelligence': 'Intelligence',
+      'sociability': 'Sociability',
+      'independence': 'Independence',
+      'energyLevel': 'Energy Level',
+    };
+
+    // Personality slider AI fields: apply numeric 1-5 to choosenListValues (include unprefixed names from AI)
+    const personalitySliderAiFields = {
+      'personalityEnergyLevel',
+      'personalityPlayfulness',
+      'personalityAffectionate',
+      'personalityIndependence',
+      'personalitySociability',
+      'personalityVocalization',
+      'personalityConfidence',
+      'personalitySensitivity',
+      'personalityAdaptability',
+      'personalityIntelligence',
+      'sociability',
+      'independence',
+      'confidence',
+      'sensitivity',
+    };
+
+    // fieldNames of personality sliders (any not set by AI will be reset to 0 = Any)
+    const personalitySliderFieldNames = {
+      'energyLevel',
+      'playfulness',
+      'affectionate',
+      'independence',
+      'sociability',
+      'vocalLevel',
+      'confidence',
+      'sensitivity',
+      'adaptability',
+      'intelligence',
     };
 
     // Process each filter with comprehensive error handling
@@ -2858,9 +3014,98 @@ class SearchScreenState extends State<SearchScreen> {
           bool applied = false;
           String appliedName = filter.name;
 
-          if (filter.list) {
+          // Personality sliders: numeric 1-5 sets choosenListValues directly (0 = Any, skip)
+          if (personalitySliderAiFields.contains(aiField) && filter.slider == true) {
+            final numVal = value is int
+                ? value
+                : (value is double
+                    ? value.round()
+                    : int.tryParse(value.toString().trim()));
+            if (numVal != null && numVal >= 1 && numVal <= 5) {
+              final clamped = numVal.clamp(1, 5);
+              filter.choosenListValues.clear();
+              filter.choosenListValues.add(clamped);
+              applied = true;
+              print('      ✅ Set ${filter.name} slider to $clamped (1-5)');
+            }
+          }
+
+          // Slider + "Yes" for playful/affectionate/adaptability/intelligence/sociability: treat as 4 (High)
+          if (!applied && filter.slider == true &&
+              (aiField == 'playful' || aiField == 'affectionate' ||
+                  aiField == 'adaptability' || aiField == 'intelligence' ||
+                  aiField == 'sociability') &&
+              value.toString().trim().toLowerCase() == 'yes') {
+            filter.choosenListValues.clear();
+            filter.choosenListValues.add(4);
+            applied = true;
+            print('      ✅ Set ${filter.name} slider to 4 (Yes)');
+          }
+
+          // Slider + "Yes" for independentAloof: treat as 1 (Very Independent)
+          if (!applied && filter.slider == true &&
+              aiField == 'independentAloof' &&
+              value.toString().trim().toLowerCase() == 'yes') {
+            filter.choosenListValues.clear();
+            filter.choosenListValues.add(1);
+            applied = true;
+            print('      ✅ Set ${filter.name} slider to 1 (independent/aloof Yes)');
+          }
+
+          // Slider + "No" for playful/affectionate (or any personality slider): treat as 1 (Very Low)
+          if (!applied && filter.slider == true &&
+              value.toString().trim().toLowerCase() == 'no' &&
+              (personalitySliderAiFields.contains(aiField) ||
+                  aiField == 'playful' || aiField == 'affectionate')) {
+            filter.choosenListValues.clear();
+            filter.choosenListValues.add(1);
+            applied = true;
+            print('      ✅ Set ${filter.name} slider to 1 (No)');
+          }
+
+          // energyLevel string "High"/"Low"/"Medium" -> slider 4/2/3
+          if (!applied && filter.slider == true && aiField == 'energyLevel') {
+            final v = value.toString().trim().toLowerCase();
+            int? sliderVal;
+            if (v == 'high') sliderVal = 4;
+            else if (v == 'low') sliderVal = 2;
+            else if (v == 'medium') sliderVal = 3;
+            if (sliderVal != null) {
+              filter.choosenListValues.clear();
+              filter.choosenListValues.add(sliderVal);
+              applied = true;
+              print('      ✅ Set ${filter.name} slider to $sliderVal ($v)');
+            }
+          }
+
+          // Vocalization string (e.g. "not very vocal", "quiet", "talkative") -> slider 1-5
+          if (!applied && filter.slider == true &&
+              (aiField == 'personalityVocalization' || aiField == 'vocalLevel')) {
+            final v = value.toString().trim().toLowerCase();
+            int? sliderVal;
+            if (v == 'no' || v == 'silent' || v == 'very quiet' ||
+                v.contains('not vocal') || v.contains('not very vocal')) {
+              sliderVal = 1;
+            } else if (v == 'quiet' || v == 'low') {
+              sliderVal = 2;
+            } else if (v == 'moderate' || v == 'medium') {
+              sliderVal = 3;
+            } else if (v == 'talkative' || v == 'vocal' || v == 'high') {
+              sliderVal = 4;
+            } else if (v == 'very talkative' || v == 'chatty') {
+              sliderVal = 5;
+            }
+            if (sliderVal != null) {
+              filter.choosenListValues.clear();
+              filter.choosenListValues.add(sliderVal);
+              applied = true;
+              print('      ✅ Set ${filter.name} slider to $sliderVal ($v)');
+            }
+          }
+
+          if (!applied && filter.list) {
             applied = _applyListFilter(filter, value, aiField);
-          } else {
+          } else if (!applied && !filter.list) {
             applied = _applySingleFilter(filter, value, aiField);
           }
 
@@ -2885,6 +3130,18 @@ class SearchScreenState extends State<SearchScreen> {
           failedFilters.add(aiField);
         }
       });
+    }
+
+    // Set any personality slider not mentioned in the query to 0 (Any)
+    for (final filter in widget.filteringOptions) {
+      if (filter.slider == true &&
+          filter.classification == CatClassification.personality &&
+          personalitySliderFieldNames.contains(filter.fieldName) &&
+          !filtersToUpdate.contains(filter)) {
+        filter.choosenListValues.clear();
+        filter.choosenListValues.add(0);
+        print('🎯 Set ${filter.name} to 0 (Any) — not mentioned in query');
+      }
     }
 
     // Edge case: No filters could be applied
@@ -3729,6 +3986,33 @@ class SearchScreenState extends State<SearchScreen> {
     return _animatingFilters[_filterKeyFor(filter)] ?? false;
   }
 
+  /// Gold outlined "Go to top" button for the app bar; scrolls to top of page.
+  Widget _buildHeaderGoToTopButton() {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: OutlinedButton(
+        onPressed: () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: SearchScreenStyle.gold,
+          side: const BorderSide(color: SearchScreenStyle.gold, width: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: const Text('Top', style: TextStyle(fontSize: 14)),
+      ),
+    );
+  }
+
   /// Gold outlined "Clear Filters" button for the app bar (right side).
   Widget _buildHeaderClearFiltersButton() {
     return Padding(
@@ -3760,7 +4044,7 @@ class SearchScreenState extends State<SearchScreen> {
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        child: const Text('Clear Filters', style: TextStyle(fontSize: 14)),
+        child: const Text('Clear', style: TextStyle(fontSize: 14)),
       ),
     );
   }
@@ -3776,7 +4060,7 @@ class SearchScreenState extends State<SearchScreen> {
     // Back button behavior: Cancel (exits without searching)
     // "Find Cats" button: Saves and performs search
     return Scaffold(
-      appBar: SearchScreenStyle.appBar(context, actions: [_buildHeaderClearFiltersButton()]),
+      appBar: SearchScreenStyle.appBar(context, actions: [_buildHeaderGoToTopButton(), _buildHeaderClearFiltersButton()]),
       resizeToAvoidBottomInset:
           false, // We'll handle keyboard positioning manually
       body: Stack(
@@ -4985,7 +5269,7 @@ class SearchScreenState extends State<SearchScreen> {
         continue;
       }
       // Exclude personality from RescueGroups API; used only for client-side fit scoring.
-      if (item.classification == CatClassification.personality) {
+      if (item.classification == CatClassification.personality && item.slider == true) {
         continue;
       }
       if (item.classification == CatClassification.sort) {
@@ -5215,7 +5499,7 @@ class SearchScreenState extends State<SearchScreen> {
     for (var item in filteringOptions) {
       if (item.classification == CatClassification.saves) continue;
       // Exclude personality from RescueGroups API; used only for client-side fit scoring.
-      if (item.classification == CatClassification.personality) continue;
+      if (item.classification == CatClassification.personality && item.slider == true) continue;
       if (item.classification == CatClassification.sort) {
         if (item.fieldName == "sortBy") {
           // skip; sortMethod not added as filter

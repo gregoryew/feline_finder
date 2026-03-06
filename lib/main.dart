@@ -218,6 +218,8 @@ Future<void> _initializeAppRest() async {
   if (savedZip != null && savedZip.isNotEmpty && savedZip.length == 5) {
     globals.FelineFinderServer.instance.zip = savedZip;
   }
+
+  await globals.FelineFinderServer.instance.loadPersonalityFitSlidersFromPrefs();
 }
 
 Future<void> _initializeAuth() async {

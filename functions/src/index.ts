@@ -1,4 +1,6 @@
 import * as crypto from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
@@ -166,8 +168,21 @@ let cachedPromptExpiry = 0;
 const CACHE_TTL_MS = 55 * 60 * 1000;
 const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 
+/** Search parse: module-level Gemini prompt cache (same TTL). */
+let searchCachedPromptName: string | null = null;
+let searchCachedPromptExpiry = 0;
+
 if (!admin.apps.length) {
   admin.initializeApp();
+}
+
+/** Load search system prompt from deployed searchPrompt.txt (built from Dart). */
+function getSearchSystemPrompt(): string {
+  const p = path.join(__dirname, 'searchPrompt.txt');
+  if (!fs.existsSync(p)) {
+    throw new Error('searchPrompt.txt not found (run: node scripts/extract_search_prompt.js, then npm run build)');
+  }
+  return fs.readFileSync(p, 'utf8');
 }
 
 /** One trait: score (1–5 or null), confidence (0–1), evidence (verbatim phrases). */
@@ -572,6 +587,159 @@ export const computeAnimalPersonalityFit = functions.https.onCall(
       updatedAt,
       dataQuality: dataQuality ?? null,
     };
+  }
+);
+
+/**
+ * Callable: parse natural-language search query using Gemini with prompt cache.
+ * Returns { location?, catType?, sortBy?, filters? } for the search screen.
+ * filters may include: breed, sizeGroup, ageGroup, sex, energyLevel, confidence (1-5),
+ * sensitivity (1-5), needsCompanionAnimal ("Yes"/"Any"), apartmentOk ("Yes"/"No"/"Any"), and other schema keys.
+ * Client should run normalize (e.g. city→zip) and apply filters.
+ */
+export const parseSearchQuery = functions.https.onCall(
+  async (data: { query?: string }, _context) => {
+    const query = typeof data?.query === 'string' ? data.query.trim() : '';
+    if (query.length === 0) {
+      return { location: {}, filters: {} };
+    }
+    const queryCap = query.slice(0, 500);
+
+    const keyStoreSnap = await admin
+      .firestore()
+      .collection(KEY_STORE_COLLECTION)
+      .doc('GEMINI_API_KEY')
+      .get();
+    const keyValue = keyStoreSnap.exists && keyStoreSnap.data()?.key_value;
+    const apiKey =
+      typeof keyValue === 'string' && keyValue.trim() !== ''
+        ? keyValue.trim()
+        : null;
+    if (!apiKey) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Gemini API key not configured. Add GEMINI_API_KEY to Firestore key_store.'
+      );
+    }
+
+    const systemPrompt = getSearchSystemPrompt();
+    const variablePart = `User query: ${queryCap}\n\nReturn ONLY valid JSON:`;
+
+    const generationConfig = {
+      temperature: 0.2,
+      maxOutputTokens: 4096,
+      responseMimeType: 'application/json' as const,
+    };
+
+    let res: Response | undefined;
+    const now = Date.now();
+    const cacheValid = searchCachedPromptName && now < searchCachedPromptExpiry;
+
+    if (cacheValid && searchCachedPromptName) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cachedContent: searchCachedPromptName,
+          contents: [{ role: 'user', parts: [{ text: variablePart }] }],
+          generationConfig,
+        }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        if (res.status === 404 || errText.includes('not found') || errText.includes('expired')) {
+          searchCachedPromptName = null;
+          searchCachedPromptExpiry = 0;
+        }
+      }
+    }
+
+    if (!res || !res.ok) {
+      if (!searchCachedPromptName || now >= searchCachedPromptExpiry) {
+        const createRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: `models/${GEMINI_MODEL}`,
+              contents: [{ role: 'user', parts: [{ text: systemPrompt }] }],
+              ttl: '3600s',
+            }),
+          }
+        );
+        if (createRes.ok) {
+          const createJson = (await createRes.json()) as { name?: string };
+          if (createJson.name) {
+            searchCachedPromptName = createJson.name;
+            searchCachedPromptExpiry = now + CACHE_TTL_MS;
+          }
+        }
+      }
+
+      if (searchCachedPromptName && searchCachedPromptExpiry > Date.now()) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cachedContent: searchCachedPromptName,
+            contents: [{ role: 'user', parts: [{ text: variablePart }] }],
+            generationConfig,
+          }),
+        });
+      } else {
+        const fullPrompt = systemPrompt + '\n\n' + variablePart;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+            generationConfig,
+          }),
+        });
+      }
+    }
+
+    if (!res || !res.ok) {
+      const text = await res?.text().catch(() => '');
+      functions.logger.error('Search parse Gemini error', { status: res?.status, text: text?.slice(0, 500) });
+      throw new functions.https.HttpsError('internal', 'Search query parsing failed');
+    }
+
+    const json = (await res.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? '';
+    if (!text) {
+      return { location: {}, filters: {} };
+    }
+
+    let parsed: Record<string, unknown>;
+    try {
+      const cleaned = text
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim();
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(match ? match[0] : cleaned) as Record<string, unknown>;
+    } catch (e) {
+      functions.logger.warn('Search parse JSON error', { error: e instanceof Error ? e.message : String(e), textStart: text.slice(0, 300) });
+      return { location: {}, filters: {} };
+    }
+
+    const location = parsed.location && typeof parsed.location === 'object' ? parsed.location : {};
+    const filters = parsed.filters && typeof parsed.filters === 'object' ? parsed.filters : {};
+    const result: Record<string, unknown> = { location, filters };
+    if (parsed.catType != null && typeof parsed.catType === 'string' && parsed.catType.trim()) {
+      result.catType = parsed.catType.trim();
+    }
+    if (parsed.sortBy != null && (parsed.sortBy === 'distance' || parsed.sortBy === 'date')) {
+      result.sortBy = parsed.sortBy;
+    }
+    return result;
   }
 );
 

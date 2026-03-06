@@ -826,6 +826,8 @@ Future<void> _resolvePersonalityFitForTiles() async {
   } else {
     userProfile = CatFitService.userTraitProfileFromFilterOptions(filteringOptions);
   }
+  // So pet detail bar chart can show "My Type" from current search/fit filters
+  server.setLastSearchUserTraitProfile(userProfile);
   final selectedTypeProfile = selectedType != null ? userProfile : null;
   final list = List<PetTileData>.from(tiles);
   for (var i = 0; i < list.length; i += _fitBatchSize) {

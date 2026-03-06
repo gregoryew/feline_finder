@@ -967,18 +967,31 @@ class petDetailState extends State<petDetail>
   }
 
   /// Returns the trait profile (trait name -> 1-5) for the type to show as triangle.
+  /// For "My Type" (mode 0): use last search user profile from sliders when available, else selected cat type.
   Map<String, int>? _getTypeProfileForChart() {
-    String? name;
-    if (_personalityChartMode == 0) {
-      name = widget.server.selectedPersonalityCatTypeName;
-    } else {
-      name = _fitRecord?.suggestedCatTypeName;
+    if (_personalityChartMode == 1) {
+      final name = _fitRecord?.suggestedCatTypeName;
+      if (name == null || name.trim().isEmpty) return null;
+      CatType? type;
+      try {
+        type = catType.firstWhere(
+            (t) => t.name.toLowerCase() == name.trim().toLowerCase());
+      } catch (_) {
+        return null;
+      }
+      return CatTypeFilterMapping.getTraitProfileForCatType(type);
     }
+    // My Type (mode 0): prefer profile from search/fit sliders so bar chart reflects current filters
+    final fromSearch = widget.server.lastSearchUserTraitProfile;
+    if (fromSearch != null && fromSearch.isNotEmpty) {
+      return fromSearch;
+    }
+    final name = widget.server.selectedPersonalityCatTypeName;
     if (name == null || name.trim().isEmpty) return null;
     CatType? type;
     try {
       type = catType.firstWhere(
-          (t) => t.name.toLowerCase() == name!.trim().toLowerCase());
+          (t) => t.name.toLowerCase() == name.trim().toLowerCase());
     } catch (_) {
       return null;
     }
@@ -987,10 +1000,10 @@ class petDetailState extends State<petDetail>
 
   Widget _buildPersonalityChart() {
     const segmentCount = 5;
-    const barHeight = 8.0;
-    const rowHeight = 14.0;
-    const triangleWidth = 14.0;
-    const triangleHeight = 14.0;
+    const barHeight = 14.0;
+    const rowHeight = 20.0;
+    const triangleWidth = 20.0;
+    const triangleHeight = 20.0;
     final typeProfile = _getTypeProfileForChart();
 
     return Container(
@@ -1041,7 +1054,7 @@ class petDetailState extends State<petDetail>
                   identical(_highlightedTraitEvidence, evidence);
 
               return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.only(bottom: 2),
                 child: Row(
                   children: [
                     SizedBox(
@@ -1096,9 +1109,9 @@ class petDetailState extends State<petDetail>
                                             borderRadius:
                                                 BorderRadius.horizontal(
                                               left: Radius.circular(
-                                                  isFirst ? 4 : 0),
+                                                  isFirst ? 6 : 0),
                                               right: Radius.circular(
-                                                  isLast ? 4 : 0),
+                                                  isLast ? 6 : 0),
                                             ),
                                           ),
                                         ),
@@ -1122,44 +1135,52 @@ class petDetailState extends State<petDetail>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () {
-                        final willHighlight = evidence.isNotEmpty &&
-                            !(_highlightedTraitEvidence == evidence &&
-                                evidence.isNotEmpty);
-                        setState(() {
-                          if (_highlightedTraitEvidence == evidence &&
-                              evidence.isNotEmpty) {
-                            _highlightedTraitEvidence = null;
-                          } else {
-                            _highlightedTraitEvidence =
-                                evidence.isEmpty ? null : evidence;
-                          }
-                        });
-                        if (willHighlight &&
-                            evidence.isNotEmpty &&
-                            mounted) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (!mounted) return;
-                            final ctx = _descriptionHighlightKey.currentContext;
-                            if (ctx != null) {
-                              Scrollable.ensureVisible(
-                                ctx,
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeInOut,
-                                alignment: 0.5,
-                              );
+                    const SizedBox(width: 8),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          final willHighlight = evidence.isNotEmpty &&
+                              !(_highlightedTraitEvidence == evidence &&
+                                  evidence.isNotEmpty);
+                          setState(() {
+                            if (_highlightedTraitEvidence == evidence &&
+                                evidence.isNotEmpty) {
+                              _highlightedTraitEvidence = null;
+                            } else {
+                              _highlightedTraitEvidence =
+                                  evidence.isEmpty ? null : evidence;
                             }
                           });
-                        }
-                      },
-                      child: Icon(
-                        isActive ? Icons.info : Icons.info_outline,
-                        size: 20,
-                        color: evidence.isEmpty
-                            ? Colors.white38
-                            : (isActive ? AppTheme.goldBase : Colors.white70),
+                          if (willHighlight &&
+                              evidence.isNotEmpty &&
+                              mounted) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (!mounted) return;
+                              final ctx = _descriptionHighlightKey.currentContext;
+                              if (ctx != null) {
+                                Scrollable.ensureVisible(
+                                  ctx,
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeInOut,
+                                  alignment: 0.5,
+                                );
+                              }
+                            });
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(22),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          child: Icon(
+                            isActive ? Icons.info : Icons.info_outline,
+                            size: 28,
+                            color: evidence.isEmpty
+                                ? Colors.white38
+                                : (isActive ? AppTheme.goldBase : Colors.white70),
+                          ),
+                        ),
                       ),
                     ),
                   ],

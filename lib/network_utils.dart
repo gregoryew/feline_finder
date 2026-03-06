@@ -23,6 +23,21 @@ bool isNetworkError(Object e) {
       msg.contains('firestore');
 }
 
+/// Stricter check: only true for clear connectivity failures (no internet, timeout, DNS, connection refused).
+/// Use this to avoid showing "No internet" for Firestore/API errors that merely mention "unavailable" or "connection".
+bool isLikelyNoInternet(Object e) {
+  final name = e.runtimeType.toString().toLowerCase();
+  final msg = e.toString().toLowerCase();
+  return name.contains('socket') ||
+      name.contains('timeout') ||
+      msg.contains('socketexception') ||
+      msg.contains('timeoutexception') ||
+      msg.contains('failed host lookup') ||
+      msg.contains('network is unreachable') ||
+      msg.contains('connection refused') ||
+      msg.contains('connection reset');
+}
+
 /// User-facing message when the app cannot reach the network.
 const String kNetworkErrorMessage =
     'No internet connection. Please check your network and try again.';

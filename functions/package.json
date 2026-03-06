@@ -4,7 +4,7 @@
   "description": "Firebase Functions for FelineFinder",
   "scripts": {
     "lint": "eslint .",
-    "build": "tsc",
+    "build": "tsc && cp src/searchPrompt.txt lib/",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",

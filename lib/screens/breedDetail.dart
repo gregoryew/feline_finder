@@ -19,7 +19,6 @@ import 'package:get/get.dart';
 import 'package:outlined_text/outlined_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/youtube-video-row.dart';
-import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
 import '../theme.dart';
 import '../network_utils.dart';
 import '../widgets/design_system.dart';
@@ -213,7 +212,19 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
       }
     } catch (e) {
       loadedPets -= tilesPerLoad;
-      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
+      if (mounted) {
+        if (isLikelyNoInternet(e)) {
+          showNetworkErrorSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not load cats. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -291,7 +302,7 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
       }
     } catch (e) {
       print('⚠️ Error reading from Firestore cache: $e, will try API');
-      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
+      if (mounted && isLikelyNoInternet(e)) showNetworkErrorSnackBar(context);
     }
     
     // 3. Check if quota was exceeded in memory cache
@@ -412,7 +423,19 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
       }
     } catch (e) {
       print('❌ Error fetching YouTube playlist for ${widget.breed.name}: $e');
-      if (mounted && isNetworkError(e)) showNetworkErrorSnackBar(context);
+      if (mounted) {
+        if (isLikelyNoInternet(e)) {
+          showNetworkErrorSnackBar(context);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not load videos. Please try again.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
       setState(() {
         playlists = [];
       });
@@ -998,41 +1021,17 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                           aspectRatio: 16 / 9, // YouTube thumbnail aspect ratio
                           child: GestureDetector(
                           onTap: () async {
-                            // Check network connectivity
-                            final flutterNetworkConnectivity =
-                                FlutterNetworkConnectivity(
-                              isContinousLookUp: false,
-                              lookUpDuration: const Duration(seconds: 5),
-                              lookUpUrl: 'www.google.com',
+                            // Open video directly; connectivity checks often give false "no internet"
+                            // (e.g. slow network, firewall on lookup URL). If the video fails to load,
+                            // the player will show an error.
+                            Get.to(
+                              () => YouTubeVideoRow(
+                                playlist: null,
+                                title: '${widget.breed.name} - Cats 101',
+                                videoid: videoId,
+                                fullScreen: false,
+                              ),
                             );
-
-                            if (await flutterNetworkConnectivity
-                                .isInternetConnectionAvailable()) {
-                              Get.to(
-                                () => YouTubeVideoRow(
-                                  playlist: null,
-                                  title: '${widget.breed.name} - Cats 101',
-                                  videoid: videoId,
-                                  fullScreen: false,
-      ),
-                              );
-                            } else {
-                              Get.defaultDialog(
-                                title: "Internet Not Available",
-                                middleText:
-                                    "Viewing videos requires you to be connected to the internet. Please connect to the internet and try again.",
-                                backgroundColor: Colors.red,
-                                titleStyle: const TextStyle(color: Colors.white),
-                                middleTextStyle:
-                                    const TextStyle(color: Colors.white),
-                                textConfirm: "OK",
-                                confirmTextColor: Colors.white,
-                                onConfirm: () => Get.back(),
-                                buttonColor: Colors.black,
-                                barrierDismissible: false,
-                                radius: 30,
-                              );
-                            }
                           },
                           child: Stack(
                             fit: StackFit.expand,

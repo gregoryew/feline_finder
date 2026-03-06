@@ -3,6 +3,13 @@ import 'package:catapp/models/question_cat_types.dart';
 import 'package:catapp/models/searchPageConfig.dart';
 import 'package:catapp/screens/globals.dart' as globals;
 
+/// Result of [CatTypeFilterMapping.getTopCatTypeFromSearchFilters] (avoids Dart 3 records for SDK compatibility).
+class TopCatTypeResult {
+  final CatType? type;
+  final double matchPercent;
+  const TopCatTypeResult(this.type, this.matchPercent);
+}
+
 /// Maps cat types to search-screen personality filters.
 /// If a trait on the cat type is >= 4, that cat type is considered to have that filter.
 /// Only personality filters are mapped.
@@ -17,6 +24,8 @@ class CatTypeFilterMapping {
     'Independence': 'Independence',
     'Sociability': 'Sociability',
     'Vocalization': 'Vocality',
+    'Confidence': 'Confidence',
+    'Sensitivity': 'Sensitivity',
     'Adaptability': 'Adaptability',
     'Intelligence': 'Intelligence',
     'Calmness': 'Confidence',
@@ -448,5 +457,80 @@ class CatTypeFilterMapping {
     if (order.isEmpty) return null;
     final topId = order.first;
     return catType.firstWhere((c) => c.id == topId, orElse: () => catType.first);
+  }
+
+  /// Top cat type from search-screen personality sliders (filteringOptions).
+  /// Returns the best-matching type and its match percent (0–1), or type=null and matchPercent=0 if no slider preference.
+  static TopCatTypeResult getTopCatTypeFromSearchFilters(
+    List<filterOption> filteringOptions,
+  ) {
+    final desired = <String, double>{};
+    for (final f in filteringOptions) {
+      if (f.classification != CatClassification.personality ||
+          !f.slider ||
+          !f.list ||
+          f.options.isEmpty) continue;
+      final statName = _sliderFilterToStatName[f.name];
+      if (statName == null) continue;
+      final v = f.choosenListValues.isNotEmpty ? f.choosenListValues.first : 0;
+      if (v < 1 || v > 5) continue;
+      desired[statName] = v.toDouble();
+    }
+    if (desired.isEmpty) return const TopCatTypeResult(null, 0.0);
+
+    final newPercentMatch = <int, double>{};
+    for (var i = 0; i < catType.length; i++) {
+      final ct = catType[i];
+      double sum = 0;
+      int count = 0;
+      for (final entry in desired.entries) {
+        final statName = entry.key;
+        final desiredValue = entry.value;
+        StatValue? stat;
+        try {
+          stat = ct.stats.firstWhere((s) => s.name == statName);
+        } catch (_) {
+          continue;
+        }
+        count++;
+        // Search sliders use 1=dependent, 5=independent; same scale as cat type stat.
+        final statVal = stat!.value;
+        final maxDistance = 4.0;
+        final score = maxDistance <= 0
+            ? (desiredValue == statVal ? 1.0 : 0.0)
+            : (1.0 - (desiredValue - statVal).abs() / maxDistance).clamp(0.0, 1.0);
+        sum += score;
+      }
+      if (count > 0) {
+        newPercentMatch[ct.id] = sum / count;
+      }
+    }
+
+    if (newPercentMatch.isEmpty) return const TopCatTypeResult(null, 0.0);
+    final order = List<int>.from(catType.map((c) => c.id));
+    order.sort((a, b) {
+      final c = (newPercentMatch[b] ?? 0.0).compareTo(newPercentMatch[a] ?? 0.0);
+      if (c != 0) return c;
+      final nameA = catType.firstWhere((c) => c.id == a).name;
+      final nameB = catType.firstWhere((c) => c.id == b).name;
+      return nameA.compareTo(nameB);
+    });
+    final topId = order.first;
+    final top = catType.firstWhere((c) => c.id == topId, orElse: () => catType.first);
+    final percent = newPercentMatch[topId] ?? 0.0;
+    return TopCatTypeResult(top, percent);
+  }
+
+  /// Whether search-screen filteringOptions have any personality slider set (value 1–5).
+  static bool hasPersonalityPreferenceFromSearchFilters(
+    List<filterOption> filteringOptions,
+  ) {
+    for (final f in filteringOptions) {
+      if (f.classification != CatClassification.personality || !f.slider || !f.list) continue;
+      if (f.choosenListValues.isEmpty) continue;
+      final v = f.choosenListValues.first;
+      if (v >= 1 && v <= 5) return true;
+    }
+    return false;
   }
 }

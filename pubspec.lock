@@ -776,6 +776,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.7.2"
+  implicitly_animated_reorderable_list_2:
+    dependency: "direct main"
+    description:
+      name: implicitly_animated_reorderable_list_2
+      sha256: "1fe22c38ca53067042e7f07e40d970bb8405ffc2a991fe774bf9ad34925712c8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.0"
   intl:
     dependency: "direct main"
     description:
@@ -860,10 +868,10 @@ packages:
     dependency: transitive
     description:
       name: matcher
-      sha256: "12956d0ad8390bbcc63ca2e1469c0619946ccb52809807067a7020d57e647aa6"
+      sha256: dc0b7dc7651697ea4ff3e69ef44b0407ea32c487a39fff6a4004fa585e901861
       url: "https://pub.dev"
     source: hosted
-    version: "0.12.18"
+    version: "0.12.19"
   material_color_utilities:
     dependency: "direct overridden"
     description:

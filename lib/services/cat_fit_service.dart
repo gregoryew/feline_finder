@@ -144,6 +144,8 @@ class CatFitService {
     'Independence': 'Independence',
     'Sociability': 'Sociability',
     'Vocalization': 'Vocality',
+    'Confidence': 'Confidence',
+    'Sensitivity': 'Sensitivity',
     'Adaptability': 'Adaptability',
     'Intelligence': 'Intelligence',
     'Calmness': 'Confidence',

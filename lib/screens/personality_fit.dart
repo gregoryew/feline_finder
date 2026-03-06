@@ -15,6 +15,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import 'package:implicitly_animated_reorderable_list_2/implicitly_animated_reorderable_list_2.dart';
+import 'package:implicitly_animated_reorderable_list_2/transitions.dart';
+
 import '/models/catType.dart';
 import '/models/question_cat_types.dart';
 import 'globals.dart' as globals;
@@ -59,9 +62,13 @@ class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage>
 
   Future<void> _init() async {
     try {
-      final controller = VideoPlayerController.asset(_videoAssetPath);
+      final controller = VideoPlayerController.asset(
+        _videoAssetPath,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      );
       _controller = controller;
       await controller.initialize();
+      controller.setVolume(0);
       controller.setLooping(false);
       controller.addListener(_onTick);
       // Do not autoplay; wait for user to tap play button
@@ -109,9 +116,11 @@ class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage>
       if (!mounted || _disposed) return;
       final controller = _controller;
       if (controller == null) return;
+      if (!mounted || _disposed) return;
       setState(() => _showImage = false);
+      if (!mounted || _disposed || _controller == null) return;
       controller.play();
-    });
+    }).catchError((_) {});
   }
 
   @override
@@ -122,8 +131,11 @@ class _CatTypeVideoThenImageState extends State<_CatTypeVideoThenImage>
     if (c != null) {
       _controller = null;
       c.removeListener(_onTick);
-      // Defer dispose so in-flight seekTo completion (which calls _updatePosition) can finish first
-      Future.delayed(const Duration(milliseconds: 200), () => c.dispose());
+      Future.delayed(const Duration(milliseconds: 500), () {
+        try {
+          c.dispose();
+        } catch (_) {}
+      });
     }
     super.dispose();
   }
@@ -268,6 +280,7 @@ class _CardVideoOverlayOnceState extends State<_CardVideoOverlayOnce> {
   VideoPlayerController? _controller;
   bool _initialized = false;
   bool _notified = false;
+  bool _disposed = false;
 
   @override
   void initState() {
@@ -277,23 +290,33 @@ class _CardVideoOverlayOnceState extends State<_CardVideoOverlayOnce> {
 
   Future<void> _init() async {
     try {
-      final controller = VideoPlayerController.asset(widget.assetPath);
+      final controller = VideoPlayerController.asset(
+        widget.assetPath,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+      );
+      if (!mounted || _disposed) {
+        controller.dispose();
+        return;
+      }
       _controller = controller;
       await controller.initialize();
+      if (!mounted || _disposed) return;
+      controller.setVolume(0);
       controller.setLooping(false);
       controller.addListener(_onTick);
       await controller.play();
-      if (mounted) {
+      if (mounted && !_disposed) {
         setState(() {
           _initialized = true;
         });
       }
     } catch (_) {
-      widget.onFinished();
+      if (mounted) widget.onFinished();
     }
   }
 
   void _onTick() {
+    if (_disposed) return;
     final c = _controller;
     if (c == null) return;
     if (!_initialized) return;
@@ -310,10 +333,16 @@ class _CardVideoOverlayOnceState extends State<_CardVideoOverlayOnce> {
 
   @override
   void dispose() {
+    _disposed = true;
     final c = _controller;
+    _controller = null;
     if (c != null) {
       c.removeListener(_onTick);
-      c.dispose();
+      Future.delayed(const Duration(milliseconds: 300), () {
+        try {
+          c.dispose();
+        } catch (_) {}
+      });
     }
     super.dispose();
   }
@@ -778,9 +807,6 @@ class PersonalityFit extends StatefulWidget {
 }
 
 class PersonalityFitState extends State<PersonalityFit> {
-  // Counter to force ListView rebuild when cat types are re-sorted
-  int _catTypeListKey = 0;
-
   // Local state for slider values to ensure reactivity
   final Map<int, double> _sliderValues = {};
 
@@ -794,10 +820,6 @@ class PersonalityFitState extends State<PersonalityFit> {
   // True when at least one slider is not "Flexible"; when false, show "Unknown" instead of match label
   bool _hasAnyPreference = false;
 
-  // Animated list for short sort transitions (only visible items animate).
-  final GlobalKey<AnimatedListState> _catTypeAnimatedListKey =
-      GlobalKey<AnimatedListState>();
-
   // Debounce sort animation to avoid animating on every slider tick.
   Timer? _sortDebounceTimer;
   List<int>? _pendingOrder;
@@ -807,6 +829,10 @@ class PersonalityFitState extends State<PersonalityFit> {
   int? _lastTopId;
   int? _playingTopId;
   int _playingTopToken = 0;
+
+  static const Duration _kListInsertDuration = Duration(milliseconds: 300);
+  static const Duration _kListRemoveDuration = Duration(milliseconds: 300);
+  static const Duration _kListAnimationCompleteDelay = Duration(milliseconds: 650);
 
   // ScrollController for the trait cards list
   final ScrollController _questionsScrollController = ScrollController();
@@ -906,6 +932,7 @@ class PersonalityFitState extends State<PersonalityFit> {
   void dispose() {
     _sortDebounceTimer?.cancel();
     _questionsScrollController.dispose();
+    globals.FelineFinderServer.instance.savePersonalityFitSlidersToPrefs();
     super.dispose();
   }
 
@@ -1102,81 +1129,13 @@ class PersonalityFitState extends State<PersonalityFit> {
     return raw.clamp(0, question.choices.length - 1);
   }
 
-  Widget _buildAnimatedCatTypeTile(
-    int id,
-    Animation<double> animation, {
-    bool isRemoving = false,
-  }) {
+  Widget _buildCatTypeTileContent(int id) {
     final type = catType.firstWhere((c) => c.id == id);
     final percentMatch = _displayPercentMatch[id] ?? 1.0;
-
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOut,
+    return GestureDetector(
+      onTap: () => _showCatTypeDetail(context, type),
+      child: buildCatTypeCard(type, percentMatch),
     );
-
-    return SizeTransition(
-      sizeFactor: curved,
-      axisAlignment: 0.0,
-      child: FadeTransition(
-        opacity: curved,
-        child: GestureDetector(
-          onTap: () {
-            _showCatTypeDetail(context, type);
-          },
-          child: buildCatTypeCard(type, percentMatch),
-        ),
-      ),
-    );
-  }
-
-  void _animateResort({
-    required List<int> newOrder,
-    required Map<int, double> newPercentMatch,
-  }) {
-    // Update the match map first so labels update immediately.
-    _displayPercentMatch = newPercentMatch;
-
-    final listState = _catTypeAnimatedListKey.currentState;
-    if (!mounted || listState == null) {
-      setState(() {
-        _displayOrder = List<int>.from(newOrder);
-      });
-      return;
-    }
-
-    // Perform a sequence of remove+insert operations to create a short sort animation.
-    // AnimatedList naturally only animates visible items.
-    final working = List<int>.from(_displayOrder);
-    const duration = Duration(milliseconds: 180);
-
-    for (int targetIndex = 0; targetIndex < newOrder.length; targetIndex++) {
-      final id = newOrder[targetIndex];
-      final fromIndex = working.indexOf(id);
-      if (fromIndex == -1 || fromIndex == targetIndex) continue;
-
-      // Remove from current position.
-      final removedId = working.removeAt(fromIndex);
-      setState(() {
-        _displayOrder = List<int>.from(working);
-      });
-      listState.removeItem(
-        fromIndex,
-        (context, animation) =>
-            _buildAnimatedCatTypeTile(removedId, animation, isRemoving: true),
-        duration: duration,
-      );
-
-      // Insert at new position.
-      working.insert(targetIndex, removedId);
-      setState(() {
-        _displayOrder = List<int>.from(working);
-      });
-      listState.insertItem(targetIndex, duration: duration);
-    }
-
-    // Bump the key so external callers relying on it still see "a resort happened".
-    _catTypeListKey++;
   }
 
   /// Heavy work: build desired from sliders, compute match %, sort. Called after slider change (deferred).
@@ -1278,25 +1237,25 @@ class PersonalityFitState extends State<PersonalityFit> {
     _pendingPercentMatch = newPercentMatch;
 
     _sortDebounceTimer?.cancel();
-    _sortDebounceTimer = Timer(const Duration(milliseconds: 200), () {
+    _sortDebounceTimer = Timer(const Duration(milliseconds: 180), () {
       if (!mounted) return;
       final order = _pendingOrder;
       final match = _pendingPercentMatch;
       if (order == null || match == null) return;
 
       final newTopId = order.isNotEmpty ? order.first : null;
-      final topChanged =
-          newTopId != null && newTopId != _lastTopId;
+      final topChanged = newTopId != null && newTopId != _lastTopId;
 
-      _animateResort(newOrder: order, newPercentMatch: match);
+      setState(() {
+        _displayOrder = List<int>.from(order);
+        _displayPercentMatch = Map<int, double>.from(match);
+      });
 
-      if (topChanged) {
+      if (topChanged && newTopId != null) {
         _lastTopId = newTopId;
-        // Run after the short reorder animation completes.
-        Future.delayed(const Duration(milliseconds: 220), () {
+        Future.delayed(_kListAnimationCompleteDelay, () {
           if (!mounted) return;
-          if (_displayOrder.isEmpty) return;
-          if (_displayOrder.first != newTopId) return;
+          if (_displayOrder.isEmpty || _displayOrder.first != newTopId) return;
           setState(() {
             _playingTopId = newTopId;
             _playingTopToken++;
@@ -1525,13 +1484,25 @@ class PersonalityFitState extends State<PersonalityFit> {
           ),
         // Cat type cards list (order from _displayOrder, match % from _displayPercentMatch)
         Expanded(
-          child: AnimatedList(
-            key: _catTypeAnimatedListKey,
-            initialItemCount: _displayOrder.length,
-            itemBuilder: (BuildContext context, int index, Animation<double> animation) {
-              final id = _displayOrder[index];
-              return _buildAnimatedCatTypeTile(id, animation);
+          child: ImplicitlyAnimatedList<int>(
+            items: _displayOrder,
+            areItemsTheSame: (a, b) => a == b,
+            insertDuration: _kListInsertDuration,
+            removeDuration: _kListRemoveDuration,
+            itemBuilder: (context, animation, id, index) {
+              return SizeFadeTransition(
+                animation: animation,
+                sizeFraction: 0.7,
+                curve: Curves.easeInOut,
+                child: _buildCatTypeTileContent(id),
+              );
             },
+            removeItemBuilder: (context, animation, id) => SizeFadeTransition(
+              animation: animation,
+              sizeFraction: 0.7,
+              curve: Curves.easeInOut,
+              child: _buildCatTypeTileContent(id),
+            ),
           ),
         ),
       ],

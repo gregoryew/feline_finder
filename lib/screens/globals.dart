@@ -44,11 +44,55 @@ class FelineFinderServer {
   List<int> get sliderValue => _sliderValue;
 
   /// PersonalityFit screen uses its own slider storage so it doesn't conflict with Fit.
+  /// Persisted to SharedPreferences when set; loaded at app start.
+  static const String _kPersonalityFitSlidersKey = 'personality_fit_slider_values';
   final Map<int, int> _personalityFitSliderValue = {};
+
   int getPersonalityFitSliderValue(int questionId) =>
       _personalityFitSliderValue[questionId] ?? 0;
+
   void setPersonalityFitSliderValue(int questionId, int value) {
     _personalityFitSliderValue[questionId] = value;
+    _persistPersonalityFitSliders();
+  }
+
+  /// Persist current fit-screen slider values to SharedPreferences (call when user leaves fit screen).
+  void savePersonalityFitSlidersToPrefs() => _persistPersonalityFitSliders();
+
+  /// Load saved fit-screen slider values from SharedPreferences (call at app start).
+  Future<void> loadPersonalityFitSlidersFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString(_kPersonalityFitSlidersKey);
+      if (json == null || json.isEmpty) return;
+      final decoded = jsonDecode(json) as Map<String, dynamic>?;
+      if (decoded == null) return;
+      for (final e in decoded.entries) {
+        final id = int.tryParse(e.key);
+        if (id != null && e.value is int) {
+          _personalityFitSliderValue[id] = e.value as int;
+        }
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('loadPersonalityFitSlidersFromPrefs failed: $e');
+    }
+  }
+
+  void _persistPersonalityFitSliders() {
+    Future<void> _save() async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final map = <String, dynamic>{
+          for (final e in _personalityFitSliderValue.entries) e.key.toString(): e.value,
+        };
+        await prefs.setString(_kPersonalityFitSlidersKey, jsonEncode(map));
+      } catch (e) {
+        // ignore: avoid_print
+        print('_persistPersonalityFitSliders failed: $e');
+      }
+    }
+    _save();
   }
 
   /// User's selected personality cat type on search screen (e.g. "Lap Legend").
@@ -57,6 +101,14 @@ class FelineFinderServer {
   String? get selectedPersonalityCatTypeName => _selectedPersonalityCatTypeName;
   void setSelectedPersonalityCatTypeName(String? name) {
     _selectedPersonalityCatTypeName = name;
+  }
+
+  /// Last user trait profile used for fit scoring on the adoption list (from search sliders or selected cat type).
+  /// Pet detail page uses this for the "My Type" bar chart so the graph reflects the search filters.
+  Map<String, int>? _lastSearchUserTraitProfile;
+  Map<String, int>? get lastSearchUserTraitProfile => _lastSearchUserTraitProfile;
+  void setLastSearchUserTraitProfile(Map<String, int>? profile) {
+    _lastSearchUserTraitProfile = profile != null && profile.isNotEmpty ? Map.from(profile) : null;
   }
 
   String _userID = "";

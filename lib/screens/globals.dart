@@ -27,6 +27,11 @@ void Function(BuildContext)? onNavigateToSheltersTab;
 bool sheltersOpenedFromSearch = false;
 /// When user taps "Select" on a shelter (from search flow): switch to Adopt tab and open SearchScreen with this shelter selected. Set by HomeScreen.
 void Function(String orgId, String orgName)? onSelectShelterAndOpenSearch;
+/// When user taps "View Cats" on a shelter (Shelters tab), store org so next time Search screen opens it pre-selects this shelter. Cleared when search() passes it.
+String? lastShelterFromSheltersTabOrgId;
+String? lastShelterFromSheltersTabName;
+/// When user long-presses zip on adoption list to clear it, call this to also reset Fit/Personality Fit onboarding. Set by HomeScreen.
+Future<void> Function()? onClearFitOnboarding;
 int distance = 1000;
 int updatedSince = 4;
 List<String> listOfFavorites = [];
@@ -34,11 +39,55 @@ List<String> listOfFavorites = [];
 class FelineFinderServer {
   static final FelineFinderServer _instance = FelineFinderServer._();
 
+  /// Canonical zip code (in-memory). Load via [loadZipCodeFromPrefs], set via [setZipCode].
   String zip = "?";
 
   FelineFinderServer._();
 
   static FelineFinderServer get instance => _instance;
+
+  /// SharedPreferences key for zip code. All zip reads/writes go through this server.
+  static const String zipCodePrefsKey = 'zipCode';
+
+  /// Load zip from SharedPreferences into [zip]. Call at app start or when screen needs current value.
+  Future<void> loadZipCodeFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(zipCodePrefsKey);
+      if (saved != null && saved.trim().isNotEmpty && saved.trim().length == 5) {
+        zip = saved.trim();
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('loadZipCodeFromPrefs failed: $e');
+    }
+  }
+
+  /// Save zip to memory and SharedPreferences. Use this for all zip code writes.
+  Future<void> setZipCode(String newZip) async {
+    final z = newZip.trim();
+    if (z.isEmpty) return;
+    zip = z.length > 5 ? z.substring(0, 5) : z;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(zipCodePrefsKey, zip);
+    } catch (e) {
+      // ignore: avoid_print
+      print('setZipCode failed: $e');
+    }
+  }
+
+  /// Clear stored zip (memory and SharedPreferences). Use when user explicitly clears location.
+  Future<void> clearZipCode() async {
+    zip = '?';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(zipCodePrefsKey);
+    } catch (e) {
+      // ignore: avoid_print
+      print('clearZipCode failed: $e');
+    }
+  }
 
   final _sliderValue = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   List<int> get sliderValue => _sliderValue;
@@ -109,6 +158,14 @@ class FelineFinderServer {
   Map<String, int>? get lastSearchUserTraitProfile => _lastSearchUserTraitProfile;
   void setLastSearchUserTraitProfile(Map<String, int>? profile) {
     _lastSearchUserTraitProfile = profile != null && profile.isNotEmpty ? Map.from(profile) : null;
+  }
+
+  /// Personality fit scores (cat type id -> percent match) computed at app start after loading sliders.
+  /// Used by Personality Fit screen to show cat type cards with correct order and match %.
+  Map<int, double>? _lastPersonalityFitScores;
+  Map<int, double>? get lastPersonalityFitScores => _lastPersonalityFitScores;
+  void setLastPersonalityFitScores(Map<int, double>? scores) {
+    _lastPersonalityFitScores = scores != null ? Map<int, double>.from(scores) : null;
   }
 
   String _userID = "";

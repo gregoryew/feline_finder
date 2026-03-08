@@ -48,8 +48,6 @@ class BreedDetail extends StatefulWidget {
   }
 }
 
-enum BarType { traitBar, percentageBar, backgroundBar }
-
 class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin {
   late WidgetMarker selectedWidgetMarker;
   List<Playlist> playlists = [];
@@ -456,41 +454,6 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
     WidgetMarker.info
   ];
 
-  Widget bar(double percentage, BarType barType, double maxWidth) {
-    List<Color> barColors = [];
-    switch (barType) {
-      case BarType.backgroundBar:
-        barColors.add(Colors.grey[500]!);
-        barColors.add(Colors.grey[500]!);
-        break;
-      case BarType.traitBar:
-        barColors.add(const Color.fromARGB(255, 181, 234, 73));
-        barColors.add(const Color.fromARGB(255, 134, 209, 63));
-        break;
-      case BarType.percentageBar:
-        barColors.add(const Color.fromARGB(255, 108, 195, 245));
-        barColors.add(const Color.fromARGB(255, 73, 147, 235));
-        break;
-    }
-    return Container(
-      width: maxWidth * percentage,
-      decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: barColors,
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: const [
-              0.1,
-              0.5,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(20)),
-      child: const SizedBox(
-        height: 40.0,
-      ),
-    );
-  }
-
   Future<void> _onOpen(String link) async {
     var l = Uri.parse((!link.startsWith("http") ? "http://" : "") + link);
     if (await canLaunchUrl(l)) {
@@ -566,12 +529,15 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                       ? Container(
                           padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
-                    color: Colors.transparent,
                             borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppTheme.goldBase.withOpacity(0.3),
-                      width: 1,
+                            gradient: AppTheme.purpleGradient,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.25),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
                               ),
+                            ],
                           ),
                           child: Center(
                             child: Text(
@@ -747,16 +713,19 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
       case WidgetMarker.stats:
         return Container(
           key: const ValueKey('stats'),
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-            color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-              color: AppTheme.goldBase.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(20),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: AppTheme.purpleGradient,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       Row(
@@ -787,172 +756,145 @@ class _BreedDetailState extends State<BreedDetail> with TickerProviderStateMixin
                         ],
                       ),
                       if (widget.showUserComparison) ...[
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                         Center(
                           child: Text(
-                            "🟢 User Pref 🔵 Cat Trait  🎯 Bullseye",
+                            'Bar = breed • Triangle = your preference',
                             style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                       ],
                       ListView.separated(
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
                         separatorBuilder: (context, index) => Divider(
                           thickness: 1.0,
-                  color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withOpacity(0.2),
                         ),
                         itemCount: widget.breed.stats.length,
                         itemBuilder: (context, index) {
-                  var statPrecentage = (widget.breed.stats[index].isPercent)
-                                  ? widget.breed.stats[index].value.toDouble() /
-                                      maxValues[index].toDouble()
-                                  : 1.0;
-                  // When user preference is 0 (unset/"Flexible"), treat it as no preference
-                  var userSliderValue = globals.FelineFinderServer.instance.sliderValue[index];
-                  var userPreference = (widget.breed.stats[index].isPercent && userSliderValue > 0)
-                      ? userSliderValue.toDouble() / maxValues[index].toDouble()
-                      : (widget.breed.stats[index].isPercent ? 0.0 : 1.0);
-                  
-                  // Determine which bar is shorter
-                  final bool isEqual = (statPrecentage - userPreference).abs() < 0.001; // Use small epsilon for float comparison
-                  final bool userPrefIsShorter = userPreference < statPrecentage;
-                  final bool catTraitIsShorter = statPrecentage < userPreference;
-                  final String traitLabel = widget.breed.stats[index].name == 'Willingness to be petted'
-                      ? 'Handling'
-                      : widget.breed.stats[index].name;
+                          const segmentCount = 5;
+                          const barHeight = 14.0;
+                          const rowHeight = 20.0;
+                          const triangleWidth = 20.0;
+                          const triangleHeight = 20.0;
 
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      final double availableWidth = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-                          ? constraints.maxWidth
-                          : MediaQuery.of(context).size.width - 32;
+                          final maxVal = maxValues[index].toDouble();
+                          final breedValue = widget.breed.stats[index].value.toDouble();
+                          final filledSegments = widget.breed.stats[index].isPercent
+                              ? ((breedValue / maxVal) * segmentCount).round().clamp(0, segmentCount)
+                              : segmentCount;
+                          // Fit screen stores slider by question.id (e.g. Grooming Needs is id 8, not list index 7)
+                          final questionId = index < Question.questions.length
+                              ? Question.questions[index].id
+                              : index;
+                          final userSliderValue = questionId < globals.FelineFinderServer.instance.sliderValue.length
+                              ? globals.FelineFinderServer.instance.sliderValue[questionId]
+                              : 0;
+                          final showTriangle = widget.showUserComparison &&
+                              widget.breed.stats[index].isPercent &&
+                              userSliderValue > 0;
+                          // User preference scale uses this question's choice count (e.g. Grooming has 0-4, not 0-5)
+                          final userMax = index < Question.questions.length
+                              ? (Question.questions[index].choices.length - 1).clamp(1, 10)
+                              : maxVal.toInt();
+                          // Which segment (1..5) the user preference falls in; triangle will be centered in that segment
+                          final userSegmentIndex = showTriangle
+                              ? (userSliderValue / userMax * segmentCount + 0.5).round().clamp(1, segmentCount)
+                              : 1;
 
-                      if (!widget.showUserComparison) {
-                        // Breed List: cat trait only, full width, no legend/bullseye
-                        final double barWidth = availableWidth;
-                        return ClipRect(
-                          child: SizedBox(
-                            width: barWidth,
-                            child: Stack(
-                              children: <Widget>[
-                                bar(1.0, BarType.backgroundBar, barWidth),
-                                bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, barWidth),
-                                Positioned.fill(
-                                  child: Row(
-                                    children: <Widget>[
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            "         " +
-                                                traitLabel +
-                                                ': ' +
-                                                Question.questions[index]
-                                                    .choices[widget.breed.stats[index].value.toInt()].name,
-                                            style: const TextStyle(
-                                                fontSize: 16.0,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w600),
-                                            textAlign: TextAlign.center,
-                                            overflow: TextOverflow.ellipsis,
-                                            maxLines: 1,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                          final statName = widget.breed.stats[index].name;
+                          final traitLabel = statName == 'Willingness to be petted'
+                              ? 'Handling'
+                              : statName == 'Good with Children'
+                                  ? 'Children'
+                                  : statName == 'Good with other pets'
+                                      ? 'Pets'
+                                      : statName == 'TLC'
+                                          ? 'Care'
+                                          : statName;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 110,
+                                  child: Text(
+                                    traitLabel,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12,
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: rowHeight,
+                                    child: LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final barWidth = constraints.maxWidth;
+                                        // Center of segment userSegmentIndex (1-based): (index - 0.5) / 5
+                                        final left = showTriangle
+                                            ? (barWidth * (userSegmentIndex - 0.5) / segmentCount - triangleWidth / 2)
+                                                .clamp(0.0, barWidth - triangleWidth)
+                                            : 0.0;
+                                        return Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            Positioned(
+                                              left: 0,
+                                              right: 0,
+                                              top: (rowHeight - barHeight) / 2,
+                                              height: barHeight,
+                                              child: Row(
+                                                children: List.generate(segmentCount, (i) {
+                                                  final segmentIndex = i + 1;
+                                                  final isFilled = segmentIndex <= filledSegments;
+                                                  final isFirst = i == 0;
+                                                  final isLast = i == segmentCount - 1;
+                                                  return Expanded(
+                                                    child: Container(
+                                                      margin: EdgeInsets.only(right: isLast ? 0 : 1),
+                                                      decoration: BoxDecoration(
+                                                        color: isFilled ? AppTheme.goldBase : Colors.white24,
+                                                        borderRadius: BorderRadius.horizontal(
+                                                          left: Radius.circular(isFirst ? 6 : 0),
+                                                          right: Radius.circular(isLast ? 6 : 0),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }),
+                                              ),
+                                            ),
+                                            if (showTriangle)
+                                              Positioned(
+                                                left: left,
+                                                top: 0,
+                                                child: CustomPaint(
+                                                  size: const Size(triangleWidth, triangleHeight),
+                                                  painter: _GoldTrianglePainter(),
+                                                ),
+                                              ),
+                                          ],
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        );
-                      }
-
-                      // Breed Fit: user pref vs cat trait, legend, bullseye column
-                      const double bullseyeWidth = 36.0;
-                      final bool showBullseye = isEqual && widget.breed.stats[index].isPercent;
-                      final double barAreaWidth = availableWidth - bullseyeWidth;
-
-                      Widget barChart = ClipRect(
-                        child: SizedBox(
-                          width: barAreaWidth,
-                          child: Stack(
-                            children: <Widget>[
-                              bar(1.0, BarType.backgroundBar, barAreaWidth),
-                              if (isEqual)
-                                bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, barAreaWidth)
-                              else if (userPrefIsShorter)
-                                bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, barAreaWidth)
-                              else
-                                bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, barAreaWidth),
-                              if (isEqual)
-                                const SizedBox.shrink()
-                              else if (userPrefIsShorter)
-                                Positioned(
-                                  child: bar(userPreference.clamp(0.0, 1.0), BarType.traitBar, barAreaWidth),
-                                )
-                              else
-                                Positioned(
-                                  child: bar(statPrecentage.clamp(0.0, 1.0), BarType.percentageBar, barAreaWidth),
-                                ),
-                              Positioned.fill(
-                                child: Row(
-                                  children: <Widget>[
-                                    Expanded(
-                                      child: Align(
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          "         " +
-                                              traitLabel +
-                                              ': ' +
-                                              Question.questions[index]
-                                                  .choices[widget.breed.stats[index].value.toInt()].name,
-                                          style: const TextStyle(
-                                              fontSize: 16.0,
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w600),
-                                          textAlign: TextAlign.center,
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-
-                      return SizedBox(
-                        width: availableWidth,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: <Widget>[
-                            SizedBox(
-                              width: bullseyeWidth,
-                              height: 40,
-                              child: showBullseye
-                                  ? const Center(
-                                      child: Text("🎯", style: TextStyle(fontSize: 22)),
-                                    )
-                                  : null,
-                            ),
-                            Expanded(child: barChart),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -1420,6 +1362,30 @@ class _GoldRibbonPainter extends CustomPainter {
       ..color = AppTheme.goldShadow
       ..strokeWidth = 2.0;
     canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Gold triangle for bar chart (user preference marker); matches pet detail style.
+class _GoldTrianglePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width * 0.5, 0)
+      ..lineTo(0, size.height)
+      ..lineTo(size.width, size.height)
+      ..close();
+    final fillPaint = Paint()
+      ..color = AppTheme.goldBase
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(path, fillPaint);
+    final strokePaint = Paint()
+      ..color = const Color(0xFF2B1E3A).withOpacity(0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawPath(path, strokePaint);
   }
 
   @override

@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
-import 'package:linkfy_text/linkfy_text.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:catapp/ExampleCode/Media.dart';
 import 'package:catapp/models/animal_fit_record.dart';
@@ -22,6 +22,7 @@ import '../widgets/youtube-video-row.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petDetailData.dart';
 import '/models/shelter.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'webview_screen.dart';
 import '/models/rescuegroups_v5.dart';
 import '../config.dart';
@@ -32,6 +33,30 @@ import '../theme.dart';
 import '../network_utils.dart';
 import '../gold_frame/gold_frame_panel.dart';
 import '../widgets/html_bold_key_extension.dart';
+import '../widgets/gold/gold_trait_pill.dart';
+
+/// One segment of description text and optional phrase index (null = normal text).
+class _DescSegment {
+  final String text;
+  final int? phraseIndex;
+  _DescSegment(this.text, this.phraseIndex);
+}
+
+/// Range of a phrase in plain text (start, end, phrase index).
+class _PhraseRange {
+  final int start;
+  final int end;
+  final int index;
+  _PhraseRange(this.start, this.end, this.index);
+}
+
+/// One link-like range in the text (start index, end index, matched substring).
+class _LinkRange {
+  final int start;
+  final int end;
+  final String text;
+  _LinkRange(this.start, this.end, this.text);
+}
 
 class petDetail extends StatefulWidget {
   final String petID;
@@ -50,7 +75,7 @@ class petDetail extends StatefulWidget {
 }
 
 class petDetailState extends State<petDetail>
-    with RouteAware {
+    with RouteAware, TickerProviderStateMixin {
   PetDetailData? petDetailInstance;
   Shelter? shelterDetailInstance;
   bool isFavorited = false;
@@ -62,6 +87,12 @@ class petDetailState extends State<petDetail>
   int currentIndexPage = 0;
   AnimalFitRecord? _fitRecord;
   List<String>? _highlightedTraitEvidence;
+  /// Per-phrase progress 0.0 (purple) to 1.0 (gold) for evidence highlight animation.
+  List<double>? _evidenceHighlightProgress;
+  /// One GlobalKey per evidence phrase for scrolling to center before each highlight.
+  List<GlobalKey>? _phraseSegmentKeys;
+  int _evidenceHighlightCurrentIndex = 0;
+  late AnimationController _evidenceAnimationController;
   int _personalityChartMode = 0; // 0 = My Type, 1 = Suggested Type
   final GlobalKey _descriptionHighlightKey = GlobalKey();
 
@@ -122,15 +153,84 @@ class petDetailState extends State<petDetail>
       }
     }();
 
+    _evidenceAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
     super.initState();
   }
 
   @override
   void dispose() {
+    _evidenceAnimationController.dispose();
     _controller.removeListener(_scrollListener);
     _controller.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  /// Map trait score 1–5 to "very low", "low", "medium", "high", "very high".
+  static String _scoreToLevel(int? score) {
+    if (score == null || score < 1 || score > 5) return 'unknown';
+    const levels = ['very low', 'low', 'medium', 'high', 'very high'];
+    return levels[score - 1];
+  }
+
+  /// Returns "he", "she", or "this cat" from pet sex for snackbar text.
+  static String _sexToPronoun(String? sex) {
+    if (sex == null || sex.isEmpty) return 'this cat';
+    final s = sex.toLowerCase();
+    if (s == 'male') return 'he';
+    if (s == 'female') return 'she';
+    return 'this cat';
+  }
+
+  /// Animates each evidence phrase background from purple to gold (200ms each, 200ms between).
+  /// Before each phrase, scrolls so that phrase is in the middle of the screen.
+  Future<void> _runEvidenceHighlightAnimation() async {
+    final evidence = _highlightedTraitEvidence;
+    final progress = _evidenceHighlightProgress;
+    final phraseKeys = _phraseSegmentKeys;
+    if (evidence == null ||
+        progress == null ||
+        evidence.isEmpty ||
+        phraseKeys == null ||
+        phraseKeys.length != evidence.length) return;
+    final n = evidence.length;
+    void listener() {
+      if (!mounted || _evidenceHighlightProgress == null) return;
+      if (_evidenceHighlightCurrentIndex < _evidenceHighlightProgress!.length) {
+        setState(() {
+          _evidenceHighlightProgress![_evidenceHighlightCurrentIndex] =
+              _evidenceAnimationController.value;
+        });
+      }
+    }
+    const scrollDuration = Duration(milliseconds: 400);
+    for (int i = 0; i < n; i++) {
+      if (!mounted) return;
+      // Scroll so this phrase is in the middle of the screen
+      final ctx = phraseKeys[i].currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.5,
+          duration: scrollDuration,
+          curve: Curves.easeInOut,
+        );
+        await Future.delayed(scrollDuration);
+      }
+      if (!mounted) return;
+      _evidenceHighlightCurrentIndex = i;
+      _evidenceAnimationController.removeListener(listener);
+      _evidenceAnimationController.addListener(listener);
+      _evidenceAnimationController.reset();
+      await _evidenceAnimationController.forward().orCancel;
+      _evidenceAnimationController.removeListener(listener);
+      if (!mounted) return;
+      setState(() => _evidenceHighlightProgress![i] = 1.0);
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
   }
 
   void getShelterDetail(String orgID) async {
@@ -505,6 +605,7 @@ class petDetailState extends State<petDetail>
                       
                       if (petDetailInstance == null ||
                           petDetailInstance!.media.isEmpty) {
+                        final isStillLoading = petDetailInstance == null;
                         return Container(
                           width: double.infinity,
                           height: availableHeight > 0 && availableHeight != double.infinity 
@@ -517,14 +618,24 @@ class petDetailState extends State<petDetail>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
-                                  Icons.pets,
-                                  size: 64,
-                                  color: Colors.white,
-                                ),
+                                if (isStillLoading)
+                                  const SizedBox(
+                                    width: 40,
+                                    height: 40,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.pets,
+                                    size: 64,
+                                    color: Colors.white,
+                                  ),
                                 SizedBox(height: AppTheme.spacingM),
                                 Text(
-                                  'No photos available',
+                                  isStillLoading ? 'Loading...' : 'No photos available',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: AppTheme.fontSizeM,
@@ -677,7 +788,7 @@ class petDetailState extends State<petDetail>
                 ),
               ),
 
-              // Name + Breed Plaque (purple with thin gold outline)
+              // Name + Breed Plaque (ribbon with gold gradient)
               if (petDetailInstance != null)
                 Padding(
                   padding:
@@ -687,6 +798,17 @@ class petDetailState extends State<petDetail>
                     breed: petDetailInstance!.primaryBreed ?? "",
                   ),
                 ),
+
+              // Pill bar: personality type, adoption status, age, sex, size (wraps like adoption list)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: _buildDetailPills(),
+                ),
+              ),
 
               const SizedBox(height: 5),
               Center(
@@ -723,12 +845,6 @@ class petDetailState extends State<petDetail>
                 const SizedBox(height: 12),
               ],
 
-              const SizedBox(height: 12),
-              Divider(
-                color: Colors.white.withOpacity(0.5),
-                height: 1,
-                thickness: 1,
-              ),
               const SizedBox(height: 12),
               const Center(
                 child: Text(
@@ -885,27 +1001,19 @@ class petDetailState extends State<petDetail>
                           ),
                         ),
                       ),
-                      Container(
-                        color: Colors.black.withOpacity(0.3),
-                        child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.play_circle_filled,
-                                size: 60,
-                                color: Colors.white,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Video',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                      Positioned(
+                        bottom: 10,
+                        right: 10,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.play_circle_filled,
+                            size: 40,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -956,6 +1064,27 @@ class petDetailState extends State<petDetail>
     );
   }
 
+  List<Widget> _buildDetailPills() {
+    final pills = <Widget>[];
+    final personalityType = _fitRecord?.suggestedCatTypeName?.trim();
+    if (personalityType != null && personalityType.isNotEmpty) {
+      pills.add(GoldTraitPill(label: personalityType));
+    }
+    final pd = petDetailInstance;
+    if (pd != null) {
+      if (pd.ageGroup != null && pd.ageGroup!.trim().isNotEmpty) {
+        pills.add(GoldTraitPill(label: pd.ageGroup!));
+      }
+      if (pd.sex != null && pd.sex!.trim().isNotEmpty) {
+        pills.add(GoldTraitPill(label: pd.sex!));
+      }
+      if (pd.sizeGroup != null && pd.sizeGroup!.trim().isNotEmpty) {
+        pills.add(GoldTraitPill(label: pd.sizeGroup!));
+      }
+    }
+    return pills;
+  }
+
   String get _adopterTypeLabel {
     final name = widget.server.selectedPersonalityCatTypeName?.trim();
     return (name != null && name.isNotEmpty) ? name : 'My Type';
@@ -998,6 +1127,55 @@ class petDetailState extends State<petDetail>
     return CatTypeFilterMapping.getTraitProfileForCatType(type);
   }
 
+  void _showPersonalityChartHelpDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('How to use the Personality chart'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'What you see\n'
+                'Each row is a personality trait. The gold bars show how strong that trait is for this cat (1–5). '
+                'If you\'ve set a preference (My Type) or we\'ve suggested a type (Suggested Type), a gold triangle on the bar shows that type\'s level for the same trait.',
+                style: TextStyle(fontSize: 14, height: 1.4),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Two modes\n'
+                'Use the buttons below the chart to switch between My Type (your preferences from search/fit) and Suggested Type (our suggested personality type for this cat). '
+                'The triangle shows the selected type; the bar always shows the cat.',
+                style: TextStyle(fontSize: 14, height: 1.4),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Seeing evidence\n'
+                'Tap anywhere on a trait row (name, bar, or (i) icon). A message will explain that we\'re showing evidence for that trait. '
+                'After a moment, the page scrolls to the description and highlights the exact phrases we used as evidence for that trait. Tap the same row again to clear the highlight.',
+                style: TextStyle(fontSize: 14, height: 1.4),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'No evidence\n'
+                'If a trait has no supporting phrases in the description, the (i) icon appears dimmed and tapping the row won\'t scroll or highlight.',
+                style: TextStyle(fontSize: 14, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPersonalityChart() {
     const segmentCount = 5;
     const barHeight = 14.0;
@@ -1037,6 +1215,13 @@ class petDetailState extends State<petDetail>
                     fontFamily: 'Poppins',
                   ),
                 ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.help_outline, color: Colors.white70, size: 24),
+                  onPressed: () => _showPersonalityChartHelpDialog(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -1055,122 +1240,158 @@ class petDetailState extends State<petDetail>
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 2),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 110,
-                      child: Text(
-                        traitName,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isActive ? AppTheme.goldBase : Colors.white70,
-                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SizedBox(
-                        height: rowHeight,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final barWidth = constraints.maxWidth;
-                            final left = showTriangle
-                                ? (barWidth * ((typeValue! - 0.5) / segmentCount) -
-                                        triangleWidth / 2)
-                                    .clamp(0.0, barWidth - triangleWidth)
-                                : 0.0;
-                            return Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  top: (rowHeight - barHeight) / 2,
-                                  height: barHeight,
-                                  child: Row(
-                                    children: List.generate(segmentCount, (i) {
-                                      final segmentIndex = i + 1;
-                                      final isFilled =
-                                          segmentIndex <= filledSegments;
-                                      final isFirst = i == 0;
-                                      final isLast =
-                                          i == segmentCount - 1;
-                                      return Expanded(
-                                        child: Container(
-                                          margin: EdgeInsets.only(
-                                            right: isLast ? 0 : 1,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: isFilled
-                                                ? AppTheme.goldBase
-                                                : Colors.white24,
-                                            borderRadius:
-                                                BorderRadius.horizontal(
-                                              left: Radius.circular(
-                                                  isFirst ? 6 : 0),
-                                              right: Radius.circular(
-                                                  isLast ? 6 : 0),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                ),
-                                if (showTriangle)
-                                  Positioned(
-                                    left: left,
-                                    top: 0,
-                                    child: CustomPaint(
-                                      size: const Size(
-                                          triangleWidth, triangleHeight),
-                                      painter: _GoldTrianglePainter(),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () {
-                          final willHighlight = evidence.isNotEmpty &&
-                              !(_highlightedTraitEvidence == evidence &&
-                                  evidence.isNotEmpty);
-                          setState(() {
-                            if (_highlightedTraitEvidence == evidence &&
-                                evidence.isNotEmpty) {
-                              _highlightedTraitEvidence = null;
-                            } else {
-                              _highlightedTraitEvidence =
-                                  evidence.isEmpty ? null : evidence;
-                            }
-                          });
-                          if (willHighlight &&
-                              evidence.isNotEmpty &&
-                              mounted) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (!mounted) return;
-                              final ctx = _descriptionHighlightKey.currentContext;
-                              if (ctx != null) {
-                                Scrollable.ensureVisible(
-                                  ctx,
-                                  duration: const Duration(milliseconds: 400),
-                                  curve: Curves.easeInOut,
-                                  alignment: 0.5,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      final willHighlight = evidence.isNotEmpty &&
+                          !(_highlightedTraitEvidence == evidence &&
+                              evidence.isNotEmpty);
+                      setState(() {
+                        if (_highlightedTraitEvidence == evidence &&
+                            evidence.isNotEmpty) {
+                          _highlightedTraitEvidence = null;
+                          _evidenceHighlightProgress = null;
+                          _phraseSegmentKeys = null;
+                        } else {
+                          _highlightedTraitEvidence =
+                              evidence.isEmpty ? null : evidence;
+                          _evidenceHighlightProgress = evidence.isEmpty
+                              ? null
+                              : List.filled(evidence.length, 0.0);
+                          _phraseSegmentKeys = evidence.isEmpty
+                              ? null
+                              : List.generate(
+                                  evidence.length,
+                                  (_) => GlobalKey(),
                                 );
-                              }
-                            });
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(22),
-                        child: Padding(
+                        }
+                      });
+                      if (willHighlight &&
+                          evidence.isNotEmpty &&
+                          mounted) {
+                        final pronoun =
+                            _sexToPronoun(petDetailInstance?.sex);
+                        final level = _scoreToLevel(detail?.score);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Here is evidence $pronoun is $level in $traitName.',
+                              style: const TextStyle(
+                                color: AppTheme.darkText,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            backgroundColor: AppTheme.goldBase,
+                            duration: const Duration(milliseconds: 2000),
+                          ),
+                        );
+                        Future.delayed(
+                          const Duration(milliseconds: 2000),
+                          () {
+                            if (!mounted) return;
+                            final ctx =
+                                _descriptionHighlightKey.currentContext;
+                            if (ctx != null) {
+                              Scrollable.ensureVisible(
+                                ctx,
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeInOut,
+                                alignment: 0.5,
+                              );
+                            }
+                            if (mounted &&
+                                _highlightedTraitEvidence != null &&
+                                _highlightedTraitEvidence!.isNotEmpty) {
+                              _runEvidenceHighlightAnimation();
+                            }
+                          },
+                        );
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 110,
+                          child: Text(
+                            traitName,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isActive ? AppTheme.goldBase : Colors.white70,
+                              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SizedBox(
+                            height: rowHeight,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final barWidth = constraints.maxWidth;
+                                final left = showTriangle
+                                    ? (barWidth * ((typeValue! - 0.5) / segmentCount) -
+                                            triangleWidth / 2)
+                                        .clamp(0.0, barWidth - triangleWidth)
+                                    : 0.0;
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      top: (rowHeight - barHeight) / 2,
+                                      height: barHeight,
+                                      child: Row(
+                                        children: List.generate(segmentCount, (i) {
+                                          final segmentIndex = i + 1;
+                                          final isFilled =
+                                              segmentIndex <= filledSegments;
+                                          final isFirst = i == 0;
+                                          final isLast =
+                                              i == segmentCount - 1;
+                                          return Expanded(
+                                            child: Container(
+                                              margin: EdgeInsets.only(
+                                                right: isLast ? 0 : 1,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: isFilled
+                                                    ? AppTheme.goldBase
+                                                    : Colors.white24,
+                                                borderRadius:
+                                                    BorderRadius.horizontal(
+                                                  left: Radius.circular(
+                                                      isFirst ? 6 : 0),
+                                                  right: Radius.circular(
+                                                      isLast ? 6 : 0),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }),
+                                      ),
+                                    ),
+                                    if (showTriangle)
+                                      Positioned(
+                                        left: left,
+                                        top: 0,
+                                        child: CustomPaint(
+                                          size: const Size(
+                                              triangleWidth, triangleHeight),
+                                          painter: _GoldTrianglePainter(),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           child: Icon(
@@ -1181,48 +1402,82 @@ class petDetailState extends State<petDetail>
                                 : (isActive ? AppTheme.goldBase : Colors.white70),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               );
             }),
             const SizedBox(height: 10),
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Radio<int>(
-                  value: 0,
-                  groupValue: _personalityChartMode,
-                  onChanged: (v) => setState(() => _personalityChartMode = 0),
-                  activeColor: AppTheme.goldBase,
-                  fillColor: WidgetStateProperty.resolveWith((states) =>
-                      states.contains(WidgetState.selected)
-                          ? AppTheme.goldBase
-                          : Colors.white54),
-                ),
-                Text(
-                  _adopterTypeLabel,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.95),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => setState(() => _personalityChartMode = 0),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Radio<int>(
+                            value: 0,
+                            groupValue: _personalityChartMode,
+                            onChanged: (v) =>
+                                setState(() => _personalityChartMode = 0),
+                            activeColor: AppTheme.goldBase,
+                            fillColor: WidgetStateProperty.resolveWith((states) =>
+                                states.contains(WidgetState.selected)
+                                    ? AppTheme.goldBase
+                                    : Colors.white54),
+                          ),
+                          Text(
+                            'Your type: $_adopterTypeLabel',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withOpacity(0.95),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 20),
-                Radio<int>(
-                  value: 1,
-                  groupValue: _personalityChartMode,
-                  onChanged: (v) => setState(() => _personalityChartMode = 1),
-                  activeColor: AppTheme.goldBase,
-                  fillColor: WidgetStateProperty.resolveWith((states) =>
-                      states.contains(WidgetState.selected)
-                          ? AppTheme.goldBase
-                          : Colors.white54),
-                ),
-                Text(
-                  _suggestedTypeLabel,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.95),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => setState(() => _personalityChartMode = 1),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Radio<int>(
+                            value: 1,
+                            groupValue: _personalityChartMode,
+                            onChanged: (v) =>
+                                setState(() => _personalityChartMode = 1),
+                            activeColor: AppTheme.goldBase,
+                            fillColor: WidgetStateProperty.resolveWith((states) =>
+                                states.contains(WidgetState.selected)
+                                    ? AppTheme.goldBase
+                                    : Colors.white54),
+                          ),
+                          Text(
+                            'Typical: $_suggestedTypeLabel',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withOpacity(0.95),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1256,19 +1511,287 @@ class petDetailState extends State<petDetail>
     return result;
   }
 
+  /// One segment of description: text and optional phrase index (null = normal text).
+  static List<_DescSegment> _descriptionSegments(
+    String plainText,
+    List<String> evidence,
+  ) {
+    if (evidence.isEmpty) return [_DescSegment(plainText, null)];
+    final ranges = <_PhraseRange>[];
+    for (int i = 0; i < evidence.length; i++) {
+      final phrase = evidence[i];
+      if (phrase.isEmpty) continue;
+      try {
+        final pattern = RegExp(RegExp.escape(phrase), caseSensitive: false);
+        final match = pattern.firstMatch(plainText);
+        if (match != null) {
+          ranges.add(_PhraseRange(match.start, match.end, i));
+        }
+      } catch (_) {}
+    }
+    ranges.sort((a, b) => a.start.compareTo(b.start));
+    final segments = <_DescSegment>[];
+    int pos = 0;
+    for (final r in ranges) {
+      if (r.start > pos) {
+        segments.add(_DescSegment(plainText.substring(pos, r.start), null));
+      }
+      segments.add(_DescSegment(plainText.substring(r.start, r.end), r.index));
+      pos = r.end;
+    }
+    if (pos < plainText.length) {
+      segments.add(_DescSegment(plainText.substring(pos), null));
+    }
+    return segments;
+  }
+
+  /// Matches URL-like text: with scheme (https://...), www.xxx.tld, or bare domain (xxx.tld). TLD at least 2 letters to avoid numbers like 3.14.
+  static final RegExp _urlWithSchemeRegex = RegExp(
+    r'https?://[^\s<>]+',
+    caseSensitive: false,
+  );
+  static final RegExp _urlLikeRegex = RegExp(
+    r'(?:www\.)?(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}',
+  );
+  static final RegExp _emailRegex = RegExp(
+    r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
+  );
+
+  /// Returns non-overlapping (start, end, matchedText) for all link-like substrings, ordered by start.
+  List<_LinkRange> _getLinkLikeRanges(String text) {
+    final list = <_LinkRange>[];
+    void addMatches(RegExp re) {
+      for (final m in re.allMatches(text)) {
+        String matched = m.group(0)!;
+        int end = m.end;
+        while (matched.length > 1 && _isTrailingPunctuation(matched.codeUnitAt(matched.length - 1))) {
+          matched = matched.substring(0, matched.length - 1);
+          end--;
+        }
+        if (matched.isNotEmpty) list.add(_LinkRange(m.start, end, matched));
+      }
+    }
+    addMatches(_urlWithSchemeRegex);
+    addMatches(_urlLikeRegex);
+    addMatches(_emailRegex);
+    list.sort((a, b) => a.start.compareTo(b.start));
+    final merged = <_LinkRange>[];
+    for (final r in list) {
+      if (merged.isEmpty || r.start >= merged.last.end) merged.add(r);
+    }
+    return merged;
+  }
+
+  static bool _isTrailingPunctuation(int code) {
+    return code == 0x2C || code == 0x2E || code == 0x3B || code == 0x3A || code == 0x29 || code == 0x5D; // , . ; : ) ]
+  }
+
+  /// Returns corrected URL (https://, www. when missing) for embedding in HTML or launching.
+  String _correctUrlString(String link) {
+    if (link.isEmpty) return link;
+    String url = link.trim();
+    if (url.startsWith('"') || url.startsWith("'")) url = url.substring(1);
+    if (url.endsWith('"') || url.endsWith("'")) url = url.substring(0, url.length - 1);
+    url = url.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      if (url.contains('.') || url.startsWith('www.')) {
+        url = 'https://$url';
+      } else if (url.contains('facebook') || url.startsWith('/')) {
+        url = url.startsWith('/') ? 'https://www.facebook.com$url' : 'https://www.facebook.com/$url';
+      } else {
+        url = 'https://$url';
+      }
+    }
+    try {
+      final uri = Uri.parse(url);
+      if (uri.host.isNotEmpty && !uri.host.toLowerCase().startsWith('www.')) {
+        final path = uri.path;
+        final query = uri.query.isEmpty ? '' : '?${uri.query}';
+        final fragment = uri.fragment.isEmpty ? '' : '#${uri.fragment}';
+        url = 'https://www.${uri.host}$path$query$fragment';
+      }
+    } catch (_) {}
+    return url;
+  }
+
+  static String _escapeHtml(String s) {
+    return s
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+  }
+
+  static String _decodeHtmlEntities(String s) {
+    return s
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&amp;', '&');
+  }
+
+  /// Remove all non-breaking space (entity and Unicode) so description displays without &nbsp;.
+  static String _stripNbsp(String s) {
+    return s
+        .replaceAll('\u00A0', ' ')
+        .replaceAll(RegExp(r'&nbsp;', caseSensitive: false), ' ')
+        .replaceAll(RegExp(r'&#160;', caseSensitive: false), ' ')
+        .replaceAll(RegExp(r'&#x0?A0;', caseSensitive: false), ' ');
+  }
+
+  /// Wrap URL-like substrings in plain text with <a href="..."> so HTML renderer shows and launches them.
+  String _linkifyPlainText(String text) {
+    final decoded = _decodeHtmlEntities(text);
+    final ranges = _getLinkLikeRanges(decoded);
+    if (ranges.isEmpty) return text;
+    final buffer = StringBuffer();
+    int pos = 0;
+    for (final r in ranges) {
+      buffer.write(_escapeHtml(decoded.substring(pos, r.start)));
+      final String href = _emailRegex.hasMatch(r.text)
+          ? 'mailto:${r.text}'
+          : _correctUrlString(r.text);
+      buffer.write('<a href="${_escapeHtml(href)}">');
+      buffer.write(_escapeHtml(r.text));
+      buffer.write('</a>');
+      pos = r.end;
+    }
+    // Trim trailing whitespace so the renderer does not show extra &nbsp; after the link
+    buffer.write(_escapeHtml(decoded.substring(pos).trimRight()));
+    return buffer.toString();
+  }
+
+  /// Linkify only text outside HTML tags so we don't break existing markup.
+  String _linkifyHtml(String html) {
+    final buffer = StringBuffer();
+    int pos = 0;
+    while (pos < html.length) {
+      final tagStart = html.indexOf('<', pos);
+      if (tagStart < 0) {
+        buffer.write(_linkifyPlainText(html.substring(pos)));
+        break;
+      }
+      buffer.write(_linkifyPlainText(html.substring(pos, tagStart)));
+      final tagEnd = html.indexOf('>', tagStart);
+      if (tagEnd < 0) {
+        buffer.write(html.substring(tagStart));
+        break;
+      }
+      buffer.write(html.substring(tagStart, tagEnd + 1));
+      pos = tagEnd + 1;
+    }
+    return buffer.toString();
+  }
+
+  List<InlineSpan> _buildLinkifiedSpans(String text, TextStyle textStyle, TextStyle linkStyle) {
+    final ranges = _getLinkLikeRanges(text);
+    final spans = <InlineSpan>[];
+    int pos = 0;
+    for (final r in ranges) {
+      if (r.start > pos) {
+        spans.add(TextSpan(text: text.substring(pos, r.start), style: textStyle));
+      }
+      final String linkText = r.text;
+      spans.add(TextSpan(
+        text: linkText,
+        style: linkStyle,
+        recognizer: TapGestureRecognizer()
+          ..onTap = () => _onOpen(linkText),
+      ));
+      pos = r.end;
+    }
+    if (pos < text.length) {
+      spans.add(TextSpan(text: text.substring(pos), style: textStyle));
+    }
+    return spans;
+  }
+
   Widget textBox(String title, String textBlock) {
     if (title == 'Description') {
-      final htmlContent = (_highlightedTraitEvidence != null &&
-              _highlightedTraitEvidence!.isNotEmpty)
-          ? _wrapEvidenceInBold(textBlock, _highlightedTraitEvidence!)
+      textBlock = _stripNbsp(textBlock);
+      final evidence = _highlightedTraitEvidence;
+      final progress = _evidenceHighlightProgress;
+      final useSegmentHighlight = evidence != null &&
+          evidence.isNotEmpty &&
+          progress != null &&
+          progress.length == evidence.length &&
+          _phraseSegmentKeys != null &&
+          _phraseSegmentKeys!.length == evidence.length;
+
+      if (useSegmentHighlight) {
+        final plainText = parseFragment(textBlock).text ?? textBlock;
+        final segments = _descriptionSegments(plainText, evidence!);
+        final phraseKeys = _phraseSegmentKeys!;
+        final baseStyle = TextStyle(
+          fontFamily: GoogleFonts.karla().fontFamily,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+          height: 1.5,
+        );
+        final progressList = progress!;
+        final spans = <InlineSpan>[];
+        final keyUsedForPhraseIndex = <int>{};
+        for (final seg in segments) {
+          if (seg.phraseIndex != null) {
+            final idx = seg.phraseIndex!;
+            final t = progressList[idx].clamp(0.0, 1.0);
+            final bgColor = Color.lerp(
+              AppTheme.deepPurple,
+              AppTheme.goldBase,
+              t,
+            )!;
+            final style = baseStyle.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              backgroundColor: bgColor,
+            );
+            // Use key only for first occurrence of each phrase index (no duplicate keys)
+            final useKey =
+                idx < phraseKeys.length && !keyUsedForPhraseIndex.contains(idx);
+            if (useKey) {
+              keyUsedForPhraseIndex.add(idx);
+              spans.add(WidgetSpan(
+                alignment: PlaceholderAlignment.baseline,
+                baseline: TextBaseline.alphabetic,
+                child: Container(
+                  key: phraseKeys[idx],
+                  padding: EdgeInsets.zero,
+                  margin: EdgeInsets.zero,
+                  child: Text(seg.text, style: style),
+                ),
+              ));
+            } else {
+              spans.add(TextSpan(text: seg.text, style: style));
+            }
+          } else {
+            spans.add(TextSpan(text: seg.text, style: baseStyle));
+          }
+        }
+        return ThinGoldSection(
+          key: _descriptionHighlightKey,
+          title: title,
+          icon: Icons.description_outlined,
+          child: RichText(
+            text: TextSpan(style: baseStyle, children: spans),
+          ),
+        );
+      }
+
+      final htmlContent = (evidence != null && evidence.isNotEmpty)
+          ? _wrapEvidenceInBold(textBlock, evidence)
           : textBlock;
-      final hasHighlight = _highlightedTraitEvidence != null &&
-          _highlightedTraitEvidence!.isNotEmpty;
+      final hasHighlight = evidence != null && evidence.isNotEmpty;
+      String htmlWithLinks = _linkifyHtml(htmlContent);
+      // Remove stray &nbsp; that can appear after a link at end of description
+      htmlWithLinks = htmlWithLinks.replaceAll('</a>&nbsp;&nbsp;', '</a>').replaceAll('</a>&nbsp;', '</a>');
       return ThinGoldSection(
+        key: _descriptionHighlightKey,
         title: title,
         icon: Icons.description_outlined,
         child: Html(
-          data: htmlContent,
+          data: htmlWithLinks,
           extensions: hasHighlight
               ? [BoldKeyExtension(_descriptionHighlightKey)]
               : const [],
@@ -1289,9 +1812,10 @@ class petDetailState extends State<petDetail>
               color: AppTheme.goldBase,
             ),
             'a': Style(
-              color: Colors.white,
+              color: AppTheme.goldBase,
               fontWeight: FontWeight.bold,
               textDecoration: TextDecoration.underline,
+              textDecorationColor: AppTheme.goldBase,
             ),
           },
           onLinkTap: (url, _, __) {
@@ -1402,25 +1926,26 @@ class petDetailState extends State<petDetail>
       }
     }
 
+    final TextStyle baseTextStyle = textStyle.copyWith(
+      color: Colors.white,
+      height: 1.5,
+    );
+    final TextStyle linkStyle = baseTextStyle.copyWith(
+      color: AppTheme.goldBase,
+      fontWeight: FontWeight.bold,
+      decoration: TextDecoration.underline,
+      decorationColor: AppTheme.goldBase,
+      decorationThickness: 1.5,
+    );
     return ThinGoldSection(
       title: title,
       icon: getIconForTitle(title),
-      child: LinkifyText(
-        textString,
+      child: RichText(
         textAlign: TextAlign.left,
-        textStyle: textStyle.copyWith(
-          color: Colors.white,
-          height: 1.5,
+        text: TextSpan(
+          style: baseTextStyle,
+          children: _buildLinkifiedSpans(textString, baseTextStyle, linkStyle),
         ),
-        linkTypes: const [LinkType.email, LinkType.url],
-        linkStyle: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          decoration: TextDecoration.underline,
-          decorationColor: Colors.white,
-          decorationThickness: 1.5,
-        ),
-        onTap: (link) => _onOpen(link.value!),
       ),
     );
   }
@@ -1438,21 +1963,47 @@ class petDetailState extends State<petDetail>
       }
       return;
     }
-    
-    // Clean and validate URL
+
     String url = link.trim();
-    
-    // Remove any leading/trailing quotes
-    if (url.startsWith('"') || url.startsWith("'")) {
-      url = url.substring(1);
-    }
-    if (url.endsWith('"') || url.endsWith("'")) {
-      url = url.substring(0, url.length - 1);
-    }
-    
-    // Remove any trailing punctuation that might have been included
+    if (url.startsWith('"') || url.startsWith("'")) url = url.substring(1);
+    if (url.endsWith('"') || url.endsWith("'")) url = url.substring(0, url.length - 1);
     url = url.trim();
-    
+
+    // If it looks like an email (or is a mailto: URL), open default email client with To set to this address
+    String? emailForMailto;
+    if (url.toLowerCase().startsWith('mailto:')) {
+      emailForMailto = url.substring(7).trim().split(RegExp(r'[?&]')).first;
+      if (emailForMailto.isEmpty) emailForMailto = null;
+    } else {
+      final match = _emailRegex.firstMatch(url);
+      if (match != null) emailForMailto = match.group(0)!;
+    }
+    if (emailForMailto != null && emailForMailto.isNotEmpty) {
+      try {
+        final mailto = Uri.parse('mailto:$emailForMailto');
+        final launched = mounted && await url_launcher.launchUrl(mailto);
+        if (mounted && !launched) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open email'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open email: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    // Clean and validate URL
     // Ensure URL has a protocol - this is critical!
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       // Check if it looks like a URL (contains a dot or is a known domain)
@@ -1473,7 +2024,18 @@ class petDetailState extends State<petDetail>
         }
       }
     }
-    
+
+    // Add www. when missing so links like animalsanctuarysociety.org open correctly
+    try {
+      final uri = Uri.parse(url);
+      if (uri.host.isNotEmpty && !uri.host.toLowerCase().startsWith('www.')) {
+        final path = uri.path;
+        final query = uri.query.isEmpty ? '' : '?${uri.query}';
+        final fragment = uri.fragment.isEmpty ? '' : '#${uri.fragment}';
+        url = 'https://www.${uri.host}$path$query$fragment';
+      }
+    } catch (_) {}
+
     // Final validation - ensure URL is properly formatted
     try {
       final uri = Uri.parse(url);
@@ -1500,17 +2062,18 @@ class petDetailState extends State<petDetail>
         throw FormatException('URL must have a host or path');
       }
       
-      // Navigate to in-app web browser with the validated URL
+      // Open in device browser
       if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => WebViewScreen(
-              url: url, // Use the validated and fixed URL
-              title: _getUrlTitle(url),
+        if (await url_launcher.canLaunchUrl(uri)) {
+          await url_launcher.launchUrl(uri, mode: url_launcher.LaunchMode.externalApplication);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open link'),
+              backgroundColor: Colors.red,
             ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       // Show error if URL is invalid

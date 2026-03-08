@@ -238,9 +238,10 @@ class CatTypeFilterMapping {
     }
   }
 
-  /// Applies only non-slider parts of a cat type: resets to Any, then sets Activity Level,
-  /// Energy level, Likes to vocalize, New People, and any chip-based personality filters.
-  /// Does not set slider values; use with animated slider application in the UI.
+  /// Applies only non-slider parts of a cat type used before animating sliders: resets to Any,
+  /// then sets Activity Level and Energy level, Likes to vocalize from the type's stats.
+  /// Does not set non-slider personality chips (Calmness, Lap Cat, Gentleness, New People, etc.)
+  /// so the API search is not over-restricted when the user applies a personality type.
   static void applyCatTypeNonSliderParts(
     CatType type,
     List<filterOption> filteringOptions,
@@ -254,38 +255,13 @@ class CatTypeFilterMapping {
       final vocalityStat = type.stats.firstWhere((s) => s.name == 'Vocality');
       _applyVocalityToFilters(vocalityStat.value, filteringOptions);
     } catch (_) {}
-    double? sociability;
-    double? confidence;
-    for (final s in type.stats) {
-      if (s.name == 'Sociability') sociability = s.value;
-      if (s.name == 'Confidence') confidence = s.value;
-    }
-    if (sociability != null || confidence != null) {
-      _applyNewPeopleToFilters(
-        sociability ?? 3,
-        confidence ?? 3,
-        filteringOptions,
-      );
-    }
-    final updates = getPersonalityFiltersForCatType(type);
-    final personalityFilters = filteringOptions
-        .where((f) => f.classification == CatClassification.personality && !f.slider)
-        .toList();
-    for (final filter in personalityFilters) {
-      final value = updates[filter.name];
-      if (value == null) continue;
-      if (filter.list && value is List<int> && value.isNotEmpty) {
-        filter.choosenListValues = List<int>.from(value);
-      } else if (value is String) {
-        filter.choosenValue = value;
-      }
-    }
+    // Do not set New People or other non-slider chip filters when applying a type.
   }
 
   /// Applies a cat type's personality filters to [filteringOptions].
-  /// Slider personality filters are set to the cat type's trait value (1–5); range is 1–5 (0 = Any).
-  /// Activity Level and Energy level are set from the cat type's Energy Level stat
-  /// (1–2→low, 3→medium, 4–5→high). Non-slider chip filters use getPersonalityFiltersForCatType.
+  /// Only slider personality filters are set (Energy Level, Playfulness, Affectionate, etc.).
+  /// Non-slider personality chips (Calmness, Lap Cat, Gentleness, New People, etc.) are left at "Any"
+  /// so the API search is not over-restricted and returns results; personality is used for client-side scoring.
   static void applyCatTypeToFilterOptions(
     CatType type,
     List<filterOption> filteringOptions, {
@@ -309,19 +285,8 @@ class CatTypeFilterMapping {
         }
         continue;
       }
-
-      final value = getPersonalityFiltersForCatType(type)[filter.name];
-      if (value == null) continue;
-
-      if (filter.list) {
-        if (value is List<int> && value.isNotEmpty) {
-          filter.choosenListValues = List<int>.from(value);
-        }
-      } else {
-        if (value is String) {
-          filter.choosenValue = value;
-        }
-      }
+      // Do not set non-slider personality filters (Calmness, Lap Cat, Gentleness, New People, etc.)
+      // when applying a type; they stay at "Any" to avoid zero API matches.
     }
 
     // Set Activity Level and Energy level from this cat type's Energy Level stat (1–2→low, 3→medium, 4–5→high).
@@ -336,20 +301,7 @@ class CatTypeFilterMapping {
       _applyVocalityToFilters(vocalityStat.value, filteringOptions);
     } catch (_) {}
 
-    // Set New People (chip) from Sociability and Confidence (high → Friendly, low → Cautious).
-    double? sociability;
-    double? confidence;
-    for (final s in type.stats) {
-      if (s.name == 'Sociability') sociability = s.value;
-      if (s.name == 'Confidence') confidence = s.value;
-    }
-    if (sociability != null || confidence != null) {
-      _applyNewPeopleToFilters(
-        sociability ?? 3,
-        confidence ?? 3,
-        filteringOptions,
-      );
-    }
+    // Do not set New People (non-slider chip) when applying a personality type; leave at "Any".
   }
 
   /// Whether the user has set any personality slider away from "Flexible" (0).

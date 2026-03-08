@@ -41,16 +41,9 @@ class PetDetailData {
         mainPictures.add(picturesIncluded[i].attributes!.small!);
       }
     }
+    // Build media with videos first (actual cat videos), then pictures
     double total = 0;
     mediaWidths.add(0);
-    for (int i = 0; i < picturesIncluded.length; i++) {
-      var photo = SmallPhoto(i, picturesIncluded[i].attributes!.large!.url!);
-      var large = picturesIncluded[i].attributes!.large!;
-      double width = large.resolutionX! * (300 / large.resolutionY!);
-      total += width;
-      mediaWidths.add(total);
-      media.add(photo);
-    }
     List<Included> videoListIncluded = findAllOfACertainType(pet, included, "videourls", IncludedType.VIDEOURLS);
     for (int i = 0; i < videoListIncluded.length; i++) {
       var video = YouTubeVideo(
@@ -61,6 +54,14 @@ class PetDetailData {
       total += 330;
       mediaWidths.add(total);
       media.add(video);
+    }
+    for (int i = 0; i < picturesIncluded.length; i++) {
+      var photo = SmallPhoto(i, picturesIncluded[i].attributes!.large!.url!);
+      var large = picturesIncluded[i].attributes!.large!;
+      double width = large.resolutionX! * (300 / large.resolutionY!);
+      total += width;
+      mediaWidths.add(total);
+      media.add(photo);
     }
     List<Included> organizationIncluded = findAllOfACertainType(pet, included, "orgs", IncludedType.ORGS);
     organizationID = organizationIncluded[0].id;

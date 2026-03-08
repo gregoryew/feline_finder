@@ -109,36 +109,12 @@ class SearchScreenState extends State<SearchScreen> {
     _saveCatTypeToPrefs(_kCustomId);
   }
 
-  /// Match threshold (0–1): only set dropdown to a cat type when fit score >= this.
-  static const double _kCatTypeMatchThreshold = 0.85;
-
-  /// Run fit from current personality sliders: if they match a cat type, set dropdown to that type; else set to Custom.
-  void _updateCatTypeDropdownFromSliders() {
+  /// When the user changes a personality slider/chip, set the cat type dropdown to Custom.
+  void _setCatTypeToCustomIfPersonalityChanged() {
     if (!mounted) return;
-    final hasPreference = CatTypeFilterMapping.hasPersonalityPreferenceFromSearchFilters(widget.filteringOptions);
-    final result = CatTypeFilterMapping.getTopCatTypeFromSearchFilters(widget.filteringOptions);
-    final top = result.type;
-    final matchPercent = result.matchPercent;
-    final bool goodMatch = top != null && matchPercent >= _kCatTypeMatchThreshold;
-    Object? newValue;
-    String? nameToSave;
-    if (!hasPreference) {
-      newValue = null;
-      nameToSave = null;
-    } else if (goodMatch) {
-      newValue = top;
-      nameToSave = top!.name;
-    } else {
-      newValue = _kCustomId;
-      nameToSave = 'Custom';
-    }
-    final current = _selectedCatTypeValue;
-    if (current == newValue) return;
-    setState(() {
-      _selectedCatTypeValue = newValue;
-    });
-    globals.FelineFinderServer.instance.setSelectedPersonalityCatTypeName(nameToSave);
-    _saveCatTypeToPrefs(newValue);
+    setState(() => _selectedCatTypeValue = _kCustomId);
+    globals.FelineFinderServer.instance.setSelectedPersonalityCatTypeName('Custom');
+    _saveCatTypeToPrefs(_kCustomId);
   }
 
   @override
@@ -158,7 +134,10 @@ class SearchScreenState extends State<SearchScreen> {
       setState(() {}); // Update UI when focus changes
     });
 
-    // Load saved zip code if available
+    // Show current zip immediately (e.g. just set on adoption list) then refresh from prefs
+    final server = FelineFinderServer.instance;
+    final initialZip = (server.zip.isNotEmpty && server.zip != "?") ? server.zip : "";
+    if (initialZip.isNotEmpty) _zipCodeController.text = initialZip;
     _loadZipCode();
 
     // Load animation preference
@@ -166,6 +145,15 @@ class SearchScreenState extends State<SearchScreen> {
 
     // Initialize filter values to prevent type errors
     _initializeFilterValues();
+
+    // Set shelter from initial args immediately so it's never cleared by async _loadSearchState
+    if (widget.initialShelterOrgIds != null && widget.initialShelterOrgIds!.isNotEmpty) {
+      _selectedShelterOrgIds = List<String>.from(widget.initialShelterOrgIds!);
+      _selectedShelterNames = widget.initialShelterNames != null &&
+              widget.initialShelterNames!.length >= _selectedShelterOrgIds.length
+          ? List<String>.from(widget.initialShelterNames!)
+          : List.generate(_selectedShelterOrgIds.length, (i) => i < (widget.initialShelterNames?.length ?? 0) ? widget.initialShelterNames![i] : '');
+    }
 
     // Restore saved cat type, or if user set personality sliders use "Apply my type", else None
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -323,8 +311,8 @@ class SearchScreenState extends State<SearchScreen> {
         });
 
           if (isValid == true) {
-          // Save to server and preferences (global update)
-          server.zip = zip;
+          // Save to canonical store (memory + SharedPreferences)
+          await server.setZipCode(zip);
 
           // Find and update the filter
           final zipFilter = widget.filteringOptions.firstWhere(
@@ -347,10 +335,6 @@ class SearchScreenState extends State<SearchScreen> {
           if (zipFilter.fieldName == 'zipCode') {
             zipFilter.choosenValue = zip;
           }
-
-          // Update globally (SharedPreferences)
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('zipCode', zip);
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -486,16 +470,16 @@ class SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  /// Load saved zip code from SharedPreferences and server
+  /// Load saved zip code from canonical store (FelineFinderServer/SharedPreferences) and sync to UI.
+  /// Call when the Find screen is shown so the zip field reflects the current value.
   Future<void> _loadZipCode() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedZip = prefs.getString('zipCode');
-      final serverZip = FelineFinderServer.instance.zip;
+      await FelineFinderServer.instance.loadZipCodeFromPrefs();
+      final zipCode = FelineFinderServer.instance.zip != "?"
+          ? FelineFinderServer.instance.zip
+          : "";
 
-      // Use saved zip if available, otherwise use server zip
-      final zipCode = savedZip ?? (serverZip != "?" ? serverZip : "");
-
+      if (!mounted) return;
       if (zipCode.isNotEmpty) {
         _zipCodeController.text = zipCode;
         // Also update the filter's choosenValue if it exists
@@ -510,6 +494,7 @@ class SearchScreenState extends State<SearchScreen> {
           zipFilter.choosenValue = zipCode;
         }
       }
+      if (mounted) setState(() {});
     } catch (e) {
       print('Error loading zip code: $e');
     }
@@ -572,43 +557,41 @@ class SearchScreenState extends State<SearchScreen> {
             // Load single value (key by name)
             if (savedFilters.containsKey(key)) {
               final savedValue = savedFilters[key];
+              // Zip code is never restored from lastSearchFilters; use canonical store below so adoption-list zip syncs here
+              if (filter.fieldName == 'zipCode') continue;
               // Handle different types (String, bool, int)
               if (savedValue is String) {
                 filter.choosenValue = savedValue;
-                // Also update ZIP code controller if this is the zipCode filter
-                if (filter.fieldName == 'zipCode' && savedValue.isNotEmpty) {
-                  _zipCodeController.text = savedValue;
-                }
               } else if (savedValue is bool) {
                 filter.choosenValue = savedValue;
               } else if (savedValue is int) {
                 filter.choosenValue = savedValue;
               } else {
                 filter.choosenValue = savedValue.toString();
-                // Also update ZIP code controller if this is the zipCode filter
-                if (filter.fieldName == 'zipCode' &&
-                    savedValue.toString().isNotEmpty) {
-                  _zipCodeController.text = savedValue.toString();
-                }
               }
             }
           }
+        }
+
+        // Zip always comes from canonical store so it matches adoption list / Shelters
+        await FelineFinderServer.instance.loadZipCodeFromPrefs();
+        final canonicalZip = FelineFinderServer.instance.zip;
+        if (canonicalZip.isNotEmpty && canonicalZip != '?') {
+          _zipCodeController.text = canonicalZip;
+          try {
+            final zipFilter = widget.filteringOptions.firstWhere(
+              (f) => f.fieldName == 'zipCode',
+            );
+            zipFilter.choosenValue = canonicalZip;
+          } catch (_) {}
         }
 
         // Update UI to reflect loaded state
         setState(() {});
       }
 
-      // Load selected shelters: use initial selection when opened from Shelters "Select", else from prefs
-      if (widget.initialShelterOrgIds != null && widget.initialShelterOrgIds!.isNotEmpty) {
-        setState(() {
-          _selectedShelterOrgIds = List<String>.from(widget.initialShelterOrgIds!);
-          _selectedShelterNames = widget.initialShelterNames != null &&
-                  widget.initialShelterNames!.length >= _selectedShelterOrgIds.length
-              ? List<String>.from(widget.initialShelterNames!)
-              : List.generate(_selectedShelterOrgIds.length, (i) => i < (widget.initialShelterNames?.length ?? 0) ? widget.initialShelterNames![i] : '');
-        });
-      } else {
+      // Load selected shelters: already set from initial in initState when provided; otherwise load from prefs
+      if (widget.initialShelterOrgIds == null || widget.initialShelterOrgIds!.isEmpty) {
         final savedShelterOrgIds = prefs.getString('lastSearchShelterOrgIds');
         final savedShelterNames = prefs.getString('lastSearchShelterNames');
         if (savedShelterOrgIds != null && savedShelterOrgIds.isNotEmpty) {
@@ -1502,65 +1485,92 @@ class SearchScreenState extends State<SearchScreen> {
       }
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () async {
-          var result = await Navigator.push(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  BreedSelectionScreen(
-                selectedBreeds: filter.choosenListValues,
+    final hasSelection = filter.choosenListValues.isNotEmpty &&
+        !filter.choosenListValues.contains(0);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              var result = await Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      BreedSelectionScreen(
+                    selectedBreeds: filter.choosenListValues,
+                  ),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(1.0, 0.0);
+                    const end = Offset.zero;
+                    const curve = Curves.ease;
+                    var slideAnimation = Tween(begin: begin, end: end).animate(
+                      CurvedAnimation(parent: animation, curve: curve),
+                    );
+                    return SlideTransition(
+                      position: slideAnimation,
+                      child: child,
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 300),
+                  reverseTransitionDuration: const Duration(milliseconds: 300),
+                ),
+              );
+              if (result != null) {
+                setState(() {
+                  filter.choosenListValues = result;
+                });
+              }
+            },
+            icon: const Icon(Icons.pets, color: Colors.white),
+            label: Text(
+              '$selectedBreedsText >',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                // Slide in from right (forward animation)
-                const begin = Offset(1.0, 0.0);
-                const end = Offset.zero;
-                const curve = Curves.ease;
-
-                var slideAnimation = Tween(begin: begin, end: end).animate(
-                  CurvedAnimation(parent: animation, curve: curve),
-                );
-
-                return SlideTransition(
-                  position: slideAnimation,
-                  child: child,
-                );
-              },
-              transitionDuration: const Duration(milliseconds: 300),
-              reverseTransitionDuration: const Duration(milliseconds: 300),
             ),
-          );
-          if (result != null) {
-            setState(() {
-              filter.choosenListValues = result;
-            });
-          }
-        },
-        icon: const Icon(Icons.pets, color: Colors.white),
-        label: Text(
-          '$selectedBreedsText >',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: SearchScreenStyle.purpleSurface,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(
-              color: SearchScreenStyle.gold,
-              width: 1.5,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SearchScreenStyle.purpleSurface,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(
+                  color: SearchScreenStyle.gold,
+                  width: 1.5,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+              elevation: 0,
             ),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          elevation: 0,
         ),
-      ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: hasSelection
+              ? () {
+                  setState(() {
+                    filter.choosenListValues = [0];
+                  });
+                }
+              : null,
+          icon: const Icon(Icons.block, color: Colors.white70),
+          style: IconButton.styleFrom(
+            backgroundColor: SearchScreenStyle.purpleSurface,
+            side: BorderSide(
+              color: hasSelection
+                  ? SearchScreenStyle.gold.withOpacity(0.5)
+                  : Colors.white24,
+              width: 1,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          tooltip: 'Clear breed',
+        ),
+      ],
     );
   }
 
@@ -1603,35 +1613,64 @@ class SearchScreenState extends State<SearchScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  globals.onNavigateToSheltersTab?.call(context);
-                },
-                icon: const Icon(Icons.location_on, color: Colors.white),
-                label: Text(
-                  '$selectedSheltersText >',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: SearchScreenStyle.purpleSurface,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(
-                      color: SearchScreenStyle.gold,
-                      width: 1.5,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      globals.onNavigateToSheltersTab?.call(context);
+                    },
+                    icon: const Icon(Icons.location_on, color: Colors.white),
+                    label: Text(
+                      '$selectedSheltersText >',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: SearchScreenStyle.purpleSurface,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(
+                          color: SearchScreenStyle.gold,
+                          width: 1.5,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      elevation: 0,
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                  elevation: 0,
                 ),
-              ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _selectedShelterOrgIds.isNotEmpty
+                      ? () {
+                          setState(() {
+                            _selectedShelterOrgIds = [];
+                            _selectedShelterNames = [];
+                          });
+                        }
+                      : null,
+                  icon: const Icon(Icons.block, color: Colors.white70),
+                  style: IconButton.styleFrom(
+                    backgroundColor: SearchScreenStyle.purpleSurface,
+                    side: BorderSide(
+                      color: _selectedShelterOrgIds.isNotEmpty
+                          ? SearchScreenStyle.gold.withOpacity(0.5)
+                          : Colors.white24,
+                      width: 1,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  tooltip: 'Clear shelter',
+                ),
+              ],
             ),
           ],
         ),
@@ -1694,7 +1733,7 @@ class SearchScreenState extends State<SearchScreen> {
                       });
                       if (filter.classification == CatClassification.personality) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted) _updateCatTypeDropdownFromSliders();
+                          if (mounted) _setCatTypeToCustomIfPersonalityChanged();
                         });
                       }
                     },
@@ -1773,7 +1812,7 @@ class SearchScreenState extends State<SearchScreen> {
                 });
                 if (filter.classification == CatClassification.personality) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) _updateCatTypeDropdownFromSliders();
+                    if (mounted) _setCatTypeToCustomIfPersonalityChanged();
                   });
                 }
               },
@@ -1819,10 +1858,18 @@ class SearchScreenState extends State<SearchScreen> {
         currentValueStr = currentValue.toString();
       }
 
+      // Don't overwrite empty string when it's a valid "Any" option (e.g. Yes/No/Any filters).
       if (currentValueStr == null || currentValueStr.isEmpty) {
         if (filter.options.isNotEmpty) {
-          currentValueStr = filter.options.first.search.toString();
-          currentValue = filter.options.first.search;
+          final hasAnyOptionWithEmptySearch = filter.options
+              .any((o) => o.search.toString().isEmpty || o.displayName == 'Any');
+          if (!hasAnyOptionWithEmptySearch) {
+            currentValueStr = filter.options.first.search.toString();
+            currentValue = filter.options.first.search;
+          } else {
+            currentValueStr = '';
+            currentValue = '';
+          }
         }
       }
 
@@ -1979,8 +2026,19 @@ class SearchScreenState extends State<SearchScreen> {
               print("=== FIND CATS BUTTON PRESSED ===");
               // Save search state before navigating
               await _saveSearchState();
-              var result = generateFilters();
+              // Persist current zip to canonical store so Adoption list and Shelters show it after we pop
               final server = globals.FelineFinderServer.instance;
+              final zipValue = _zipCodeController.text.trim();
+              if (zipValue.length == 5) {
+                await server.setZipCode(zipValue);
+                try {
+                  final zipFilter = widget.filteringOptions.firstWhere(
+                    (f) => f.fieldName == 'zipCode',
+                  );
+                  zipFilter.choosenValue = zipValue;
+                } catch (_) {}
+              }
+              var result = generateFilters();
               final resultWithCatType = FilterResult(
                 result.filters,
                 result.filterprocessing,
@@ -2001,9 +2059,11 @@ class SearchScreenState extends State<SearchScreen> {
               // Save filters and filterProcessing to SharedPreferences (so synonym OR groups are preserved)
               await _saveFiltersToPrefs(result.filters, result.filterprocessing);
               
+              print("=== Find Cats: popping with ${result.filters.length} filters ===");
               Navigator.pop(context, resultWithCatType);
-            } catch (e) {
+            } catch (e, stack) {
               print("Error in Find Cats button: $e");
+              print("$stack");
               Navigator.pop(context, null);
             }
           },
@@ -2397,9 +2457,7 @@ class SearchScreenState extends State<SearchScreen> {
                   _zipCodeIsValid = isValid;
 
                   if (isValid == true) {
-                    FelineFinderServer.instance.zip = currentZip;
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('zipCode', currentZip);
+                    await FelineFinderServer.instance.setZipCode(currentZip);
                   } else if (isValid == null) {
                     // Network error - don't save, but don't show error either (auto-detection)
                     print('Network error during auto ZIP code detection');
@@ -5268,7 +5326,8 @@ class SearchScreenState extends State<SearchScreen> {
       if (item.classification == CatClassification.saves) {
         continue;
       }
-      // Exclude personality from RescueGroups API; used only for client-side fit scoring.
+      // Exclude personality sliders from RescueGroups API; used only for client-side fit scoring.
+      // Chip personality filters (Calmness, Lap Cat, etc.) are still sent when set manually.
       if (item.classification == CatClassification.personality && item.slider == true) {
         continue;
       }
@@ -5498,7 +5557,7 @@ class SearchScreenState extends State<SearchScreen> {
 
     for (var item in filteringOptions) {
       if (item.classification == CatClassification.saves) continue;
-      // Exclude personality from RescueGroups API; used only for client-side fit scoring.
+      // Exclude personality sliders from RescueGroups API; used only for client-side fit scoring.
       if (item.classification == CatClassification.personality && item.slider == true) continue;
       if (item.classification == CatClassification.sort) {
         if (item.fieldName == "sortBy") {

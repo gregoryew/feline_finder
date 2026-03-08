@@ -10,6 +10,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:visibility_detector/visibility_detector.dart';
+
 import '../theme.dart';
 import '../network_utils.dart';
 import '../models/zippopotam.dart';
@@ -165,6 +167,32 @@ class _SheltersNearYouScreenState extends State<SheltersNearYouScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Sync location display and shelter list from canonical zip (e.g. after user changed zip on another screen).
+  /// Call when this screen becomes visible so we stay in sync. Shows city (and state) for the zip when available.
+  Future<void> _syncLocationFromCanonicalZip() async {
+    final server = globals.FelineFinderServer.instance;
+    await server.loadZipCodeFromPrefs();
+    final currentZip = server.zip;
+    String display = 'Location unknown';
+    if (currentZip.isNotEmpty && currentZip != '?' && currentZip.length >= 5) {
+      final placeName = await _getPlaceNameAndStateForZip(currentZip);
+      display = placeName ?? 'ZIP $currentZip';
+    }
+    final zipChanged = _cacheZip != null && _cacheZip != currentZip;
+    if (!mounted) return;
+    setState(() {
+      _locationDisplay = display;
+    });
+    if (zipChanged && currentZip.isNotEmpty && currentZip != '?' && currentZip.length >= 5) {
+      _loadShelters();
+    }
+  }
+
+  /// Public entry point so HomeScreen can trigger zip sync when switching to Shelters tab.
+  Future<void> syncZipFromCanonical() async {
+    await _syncLocationFromCanonicalZip();
+  }
+
   Future<void> _loadLocation() async {
     setState(() => _locationLoading = true);
     try {
@@ -182,7 +210,8 @@ class _SheltersNearYouScreenState extends State<SheltersNearYouScreen> {
       if (!serviceEnabled) {
         final server = globals.FelineFinderServer.instance;
         if (server.zip.isNotEmpty && server.zip != '?') {
-          _locationDisplay = 'ZIP ${server.zip}';
+          final placeName = await _getPlaceNameAndStateForZip(server.zip);
+          _locationDisplay = placeName ?? 'ZIP ${server.zip}';
         } else {
           _locationDisplay = 'Location unknown';
         }
@@ -198,7 +227,8 @@ class _SheltersNearYouScreenState extends State<SheltersNearYouScreen> {
           permission == LocationPermission.denied) {
         final server = globals.FelineFinderServer.instance;
         if (server.zip.isNotEmpty && server.zip != '?') {
-          _locationDisplay = 'ZIP ${server.zip}';
+          final placeName = await _getPlaceNameAndStateForZip(server.zip);
+          _locationDisplay = placeName ?? 'ZIP ${server.zip}';
         } else {
           _locationDisplay = 'Location unknown';
         }
@@ -233,7 +263,8 @@ class _SheltersNearYouScreenState extends State<SheltersNearYouScreen> {
     } catch (e) {
       final server = globals.FelineFinderServer.instance;
       if (server.zip.isNotEmpty && server.zip != '?') {
-        _locationDisplay = 'ZIP ${server.zip}';
+        final placeName = await _getPlaceNameAndStateForZip(server.zip);
+        _locationDisplay = placeName ?? 'ZIP ${server.zip}';
       } else {
         _locationDisplay = 'Location unknown';
       }
@@ -334,18 +365,30 @@ class _SheltersNearYouScreenState extends State<SheltersNearYouScreen> {
     try {
       final isValid = await server.isZipCodeValid(zipTrimmed);
       if (isValid == true) {
+        final oldZip = (server.zip ?? '').trim();
+        if (zipTrimmed != oldZip) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('lastSearchShelterOrgIds');
+          await prefs.remove('lastSearchShelterNames');
+          final filtersJsonString = prefs.getString('lastSearchFiltersList');
+          if (filtersJsonString != null && filtersJsonString.isNotEmpty) {
+            final filtersJson = jsonDecode(filtersJsonString) as List<dynamic>;
+            final updated = filtersJson.where((f) => (f as Map)['fieldName'] != 'orgs.id').toList();
+            await prefs.setString('lastSearchFiltersList', jsonEncode(updated));
+            await prefs.setString('lastSearchFilterProcessing', '');
+          }
+        }
+        await server.setZipCode(zipTrimmed);
         final display = await _getPlaceNameAndStateForZip(zipTrimmed);
         if (mounted) {
           setState(() {
             _locationDisplay = display ?? 'ZIP $zipTrimmed';
           });
           _cacheZip = null;
-          server.zip = zipTrimmed;
-          _loadShelters();
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_savedLocationKey, _locationDisplay);
         }
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('zipCode', zipTrimmed);
-        await prefs.setString(_savedLocationKey, _locationDisplay);
+        _loadShelters();
       } else if (isValid == null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -405,12 +448,9 @@ class _SheltersNearYouScreenState extends State<SheltersNearYouScreen> {
     try {
       List<ShelterListItem> list = [];
       final server = globals.FelineFinderServer.instance;
+      await server.loadZipCodeFromPrefs();
       String zipCode = server.zip;
       if (zipCode.isEmpty || zipCode == '?' || zipCode.length < 5) {
-        final prefs = await SharedPreferences.getInstance();
-        zipCode = prefs.getString('zipCode') ?? '';
-      }
-      if (zipCode.isEmpty || zipCode.length < 5) {
         zipCode = AppConfig.defaultZipCode;
       }
       zipCode = zipCode.trim();
@@ -627,6 +667,8 @@ class _SheltersNearYouScreenState extends State<SheltersNearYouScreen> {
 
   /// Apply shelter-only filter and switch to adoption list (when opened from main tab).
   void _viewCatsForShelter(ShelterListItem shelter) {
+    globals.lastShelterFromSheltersTabOrgId = shelter.orgId;
+    globals.lastShelterFromSheltersTabName = shelter.name;
     final result = FilterResult(
       [
         Filters(fieldName: 'species.singular', operation: 'equal', criteria: ['cat']),
@@ -682,26 +724,32 @@ class _SheltersNearYouScreenState extends State<SheltersNearYouScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppTheme.purpleGradient),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildLocationRow(),
-            _buildMap(),
-            Expanded(
-              child: _sheltersLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppTheme.goldBase),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      itemCount: _shelters.length,
-                      itemBuilder: (context, index) => _buildShelterCard(_shelters[index]),
-                    ),
-            ),
-          ],
+    return VisibilityDetector(
+      key: const Key('shelters_near_you_screen'),
+      onVisibilityChanged: (info) {
+        if (info.visibleFraction > 0) _syncLocationFromCanonicalZip();
+      },
+      child: Container(
+        decoration: const BoxDecoration(gradient: AppTheme.purpleGradient),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildLocationRow(),
+              _buildMap(),
+              Expanded(
+                child: _sheltersLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: AppTheme.goldBase),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        itemCount: _shelters.length,
+                        itemBuilder: (context, index) => _buildShelterCard(_shelters[index]),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

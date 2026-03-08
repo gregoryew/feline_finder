@@ -830,6 +830,9 @@ class PersonalityFitState extends State<PersonalityFit> {
   int? _playingTopId;
   int _playingTopToken = 0;
 
+  /// Top cat type name when user last entered this tab (for "did top change?" when leaving to Adopt).
+  String? _topCatTypeNameWhenUserEntered;
+
   static const Duration _kListInsertDuration = Duration(milliseconds: 300);
   static const Duration _kListRemoveDuration = Duration(milliseconds: 300);
   static const Duration _kListAnimationCompleteDelay = Duration(milliseconds: 650);
@@ -883,18 +886,31 @@ class PersonalityFitState extends State<PersonalityFit> {
       _sliderValues[question.id] = server.getPersonalityFitSliderValue(question.id).toDouble();
     }
 
-    // Initialize display order and match % from catType (no mutation of global list).
-    // Always sort by score (desc) then alphabetically by name.
-    _displayOrder = catType.map((c) => c.id).toList();
-    _displayPercentMatch = { for (var c in catType) c.id: 1.0 };
-    _displayOrder.sort((a, b) {
-      final scoreComparison =
-          (_displayPercentMatch[b] ?? 0.0).compareTo(_displayPercentMatch[a] ?? 0.0);
-      if (scoreComparison != 0) return scoreComparison;
-      final nameA = catType.firstWhere((c) => c.id == a).name;
-      final nameB = catType.firstWhere((c) => c.id == b).name;
-      return nameA.compareTo(nameB);
-    });
+    // Initialize display order and match % from app-start fit (if any) or default 1.0 for all.
+    final storedScores = server.lastPersonalityFitScores;
+    if (storedScores != null && storedScores.isNotEmpty) {
+      _displayPercentMatch = Map<int, double>.from(storedScores);
+      _displayOrder = catType.map((c) => c.id).toList();
+      _displayOrder.sort((a, b) {
+        final scoreComparison =
+            (_displayPercentMatch[b] ?? 0.0).compareTo(_displayPercentMatch[a] ?? 0.0);
+        if (scoreComparison != 0) return scoreComparison;
+        final nameA = catType.firstWhere((c) => c.id == a).name;
+        final nameB = catType.firstWhere((c) => c.id == b).name;
+        return nameA.compareTo(nameB);
+      });
+    } else {
+      _displayOrder = catType.map((c) => c.id).toList();
+      _displayPercentMatch = { for (var c in catType) c.id: 1.0 };
+      _displayOrder.sort((a, b) {
+        final scoreComparison =
+            (_displayPercentMatch[b] ?? 0.0).compareTo(_displayPercentMatch[a] ?? 0.0);
+        if (scoreComparison != 0) return scoreComparison;
+        final nameA = catType.firstWhere((c) => c.id == a).name;
+        final nameB = catType.firstWhere((c) => c.id == b).name;
+        return nameA.compareTo(nameB);
+      });
+    }
     _lastTopId = _displayOrder.isNotEmpty ? _displayOrder.first : null;
     _hasAnyPreference = Question_Cat_Types.questions.any(
         (q) => server.getPersonalityFitSliderValue(q.id) > 0);
@@ -905,6 +921,22 @@ class PersonalityFitState extends State<PersonalityFit> {
     // TEMPORARY: Uncomment the line below to reset instructions for testing
     // _resetInstructions();
   }
+
+  /// Snapshot current top cat type as "when user entered" (call when switching to Fit tab).
+  void snapshotTopCatTypeForWhenUserEntered() {
+    _topCatTypeNameWhenUserEntered = _displayOrder.isEmpty
+        ? null
+        : catType.firstWhere((c) => c.id == _displayOrder.first, orElse: () => catType.first).name;
+  }
+
+  /// Current top cat type name on the Fit screen (for comparison when leaving to Adopt).
+  String? getCurrentTopCatTypeName() {
+    if (_displayOrder.isEmpty) return null;
+    return catType.firstWhere((c) => c.id == _displayOrder.first, orElse: () => catType.first).name;
+  }
+
+  /// Top cat type name when user entered the Fit tab (snapshot from last time tab was selected).
+  String? getTopCatTypeNameWhenEntered() => _topCatTypeNameWhenUserEntered;
 
   Future<void> _loadInstructionsState() async {
     final prefs = await SharedPreferences.getInstance();
@@ -926,6 +958,11 @@ class PersonalityFitState extends State<PersonalityFit> {
     if (mounted) setState(() {
       _helpPhase = 0;
     });
+  }
+
+  /// Clear onboarding flag so help is shown again (e.g. when user long-presses zip on adoption list).
+  Future<void> resetOnboarding() async {
+    await _resetInstructions();
   }
   
   @override
@@ -1250,6 +1287,7 @@ class PersonalityFitState extends State<PersonalityFit> {
         _displayOrder = List<int>.from(order);
         _displayPercentMatch = Map<int, double>.from(match);
       });
+      globals.FelineFinderServer.instance.setLastPersonalityFitScores(match);
 
       if (topChanged && newTopId != null) {
         _lastTopId = newTopId;

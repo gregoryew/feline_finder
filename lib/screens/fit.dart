@@ -116,6 +116,11 @@ class FitState extends State<Fit> {
       _helpPhase = 0;
     });
   }
+
+  /// Clear onboarding flag so help is shown again (e.g. when user long-presses zip on adoption list).
+  Future<void> resetOnboarding() async {
+    await _resetInstructions();
+  }
   
   void _onQuestionsScroll() {}
 

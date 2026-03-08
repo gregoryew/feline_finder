@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../ExampleCode/petTileData.dart';
 import '../../theme.dart';
 import 'gold_trait_pill.dart';
+
+/// Max decode width for grid thumbnails (aspect ratio preserved) to avoid OOM.
+const int _kGridImageCacheWidth = 400;
 
 class GoldPetCard extends StatelessWidget {
   final PetTileData tile;
@@ -82,8 +86,8 @@ class GoldPetCard extends StatelessWidget {
   Widget _buildSuggestedCatType() {
     final hasDescription = tile.descriptionText != null &&
         tile.descriptionText!.trim().isNotEmpty;
-    final fitDone = tile.personalityFitTraits != null &&
-        tile.personalityFitTraits!.isNotEmpty;
+    // Consider fit done when we have a response (even empty traits for short descriptions)
+    final fitDone = tile.personalityFitTraits != null;
     final name = tile.suggestedCatTypeName?.trim();
 
     final isLoading = hasDescription && !fitDone;
@@ -215,29 +219,24 @@ class GoldPetCard extends StatelessWidget {
                       child: _buildNoImagePlaceholder(),
                     )
                   else
-                    Image.network(
-                      tile.smallPicture!,
+                    CachedNetworkImage(
+                      imageUrl: tile.smallPicture!,
                       width: availableWidth,
                       fit: BoxFit.fitWidth,
-                      alignment: Alignment.topCenter,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          width: availableWidth,
-                          height: availableWidth * 3 / 4,
-                          color: Colors.grey[300],
-                          child: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return SizedBox(
-                          width: availableWidth,
-                          height: availableWidth * 3 / 4,
-                          child: _buildNoImagePlaceholder(),
-                        );
-                      },
+                      memCacheWidth: _kGridImageCacheWidth,
+                      placeholder: (context, url) => Container(
+                        width: availableWidth,
+                        height: availableWidth * 3 / 4,
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => SizedBox(
+                        width: availableWidth,
+                        height: availableWidth * 3 / 4,
+                        child: _buildNoImagePlaceholder(),
+                      ),
                     ),
 
                   // Favorite icon

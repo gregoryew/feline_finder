@@ -1,7 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
 import 'package:catapp/models/searchPageConfig.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../screens/globals.dart' as globals;
 
 class FilterZipCodeRow extends StatefulWidget {
@@ -21,7 +20,6 @@ class FilterZipCodeRow extends StatefulWidget {
 
 class _FilterZipCodeRow extends State<FilterZipCodeRow> {
   final _controller = TextEditingController();
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   late TextEditingController controller2;
   final server = globals.FelineFinderServer.instance;
 
@@ -60,11 +58,8 @@ class _FilterZipCodeRow extends State<FilterZipCodeRow> {
     if (zip == null || zip.isEmpty) {
       zip = "66952";
     }
-    setState(() {
-      server.zip = zip!;
-    });
-    SharedPreferences prefs = await _prefs;
-    prefs.setString("zipCode", zip);
+    await server.setZipCode(zip!);
+    if (mounted) setState(() {});
   }
 
   @override

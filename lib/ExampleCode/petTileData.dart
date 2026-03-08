@@ -26,6 +26,8 @@ class PetTileData {
   double? personalityFitScore;
   /// Animal updatedDate from API (for cache invalidation).
   String? updatedDate;
+  /// Distance in miles from search location (when API returns it).
+  double? distanceMiles;
 
   PetTileData(petDatum pet, List<Included> included) {
     id = pet.id;
@@ -104,6 +106,7 @@ class PetTileData {
         findAllOfACertainType(pet, included, "videos", IncludedType.VIDEOS);
     //print("@@@@@@@@@@@@@@@@VIDEO LIST = " + videoList.length.toString());
     hasVideos = (videoList.isNotEmpty) ? true : false;
+    distanceMiles = pet.attributes?.distance;
   }
 
   List<Included> findAllOfACertainType(petDatum pet, List<Included> included,

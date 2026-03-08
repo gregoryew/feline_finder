@@ -16,6 +16,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'services/search_ai_service.dart';
 import 'services/key_store_service.dart';
 import 'services/cat_type_filter_mapping.dart';
+import 'services/personality_fit_scorer.dart';
 import 'theme.dart';
 import 'network_utils.dart';
 import 'screens/globals.dart' as globals;
@@ -214,12 +215,17 @@ Future<void> _initializeAppRest() async {
   await prefs.setBool('searchAnimationShownThisSession', false);
   await prefs.setString('appStartTime', DateTime.now().toIso8601String());
 
-  final savedZip = prefs.getString('zipCode');
-  if (savedZip != null && savedZip.isNotEmpty && savedZip.length == 5) {
-    globals.FelineFinderServer.instance.zip = savedZip;
-  }
+  await globals.FelineFinderServer.instance.loadZipCodeFromPrefs();
 
   await globals.FelineFinderServer.instance.loadPersonalityFitSlidersFromPrefs();
+  // Run personality fit from saved sliders and store scores so Personality Fit screen shows updated cat type cards.
+  try {
+    final server = globals.FelineFinderServer.instance;
+    final scores = PersonalityFitScorer.computeScores(server);
+    server.setLastPersonalityFitScores(scores);
+  } catch (e) {
+    print('Personality fit at startup failed: $e');
+  }
 }
 
 Future<void> _initializeAuth() async {
@@ -527,6 +533,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   late GlobalObjectKey<AdoptGridState> AdoptionGridKey;
   late GlobalObjectKey<FitState> FitScreenKey = GlobalObjectKey<FitState>(this);
   late GlobalObjectKey<PersonalityFitState> PersonalityFitScreenKey = GlobalObjectKey<PersonalityFitState>(this);
+  late GlobalKey SheltersScreenKey;
   late AnimationController _sparkleController;
   late Animation<double> _sparkleAnimation;
 
@@ -538,6 +545,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     AdoptionGridKey = GlobalObjectKey<AdoptGridState>(this);
+    SheltersScreenKey = GlobalKey();
     // Initialize sparkle animation
     _sparkleController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -567,12 +575,29 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       globals.sheltersOpenedFromSearch = true;
       setState(() => _selectedIndex = 4);
     };
-    // When user taps "Select" on a shelter (from search flow), switch to Adopt and open search with that shelter selected
+    // When user taps "Select" on a shelter (from search flow), switch to Adopt, then push Search from this context so we receive the Find Cats result and apply it to the adoption list
     globals.onSelectShelterAndOpenSearch = (String orgId, String orgName) {
       setState(() => _selectedIndex = 1);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AdoptionGridKey.currentState?.openSearchWithShelter(orgId, orgName);
+      final state = this;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!state.mounted) return;
+        final adoptState = AdoptionGridKey.currentState;
+        if (adoptState == null) return;
+        final route = adoptState.routeForSearchWithShelter(orgId, orgName);
+        final result = await Navigator.push(state.context, route);
+        print("=== HomeScreen: received result from Search pop: ${result != null ? result.runtimeType : 'null'} ===");
+        // Use same adoptState that built the route so we don't depend on currentState after await
+        if (result != null && state.mounted && adoptState.mounted) {
+          adoptState.applySearchResult(result);
+        } else if (result == null) {
+          print("=== HomeScreen: result was null, search not applied ===");
+        }
       });
+    };
+    // When user long-presses zip on adoption list to clear it, also reset Fit onboarding so help shows again
+    globals.onClearFitOnboarding = () async {
+      await FitScreenKey.currentState?.resetOnboarding();
+      await PersonalityFitScreenKey.currentState?.resetOnboarding();
     };
   }
 
@@ -611,9 +636,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         try {
           final isValid = await server.isZipCodeValid(zipFromLocation);
           if (isValid == true) {
-            server.zip = zipFromLocation;
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('zipCode', zipFromLocation);
+            await server.setZipCode(zipFromLocation);
             return;
           }
         } catch (_) {}
@@ -683,9 +706,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       try {
         final isValid = await server.isZipCodeValid(zipTrimmed);
         if (isValid == true) {
-          server.zip = zipTrimmed;
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('zipCode', zipTrimmed);
+          await server.setZipCode(zipTrimmed);
           return;
         }
         if (isValid == false && mounted) {
@@ -747,13 +768,13 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton), // Index 1 - Adopt
     BreedList(title: "Breed List"), // Index 2 - Breeds
     const FavoritesListScreen(), // Index 3 - Saved
-    const SheltersNearYouScreen(), // Index 4 - Shelters Near You
+    SheltersNearYouScreen(key: SheltersScreenKey), // Index 4 - Shelters Near You
   ];
 
 // 9
   void _onItemTapped(int index) {
     if (index == 1 && _selectedIndex == 0) {
-      _askSearchByPersonalityThenSwitchToAdopt();
+      _onLeavingFitForAdopt();
       return;
     }
     // When user taps 🐈 (Adopt) tab, dismiss fit help so "tap 🐈 to see your matches" is completed
@@ -766,40 +787,60 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     setState(() {
       _selectedIndex = index;
     });
+    // Keep zip in sync: load from prefs when switching tabs and refresh the screen that displays it
+    final server = globals.FelineFinderServer.instance;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await server.loadZipCodeFromPrefs();
+      if (!mounted) return;
+      if (index == 0) {
+        PersonalityFitScreenKey.currentState?.snapshotTopCatTypeForWhenUserEntered();
+      } else if (index == 1) {
+        AdoptionGridKey.currentState?.refreshZipFromCanonical();
+      } else if (index == 4) {
+        (SheltersScreenKey.currentState as dynamic)?.syncZipFromCanonical();
+      }
+    });
   }
 
-  Future<void> _askSearchByPersonalityThenSwitchToAdopt() async {
-    final top = CatTypeFilterMapping.getTopPersonalityCatType(globals.FelineFinderServer.instance);
-    final contentText = top != null
-        ? 'Apply your cat type, ${top.name}, to the adoption search and see cats that match your personality.'
-        : 'Apply your Fit tab preferences to the adoption search and see cats that match your personality.';
-    final searchByPersonality = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('Search by your cat personality?'),
-        content: Text(contentText),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('No'),
+  /// Called when user taps Adopt tab from Fit. If top cat type changed, ask to set as chosen; else just switch.
+  Future<void> _onLeavingFitForAdopt() async {
+    final fitState = PersonalityFitScreenKey.currentState;
+    final topWhenEntered = fitState?.getTopCatTypeNameWhenEntered();
+    final topNow = fitState?.getCurrentTopCatTypeName();
+    final bool topChanged = topNow != null &&
+        topWhenEntered != null &&
+        topNow != topWhenEntered;
+
+    if (topChanged) {
+      final useAsChosen = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Set cat type for adoption list?'),
+          content: Text(
+            'Do you want $topNow as the chosen cat type for the adoption list?',
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('No'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Yes'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (useAsChosen == true) {
+        await AdoptionGridKey.currentState?.setChosenCatTypeFromFit(topNow);
+      }
+    }
+
     globals.sheltersOpenedFromSearch = false;
     PersonalityFitScreenKey.currentState?.dismissHelpAndSave();
     FitScreenKey.currentState?.dismissHelpAndSave();
     setState(() => _selectedIndex = 1);
-    if (searchByPersonality == true) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AdoptionGridKey.currentState?.applyPersonalityAndSearch();
-      });
-    }
   }
 
   List<Widget>? getTrailingButtons(selectedIndex) {

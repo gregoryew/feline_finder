@@ -28,6 +28,127 @@ import '../theme.dart';
 import '../models/searchPageConfig.dart' as searchConfig;
 import '../network_utils.dart';
 import '../widgets/status_chip_bar.dart';
+import 'select_shelters_screen.dart';
+
+/// One distance band to display: optional header label and list of tiles (sorted by score within band).
+class _DistanceSection {
+  final String? label;
+  final List<PetTileData> tiles;
+  _DistanceSection(this.label, this.tiles);
+}
+
+/// Distance band: max miles (exclusive) and display label.
+class _DistanceBand {
+  final double maxMiles;
+  final String label;
+  const _DistanceBand(this.maxMiles, this.label);
+}
+
+const List<_DistanceBand> _kDistanceBands = [
+  _DistanceBand(10, 'Under 10 miles'),
+  _DistanceBand(20, '10 to 20 miles'),
+  _DistanceBand(50, '20 to 50 miles'),
+  _DistanceBand(double.infinity, '50+ miles'),
+];
+
+/// Time/recency band for "sort by recent": label only (order is fixed).
+class _TimeBand {
+  final String label;
+  const _TimeBand(this.label);
+}
+
+/// Order: newest first (Today, Past 7 days, Past 30 days, Past year, Over a year ago).
+const List<_TimeBand> _kTimeBands = [
+  _TimeBand('Today'),
+  _TimeBand('Past 7 days'),
+  _TimeBand('Past 30 days'),
+  _TimeBand('Past year'),
+  _TimeBand('Over a year ago'),
+];
+
+/// Pinned sticky header delegate for section labels.
+class _StickySectionHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _StickySectionHeaderDelegate(this.label);
+
+  final String label;
+  static const double _headerHeight = 52;
+  static const double headerHeight = _headerHeight;
+
+  @override
+  double get minExtent => _headerHeight;
+
+  @override
+  double get maxExtent => _headerHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: AppTheme.purpleGradient,
+      ),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.fromLTRB(12, 20, 12, 8),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontFamily: AppTheme.fontFamily,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _StickySectionHeaderDelegate oldDelegate) {
+    return oldDelegate.label != label;
+  }
+}
+
+/// Reports its height after layout so we can compute which section is at top (single sticky header).
+class _MeasureSectionChild extends StatefulWidget {
+  const _MeasureSectionChild({
+    required this.sectionIndex,
+    required this.onHeight,
+    required this.child,
+  });
+  final int sectionIndex;
+  final void Function(int sectionIndex, double height) onHeight;
+  final Widget child;
+
+  @override
+  State<_MeasureSectionChild> createState() => _MeasureSectionChildState();
+}
+
+class _MeasureSectionChildState extends State<_MeasureSectionChild> {
+  @override
+  void didUpdateWidget(_MeasureSectionChild oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reportHeight());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reportHeight());
+  }
+
+  void _reportHeight() {
+    if (!mounted) return;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize) {
+      widget.onHeight(widget.sectionIndex, box.size.height);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
 
 class AdoptGrid extends StatefulWidget {
   final ValueChanged<bool>? setFav;
@@ -53,6 +174,14 @@ class AdoptGridState extends State<AdoptGrid> {
   final Set<String> _videoBadgeSeenIds = {};
   /// Video badge: ids currently showing glow; cleared after animation.
   final Set<String> _videoBadgeGlowIds = {};
+
+  /// Section grid heights for scroll-based sticky header (only one header at top).
+  List<double> _sectionHeights = [];
+  int _currentStickySectionIndex = 0;
+  bool _sectionHeightsUpdateScheduled = false;
+
+  /// Prevents multiple getPets() in flight (e.g. scroll firing repeatedly).
+  bool _isLoadingPets = false;
 
   List<Filters> filters = [];
   List<Filters> filters_backup = [];
@@ -89,12 +218,8 @@ class AdoptGridState extends State<AdoptGrid> {
       try {
         String user = await server.getUser();
         favorites = await server.getFavorites(user);
-        // Only use saved zip from prefs; do not overwrite server.zip with default (main may have left it as "?" when unknown)
-        final prefs = await _prefs;
-        final savedZip = prefs.getString("zipCode");
-        if (savedZip != null && savedZip.isNotEmpty) {
-          server.zip = savedZip;
-        }
+        // Load zip from canonical store (same as main/search/shelters)
+        await server.loadZipCodeFromPrefs();
 
         setState(() {
           main.favoritesSelected = false;
@@ -271,6 +396,247 @@ class AdoptGridState extends State<AdoptGrid> {
     }
   }
 
+  /// Returns band index 0..3 for distance (null/unknown -> 3 for 50+).
+  static int _bandIndexForDistance(double? miles) {
+    final d = miles ?? 999.0;
+    for (int i = 0; i < _kDistanceBands.length; i++) {
+      if (d < _kDistanceBands[i].maxMiles) return i;
+    }
+    return _kDistanceBands.length - 1;
+  }
+
+  /// Days ago from now (0 = today). Returns null if updatedDate is unparseable.
+  /// Uses local date for both "today" and updated date so timezone is consistent.
+  static int? _daysAgoFromUpdatedDate(String? updatedDate) {
+    if (updatedDate == null || updatedDate.isEmpty) return null;
+    final dt = DateTime.tryParse(updatedDate);
+    if (dt == null) return null;
+    final local = dt.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final updatedDay = DateTime(local.year, local.month, local.day);
+    return today.difference(updatedDay).inDays;
+  }
+
+  /// Returns time band index 0..4 (0 = Today, 4 = Over a year ago). Null/unknown -> 4.
+  /// Future dates (e.g. clock skew) are treated as Today so they appear at top.
+  static int _timeBandIndexForTile(PetTileData tile) {
+    final days = _daysAgoFromUpdatedDate(tile.updatedDate);
+    if (days == null) return _kTimeBands.length - 1;
+    if (days < 0) return 0;
+    if (days == 0) return 0;
+    if (days <= 7) return 1;
+    if (days <= 30) return 2;
+    if (days <= 365) return 3;
+    return 4;
+  }
+
+  /// Builds sections for display: distance groups, time groups (recent), or one section by score.
+  List<_DistanceSection> _getDisplaySections() {
+    if (tiles.isEmpty) return [];
+    final byDistance = globals.sortMethod == 'animals.distance';
+    final byDate = globals.sortMethod == '-animals.updatedDate';
+
+    void sortByScore(List<PetTileData> list) {
+      list.sort((a, b) {
+        final sa = a.personalityFitScore ?? -1.0;
+        final sb = b.personalityFitScore ?? -1.0;
+        final cmp = sb.compareTo(sa);
+        if (cmp != 0) return cmp;
+        final da = a.distanceMiles ?? 999.0;
+        final db = b.distanceMiles ?? 999.0;
+        return da.compareTo(db);
+      });
+    }
+
+    // Neither distance nor date: single section sorted by score.
+    if (!byDistance && !byDate) {
+      final copy = List<PetTileData>.from(tiles);
+      sortByScore(copy);
+      return [_DistanceSection(null, copy)];
+    }
+
+    // Time grouping (sort by recent): sort by date newest first, then group into time bands.
+    if (byDate) {
+      final copy = List<PetTileData>.from(tiles);
+      copy.sort((a, b) {
+        final ta = DateTime.tryParse(a.updatedDate ?? '') ?? DateTime(0);
+        final tb = DateTime.tryParse(b.updatedDate ?? '') ?? DateTime(0);
+        return tb.compareTo(ta);
+      });
+      final sections = <_DistanceSection>[];
+      List<PetTileData> current = [];
+      int currentBand = -1;
+      void flush() {
+        if (current.isEmpty) return;
+        sortByScore(current);
+        sections.add(_DistanceSection(_kTimeBands[currentBand].label, List.from(current)));
+        current = [];
+      }
+      for (final t in copy) {
+        final band = _timeBandIndexForTile(t);
+        if (band != currentBand) {
+          flush();
+          currentBand = band;
+        }
+        current.add(t);
+      }
+      flush();
+      return sections;
+    }
+
+    // Distance grouping: sort by distance (null last), then one pass assign to band; on new band sort previous by score and emit.
+    final copy = List<PetTileData>.from(tiles);
+    copy.sort((a, b) {
+      final da = a.distanceMiles ?? 999.0;
+      final db = b.distanceMiles ?? 999.0;
+      return da.compareTo(db);
+    });
+    final sections = <_DistanceSection>[];
+    List<PetTileData> current = [];
+    int currentBand = -1;
+    void flush() {
+      if (current.isEmpty) return;
+      sortByScore(current);
+      sections.add(_DistanceSection(_kDistanceBands[currentBand].label, List.from(current)));
+      current = [];
+    }
+    for (final t in copy) {
+      final band = _bandIndexForDistance(t.distanceMiles);
+      if (band != currentBand) {
+        flush();
+        currentBand = band;
+      }
+      current.add(t);
+    }
+    flush();
+    return sections;
+  }
+
+  Widget _buildSectionHeader(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 20, 12, 8),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontFamily: AppTheme.fontFamily,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridContent() {
+    final sections = _getDisplaySections();
+    if (sections.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    const padding = EdgeInsets.symmetric(vertical: 20, horizontal: 12);
+    const crossAxisCount = 2;
+    const mainAxisSpacing = 14.0;
+    const crossAxisSpacing = 12.0;
+
+    // Single section without label: one grid (e.g. sort by date or flat list).
+    if (sections.length == 1 && sections[0].label == null) {
+      final list = sections[0].tiles;
+      return MasonryGridView.count(
+        controller: controller,
+        itemCount: list.length,
+        padding: padding,
+        crossAxisCount: crossAxisCount,
+        mainAxisSpacing: mainAxisSpacing,
+        crossAxisSpacing: crossAxisSpacing,
+        itemBuilder: (context, index) {
+          final tile = list[index];
+          return GestureDetector(
+            onTap: () => _navigateAndDisplaySelection(context, tile),
+            child: GoldPetCard(
+              tile: tile,
+              favorites: favorites,
+              onVideoBadgeFirstSeen: _onVideoBadgeFirstSeen,
+              showVideoGlow: _videoBadgeGlowIds.contains(tile.id ?? ''),
+            ),
+          );
+        },
+      );
+    }
+
+    // Multiple sections: only ONE sticky header at top (current section label); content is grids only so headers never collect.
+    if (_sectionHeights.length != sections.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {
+          _sectionHeights = List.filled(sections.length, 0.0);
+          _currentStickySectionIndex = 0;
+        });
+      });
+    }
+    final safeIndex = _currentStickySectionIndex.clamp(0, sections.length - 1);
+    final currentLabel = sections[safeIndex].label ?? '';
+    final slivers = <Widget>[
+      SliverPersistentHeader(
+        pinned: true,
+        delegate: _StickySectionHeaderDelegate(currentLabel),
+      ),
+    ];
+    for (int sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+      final section = sections[sectionIndex];
+      final list = section.tiles;
+      slivers.add(
+        SliverToBoxAdapter(
+          child: _MeasureSectionChild(
+            sectionIndex: sectionIndex,
+            onHeight: (index, height) {
+              if (!mounted) return;
+              if (index < 0 || index >= _sectionHeights.length) return;
+              if (_sectionHeights[index] == height) return;
+              _sectionHeights[index] = height;
+              if (_sectionHeightsUpdateScheduled) return;
+              _sectionHeightsUpdateScheduled = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _sectionHeightsUpdateScheduled = false;
+                if (!mounted) return;
+                setState(() {});
+                _updateStickySectionFromScroll();
+              });
+            },
+            child: MasonryGridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: list.length,
+              padding: sectionIndex == 0
+                  ? padding
+                  : const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              crossAxisCount: crossAxisCount,
+              mainAxisSpacing: mainAxisSpacing,
+              crossAxisSpacing: crossAxisSpacing,
+              itemBuilder: (context, index) {
+                final tile = list[index];
+                return GestureDetector(
+                  onTap: () => _navigateAndDisplaySelection(context, tile),
+                  child: GoldPetCard(
+                    tile: tile,
+                    favorites: favorites,
+                    onVideoBadgeFirstSeen: _onVideoBadgeFirstSeen,
+                    showVideoGlow: _videoBadgeGlowIds.contains(tile.id ?? ''),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }
+    return CustomScrollView(
+      controller: controller,
+      slivers: [
+        ...slivers,
+        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+      ],
+    );
+  }
+
 @override
 Widget build(BuildContext context) {
   String status = main.favoritesSelected ? " Favorites: " : " Cats: ";
@@ -359,30 +725,10 @@ Widget build(BuildContext context) {
             ),
 
           // ------------------------------------------------------------
-          // EXPANDED GRID OF PET CARDS
+          // EXPANDED GRID OF PET CARDS (with distance section headers when sorted by distance)
           // ------------------------------------------------------------
           Expanded(
-            child: MasonryGridView.count(
-              controller: controller,
-              itemCount: tiles.length,
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-              crossAxisCount: 2,        // two columns staggered grid
-              mainAxisSpacing: 14,
-              crossAxisSpacing: 12,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    _navigateAndDisplaySelection(context, index);
-                  },
-                  child: GoldPetCard(
-                    tile: tiles[index],
-                    favorites: favorites,
-                    onVideoBadgeFirstSeen: _onVideoBadgeFirstSeen,
-                    showVideoGlow: _videoBadgeGlowIds.contains(tiles[index].id ?? ''),
-                  ),
-                );
-              },
-            ),
+            child: _buildGridContent(),
           ),
         ],
       ),
@@ -393,11 +739,13 @@ Widget build(BuildContext context) {
 //     NAVIGATE TO DETAIL + REMOVE UNFAVORITED FROM FAVORITES LIST
 // ----------------------------------------------------------------------
 Future<void> _navigateAndDisplaySelection(
-    BuildContext context, int index) async {
+    BuildContext context, PetTileData tile) async {
+  final tileId = tile.id;
+  if (tileId == null || tileId.isEmpty) return;
   final countOfFavorites = globals.listOfFavorites.length;
 
   await Get.to(
-    () => petDetail(tiles[index].id!),
+    () => petDetail(tileId),
     transition: Transition.circularReveal,
     duration: const Duration(seconds: 1),
   );
@@ -410,10 +758,10 @@ Future<void> _navigateAndDisplaySelection(
   setState(() {
     globals.listOfFavorites = favorites;
 
-    // if user unfavorited, remove from grid
+    // if user unfavorited, remove that tile from grid
     if (main.favoritesSelected &&
         globals.listOfFavorites.length < countOfFavorites) {
-      tiles.removeAt(index);
+      tiles.removeWhere((t) => t.id == tileId);
     }
   });
 }
@@ -447,23 +795,30 @@ Future<String?> openDialog() => showDialog<String>(
 //                         GET ZIP CODE
 // ----------------------------------------------------------------------
 Future<String> _getZip() async {
-  SharedPreferences prefs = await _prefs;
-  String? savedZip = prefs.getString("zipCode");
-  if (savedZip != null && savedZip.isNotEmpty) {
-    return savedZip;
-  }
-  return AppConfig.defaultZipCode;
+  await server.loadZipCodeFromPrefs();
+  return (server.zip.isNotEmpty && server.zip != "?")
+      ? server.zip
+      : AppConfig.defaultZipCode;
+}
+
+// ----------------------------------------------------------------------
+//                    REFRESH ZIP FROM CANONICAL STORE
+// ----------------------------------------------------------------------
+/// Call when switching to Adopt tab so the zip button shows the current value from prefs.
+Future<void> refreshZipFromCanonical() async {
+  await server.loadZipCodeFromPrefs();
+  if (!mounted) return;
+  setState(() {});
 }
 
 // ----------------------------------------------------------------------
 //                         CLEAR ZIP CODE (long-press)
 // ----------------------------------------------------------------------
 Future<void> _clearZipCode() async {
-  final prefs = await _prefs;
-  await prefs.remove('zipCode');
+  await server.clearZipCode();
+  await globals.onClearFitOnboarding?.call();
   if (!mounted) return;
   setState(() {
-    server.zip = '?';
     count = '?';
     tiles = [];
     loadedPets = 0;
@@ -473,7 +828,7 @@ Future<void> _clearZipCode() async {
   });
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
-      content: Text('ZIP code cleared. Tap the ZIP button to enter a new one.'),
+      content: Text('ZIP code and Fit onboarding cleared. Tap the ZIP button to enter a new location.'),
     ),
   );
 }
@@ -529,13 +884,22 @@ Future<void> askForZip() async {
     final isValid = await server.isZipCodeValid(zipTrimmed);
     
     if (isValid == true) {
-      // Valid - update globally
-      setState(() {
-        server.zip = zipTrimmed;
-      });
-      SharedPreferences prefs = await _prefs;
-      prefs.setString("zipCode", zipTrimmed);
-      
+      // If zip changed, clear chosen shelter so results match the new area
+      final currentZip = (server.zip ?? '').trim();
+      if (zipTrimmed != currentZip) {
+        if (mounted) {
+          setState(() {
+            filters = filters.where((f) => f.fieldName != 'orgs.id').toList();
+            filters_backup = filters_backup.where((f) => f.fieldName != 'orgs.id').toList();
+            filterprocessing = null;
+          });
+        }
+      }
+      // Valid - save to canonical store
+      await server.setZipCode(zipTrimmed);
+      if (!mounted) return;
+      setState(() {});
+
       // Reload pets with new zip
       tiles = [];
       loadedPets = 0;
@@ -628,10 +992,7 @@ Future<String> _getZipFromLocation() async {
     if (placemarks.isNotEmpty &&
         placemarks.first.postalCode != null) {
       final zip = placemarks.first.postalCode!;
-      // Update globally
-      server.zip = zip;
-      SharedPreferences prefs = await _prefs;
-      await prefs.setString("zipCode", zip);
+      await server.setZipCode(zip);
       return zip;
     }
   } catch (e) {
@@ -657,6 +1018,12 @@ Map<searchConfig.CatClassification, List<searchConfig.filterOption>> _buildCateg
 //                             SEARCH SCREEN
 // ----------------------------------------------------------------------
 void search() async {
+  final orgId = globals.lastShelterFromSheltersTabOrgId;
+  final orgName = globals.lastShelterFromSheltersTabName;
+  if (orgId != null && orgId.isNotEmpty) {
+    globals.lastShelterFromSheltersTabOrgId = null;
+    globals.lastShelterFromSheltersTabName = null;
+  }
   var result = await Navigator.push(
     context,
     MaterialPageRoute(
@@ -664,6 +1031,8 @@ void search() async {
         categories: _buildCategories(),
         filteringOptions: filteringOptions,
         userID: userID ?? "demo-user",
+        initialShelterOrgIds: (orgId != null && orgId.isNotEmpty) ? [orgId] : null,
+        initialShelterNames: (orgName != null && orgName.isNotEmpty) ? [orgName] : null,
       ),
     ),
   );
@@ -675,19 +1044,24 @@ void search() async {
   }
 }
 
+  /// Returns a route for SearchScreen with the given shelter pre-selected. Used when opening from Shelters tab "Select" so the push can be done from HomeScreen's context and the result received reliably.
+  MaterialPageRoute routeForSearchWithShelter(String orgId, String orgName) {
+    return MaterialPageRoute(
+      builder: (context) => SearchScreen(
+        categories: _buildCategories(),
+        filteringOptions: filteringOptions,
+        userID: userID ?? "demo-user",
+        initialShelterOrgIds: [orgId],
+        initialShelterNames: [orgName],
+      ),
+    );
+  }
+
   /// Open SearchScreen with a single shelter pre-selected (e.g. from Shelters tab "Select").
   void openSearchWithShelter(String orgId, String orgName) async {
     var result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => SearchScreen(
-          categories: _buildCategories(),
-          filteringOptions: filteringOptions,
-          userID: userID ?? "demo-user",
-          initialShelterOrgIds: [orgId],
-          initialShelterNames: [orgName],
-        ),
-      ),
+      routeForSearchWithShelter(orgId, orgName),
     );
     if (result != null && mounted) {
       setState(() {
@@ -729,10 +1103,13 @@ void search() async {
         server.setSelectedPersonalityCatTypeName(result.selectedCatTypeName);
         _saveCatTypeToPrefsForSort(result.selectedCatTypeName!);
       }
+      print("=== AdoptionGrid: applied FilterResult, ${filters.length} filters, calling getPets ===");
     } else if (result is List<Filters>) {
       filters = result;
       filterprocessing = null;
+      print("=== AdoptionGrid: applied List<Filters>, ${filters.length} filters, calling getPets ===");
     } else {
+      print("=== AdoptionGrid: applySearchResult skipped - result type is ${result.runtimeType} (not FilterResult or List<Filters>) ===");
       return;
     }
     filters_backup = filters;
@@ -752,6 +1129,13 @@ void search() async {
       final prefs = await _prefs;
       await prefs.setString(_kLastSearchCatTypeKey, name);
     } catch (_) {}
+  }
+
+  /// Set the chosen cat type for the adoption list from the Fit screen (e.g. when user confirms after top changed).
+  Future<void> setChosenCatTypeFromFit(String name) async {
+    server.setSelectedPersonalityCatTypeName(name);
+    await _saveCatTypeToPrefsForSort(name);
+    if (mounted) setState(() {});
   }
 
 // ----------------------------------------------------------------------
@@ -788,12 +1172,32 @@ void _onVideoBadgeFirstSeen(String id) {
 //                       SCROLL LISTENER FOR INFINITE LOAD
 // ----------------------------------------------------------------------
 void _scrollListener() {
+  if (!mounted || !controller.hasClients) return;
   if (controller.position.extentAfter < 500) {
-    if (loadedPets < maxPets) {
-      setState(() {
-        getPets();
-      });
+    if (!_isLoadingPets && loadedPets < maxPets) {
+      setState(() => getPets());
     }
+  }
+  _updateStickySectionFromScroll();
+}
+
+void _updateStickySectionFromScroll() {
+  if (!mounted) return;
+  if (!controller.hasClients) return;
+  if (_sectionHeights.isEmpty || _sectionHeights.every((h) => h == 0)) return;
+  const headerHeight = _StickySectionHeaderDelegate.headerHeight;
+  final starts = <double>[0.0];
+  for (var i = 0; i < _sectionHeights.length; i++) {
+    starts.add(starts.last + (i == 0 ? headerHeight : 0) + _sectionHeights[i]);
+  }
+  if (starts.length < 2) return;
+  final offset = controller.offset;
+  var index = 0;
+  for (var i = 0; i < starts.length - 1; i++) {
+    if (offset >= starts[i]) index = i;
+  }
+  if (index != _currentStickySectionIndex && mounted) {
+    setState(() => _currentStickySectionIndex = index);
   }
 }
 
@@ -879,11 +1283,15 @@ Future<void> _resolvePersonalityFitForTiles() async {
     }));
     if (mounted) {
       setState(() {
-        tiles.sort((a, b) {
-          final sa = a.personalityFitScore ?? -1.0;
-          final sb = b.personalityFitScore ?? -1.0;
-          return sb.compareTo(sa);
-        });
+        // Only sort tiles in place when not using distance or time groups (so grouping keeps API order).
+        if (globals.sortMethod != 'animals.distance' &&
+            globals.sortMethod != '-animals.updatedDate') {
+          tiles.sort((a, b) {
+            final sa = a.personalityFitScore ?? -1.0;
+            final sb = b.personalityFitScore ?? -1.0;
+            return sb.compareTo(sa);
+          });
+        }
       });
     }
   }
@@ -893,6 +1301,8 @@ Future<void> _resolvePersonalityFitForTiles() async {
 //                         RESCUE GROUPS API CALL
 // ----------------------------------------------------------------------
 void getPets() async {
+  if (_isLoadingPets) return;
+  _isLoadingPets = true;
   int currentPage = ((loadedPets + tilesPerLoad) / tilesPerLoad).floor();
   loadedPets += tilesPerLoad;
   String sortMethod = globals.sortMethod;
@@ -936,6 +1346,72 @@ void getPets() async {
           f.operation.isNotEmpty &&
           f.criteria != null)
       .toList();
+
+  // Validate zip code before sending to API (and before filtering orgs by zip)
+  String zipCode = server.zip;
+  if (zipCode.isEmpty || zipCode == "?" || zipCode.length != 5) {
+    zipCode = AppConfig.defaultZipCode;
+    print('⚠️ Invalid zip code "$server.zip", using default: $zipCode');
+  } else {
+    zipCode = zipCode.trim();
+    if (zipCode.length > 5) zipCode = zipCode.substring(0, 5);
+  }
+
+  // If a shelter filter is set, keep only org IDs that are within the global zip's radius
+  final orgFilterIndex = validFilters.indexWhere((f) => f.fieldName == 'orgs.id');
+  if (orgFilterIndex >= 0 && zipCode.length >= 5) {
+    dynamic rawCriteria = validFilters[orgFilterIndex].criteria;
+    List<String> orgIds = [];
+    if (rawCriteria is List) {
+      for (final e in rawCriteria) {
+        final id = e?.toString().trim();
+        if (id != null && id.isNotEmpty) orgIds.add(id);
+      }
+    } else if (rawCriteria != null) {
+      final id = rawCriteria.toString().trim();
+      if (id.isNotEmpty) orgIds.add(id);
+    }
+    if (orgIds.isNotEmpty) {
+      try {
+        final nearOrgs = await searchOrganizationsByDistanceSingle(
+          postalcode: zipCode,
+          miles: globals.distance,
+        );
+        final nearOrgIds = nearOrgs.map((r) => r.orgId).toSet();
+        final kept = orgIds.where((id) => nearOrgIds.contains(id)).toList();
+        if (kept.length < orgIds.length) {
+          if (kept.isEmpty) {
+            validFilters = List<Filters>.from(validFilters)..removeAt(orgFilterIndex);
+            if (mounted) {
+              setState(() {
+                filters = filters.where((f) => f.fieldName != 'orgs.id').toList();
+                filters_backup = List<Filters>.from(filters);
+              });
+            }
+          } else {
+            final newOrgFilter = Filters(
+              fieldName: 'orgs.id',
+              operation: validFilters[orgFilterIndex].operation,
+              criteria: kept,
+            );
+            validFilters = List<Filters>.from(validFilters)..[orgFilterIndex] = newOrgFilter;
+            if (mounted) {
+              setState(() {
+                filters = [
+                  ...filters.where((f) => f.fieldName != 'orgs.id'),
+                  newOrgFilter,
+                ];
+                filters_backup = List<Filters>.from(filters);
+              });
+            }
+          }
+        }
+      } catch (e) {
+        print('Org-by-distance check failed (keeping shelter filter): $e');
+      }
+    }
+  }
+
   // RescueGroups "contains" expects criteria as a string; normalize single-element list to string
   List<Map> filtersJson = validFilters
       .map((f) {
@@ -956,14 +1432,6 @@ void getPets() async {
   print('📋 Prepared ${filtersJson.length} filters for API');
   for (var filter in filtersJson) {
     print('  Filter: ${filter['fieldName']} ${filter['operation']} ${filter['criteria']}');
-  }
-
-  // Validate zip code before sending to API
-  String zipCode = server.zip;
-  if (zipCode.isEmpty || zipCode == "?" || zipCode.length != 5) {
-    // Use default zip code if current one is invalid
-    zipCode = AppConfig.defaultZipCode;
-    print('⚠️ Invalid zip code "$server.zip", using default: $zipCode');
   }
 
   // Use saved filterProcessing, or build one so synonym "contains" filters are OR'd (never all AND)
@@ -1041,7 +1509,8 @@ void getPets() async {
 
   if (response.body.isEmpty) {
     print('🔗 Animals search: request succeeded (200) but response body is empty');
-    setState(() {
+    _isLoadingPets = false;
+    if (mounted) setState(() {
       tiles = [];
       maxPets = 0;
       count = "No Matches";
@@ -1066,7 +1535,7 @@ void getPets() async {
     }
 
     // set max count on first load
-    if (maxPets < 1) {
+    if (maxPets < 1 && mounted) {
       setState(() {
         maxPets = petDecoded.meta?.count ?? 0;
         count = maxPets == 0 ? "No Matches" : maxPets.toString();
@@ -1076,23 +1545,32 @@ void getPets() async {
     // append tiles (build each tile in try/catch so one bad record doesn't clear the list)
     if (petDecoded.data != null && petDecoded.included != null) {
       final included = petDecoded.included!;
-      setState(() {
-        for (var petData in petDecoded.data!) {
-          try {
-            final tile = PetTileData(petData, included);
-            tile.suggestedCatTypeName =
-                DescriptionCatTypeScorer.getTopCatTypeName(tile.descriptionText);
-            tiles.add(tile);
-          } catch (e) {
-            print("Skip pet ${petData.id}: $e");
+      _isLoadingPets = false;
+      if (mounted) {
+        setState(() {
+          for (var petData in petDecoded.data!) {
+            try {
+              final tile = PetTileData(petData, included);
+              tile.suggestedCatTypeName =
+                  DescriptionCatTypeScorer.getTopCatTypeName(tile.descriptionText);
+              tiles.add(tile);
+            } catch (e) {
+              print("Skip pet ${petData.id}: $e");
+            }
           }
-        }
-      });
-      _resolvePersonalityFitForTiles();
+        });
+        // Defer so layout/height callbacks from new tiles settle before fit batches run setState.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _resolvePersonalityFitForTiles();
+        });
+      }
+    } else {
+      _isLoadingPets = false;
     }
   } catch (e) {
     print("🔗 Animals search: request succeeded (200) but JSON parse failed: $e");
-    setState(() {
+    _isLoadingPets = false;
+    if (mounted) setState(() {
       tiles = [];
       maxPets = 0;
       count = "No Matches";
@@ -1102,6 +1580,7 @@ void getPets() async {
   }
   } catch (e) {
     loadedPets -= tilesPerLoad;
+    _isLoadingPets = false;
     if (mounted) {
       setState(() {
         if (tiles.isEmpty) {

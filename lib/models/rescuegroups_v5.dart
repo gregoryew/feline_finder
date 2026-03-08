@@ -87,6 +87,7 @@ class DatumAttributes {
     this.descriptionText,
     this.sizeGroup,
     this.availableDate,
+    this.distance,
   });
 
   final String? id;
@@ -100,6 +101,8 @@ class DatumAttributes {
   final String? descriptionText;
   final SizeGroup? sizeGroup;
   final DateTime? availableDate;
+  /// Distance in miles from search location (when requested in fields[animals]).
+  final double? distance;
 
   factory DatumAttributes.fromJson(Map<dynamic, dynamic> json) =>
       DatumAttributes(
@@ -124,6 +127,9 @@ class DatumAttributes {
         availableDate: json["availableDate"] == null
             ? null
             : DateTime.parse(json["availableDate"]),
+        distance: json["distance"] == null
+            ? null
+            : (json["distance"] as num).toDouble(),
       );
 
   Map<dynamic, dynamic> toJson() => {
@@ -140,6 +146,7 @@ class DatumAttributes {
             sizeGroup == null ? null : sizeGroupValues.reverse[sizeGroup],
         "availableDate":
             availableDate?.toIso8601String(),
+        "distance": distance,
       };
 }
 

@@ -5,6 +5,7 @@ buildscript {
     }
     dependencies {
         classpath("com.google.gms:google-services:4.3.15")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0")
     }
 }
 
@@ -15,7 +16,7 @@ allprojects {
     }
 }
 
-// Align all Android subprojects to Java 17 so Java and Kotlin match (cloud_functions etc. use Kotlin 17)
+// Align all Android subprojects to Java 17 and Kotlin JVM 17 so Java and Kotlin match (webview_flutter_android, flutter_network_connectivity, etc.)
 subprojects {
     afterEvaluate {
         val android = extensions.findByName("android") ?: return@afterEvaluate
@@ -30,6 +31,15 @@ subprojects {
             // Not an Android project or API changed
         }
     }
+    // Force Kotlin JVM target 17 for all subprojects (fixes flutter_network_connectivity etc.)
+    try {
+        val kotlinCompileClass = Class.forName("org.jetbrains.kotlin.gradle.tasks.KotlinCompile") as Class<out Task>
+        tasks.withType(kotlinCompileClass).configureEach {
+            this.javaClass.getMethod("getKotlinOptions").invoke(this)?.let { opts: Any ->
+                opts.javaClass.getMethod("setJvmTarget", String::class.java).invoke(opts, "17")
+            }
+        }
+    } catch (_: Exception) { }
 }
 
 val newBuildDir: Directory =

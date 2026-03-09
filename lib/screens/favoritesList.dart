@@ -31,6 +31,11 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
     _loadFavorites();
   }
 
+  /// Call when user switches to Saves tab so list is refreshed after saving from Adopt.
+  void refreshFavorites() {
+    _loadFavorites();
+  }
+
   Future<void> _loadFavorites() async {
     setState(() {
       isLoading = true;

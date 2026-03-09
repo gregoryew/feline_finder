@@ -534,6 +534,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   late GlobalObjectKey<FitState> FitScreenKey = GlobalObjectKey<FitState>(this);
   late GlobalObjectKey<PersonalityFitState> PersonalityFitScreenKey = GlobalObjectKey<PersonalityFitState>(this);
   late GlobalKey SheltersScreenKey;
+  late GlobalKey FavoritesListScreenKey;
   late AnimationController _sparkleController;
   late Animation<double> _sparkleAnimation;
 
@@ -546,6 +547,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     super.initState();
     AdoptionGridKey = GlobalObjectKey<AdoptGridState>(this);
     SheltersScreenKey = GlobalKey();
+    FavoritesListScreenKey = GlobalKey();
     // Initialize sparkle animation
     _sparkleController = AnimationController(
       duration: const Duration(milliseconds: 1000),
@@ -796,6 +798,8 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         PersonalityFitScreenKey.currentState?.snapshotTopCatTypeForWhenUserEntered();
       } else if (index == 1) {
         AdoptionGridKey.currentState?.refreshZipFromCanonical();
+      } else if (index == 3) {
+        (FavoritesListScreenKey.currentState as dynamic)?.refreshFavorites();
       } else if (index == 4) {
         (SheltersScreenKey.currentState as dynamic)?.syncZipFromCanonical();
       }

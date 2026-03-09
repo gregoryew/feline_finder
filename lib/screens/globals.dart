@@ -345,7 +345,10 @@ class FelineFinderServer {
       } else {
         myMap = data as Map<String, dynamic>;
       }
-      List<String> currentArray = List<String>.from(myMap['PetIDs']);
+      // Support both 'PetIDs' (current) and 'favorites' (legacy) and null-safe
+      final raw = myMap['PetIDs'] ?? myMap['favorites'];
+      List<String> currentArray =
+          raw != null ? List<String>.from(raw as List) : [];
       return currentArray;
     } catch (e) {
       print("Error getting favorites: $e");

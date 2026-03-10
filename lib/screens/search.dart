@@ -2763,8 +2763,8 @@ class SearchScreenState extends State<SearchScreen> {
       'energyLevel': 'energyLevel',
       'activityLevel': 'animals.activityLevel',
       'exerciseNeeds': 'animals.exerciseNeeds',
-      'vocalLevel': 'animals.vocalLevel',
-      'newPeopleReaction': '', // New People filter has empty fieldName; lookup by name
+      'vocalLevel': 'vocalLevel',
+      'newPeopleReaction': 'animals.newPeopleReaction',
       'isHousetrained': 'animals.isHousetrained',
       'isDogsOk': 'animals.isDogsOk',
       'isCatsOk': 'animals.isCatsOk',
@@ -2832,7 +2832,7 @@ class SearchScreenState extends State<SearchScreen> {
       'lapCat': 'Lap Cat',
       'likesToys': 'Likes toys',
       'outgoing': 'outgoing',
-      'curious': 'curious',
+      'curious': 'Curious',
       'timidShy': 'Timid / shy',
       'newPeopleReaction': 'New People',
       'needsCompanionAnimal': 'Companion Cat?',
@@ -2842,6 +2842,7 @@ class SearchScreenState extends State<SearchScreen> {
       'personalityAffectionate': 'Affectionate',
       'personalityIndependence': 'Independence',
       'personalitySociability': 'Sociability',
+      'vocalLevel': 'Vocalization',
       'personalityVocalization': 'Vocalization',
       'personalityAdaptability': 'Adaptability',
       'personalityIntelligence': 'Intelligence',
@@ -2863,6 +2864,7 @@ class SearchScreenState extends State<SearchScreen> {
       'personalityAffectionate',
       'personalityIndependence',
       'personalitySociability',
+      'vocalLevel',
       'personalityVocalization',
       'personalityConfidence',
       'personalitySensitivity',
@@ -3110,7 +3112,7 @@ class SearchScreenState extends State<SearchScreen> {
             print('      ✅ Set ${filter.name} slider to 1 (independent/aloof Yes)');
           }
 
-          // Slider + "No" for playful/affectionate (or any personality slider): treat as 1 (Very Low)
+          // Slider + "No" for personality sliders: treat as 1 (low end of slider).
           if (!applied && filter.slider == true &&
               value.toString().trim().toLowerCase() == 'no' &&
               (personalitySliderAiFields.contains(aiField) ||
@@ -5306,6 +5308,64 @@ class SearchScreenState extends State<SearchScreen> {
     _showSaveSearchDialog();
   }
 
+  static bool _isAnyOption(listOption option) {
+    if (option.displayName == "Any") return true;
+    final search = option.search?.toString().trim().toLowerCase() ?? "";
+    return search == "any" || search == "any type";
+  }
+
+  static listOption? _matchingOption(
+      filterOption item, dynamic value, String stringValue) {
+    for (final opt in item.options) {
+      if (opt.value == value || opt.search?.toString().trim() == stringValue) {
+        return opt;
+      }
+    }
+    return null;
+  }
+
+  static List<listOption> _selectedNonAnyOptions(filterOption item) {
+    return item.options
+        .where((option) =>
+            item.choosenListValues.contains(option.value) && !_isAnyOption(option))
+        .toList();
+  }
+
+  static List<String> _uniqueSearchTerms(Iterable<listOption> options) {
+    final result = <String>[];
+    final seen = <String>{};
+    for (final option in options) {
+      for (final term in option.searchTerms) {
+        final trimmed = term.trim();
+        if (trimmed.isEmpty) continue;
+        final key = trimmed.toLowerCase();
+        if (seen.add(key)) result.add(trimmed);
+      }
+    }
+    return result;
+  }
+
+  static int _appendContainsSegment({
+    required List<Filters> filters,
+    required List<String> segments,
+    required int index,
+    required String fieldName,
+    required Iterable<listOption> options,
+  }) {
+    final terms = _uniqueSearchTerms(options);
+    if (terms.isEmpty) return index;
+
+    final orIndices = <String>[];
+    for (final term in terms) {
+      filters.add(Filters(
+          fieldName: fieldName, operation: "contains", criteria: [term]));
+      orIndices.add("$index");
+      index++;
+    }
+    segments.add(orIndices.length > 1 ? "(${orIndices.join(" OR ")})" : orIndices.first);
+    return index;
+  }
+
   FilterResult generateFilters() {
     DateTime date = DateTime.now();
 
@@ -5378,34 +5438,6 @@ class SearchScreenState extends State<SearchScreen> {
         if (item.choosenListValues.isEmpty) {
           continue;
         }
-        // List filter with synonyms: add one filter per synonym (contains), OR group
-        if (item.synonyms.isNotEmpty) {
-          int? anyOptionValue;
-          try {
-            final anyOption = item.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
-            );
-            anyOptionValue = anyOption.value;
-          } catch (e) {
-            anyOptionValue = null;
-          }
-          final nonAnyValues = anyOptionValue != null
-              ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
-              : item.choosenListValues;
-          if (nonAnyValues.isEmpty) continue;
-          final orIndices = <String>[];
-          for (var synonym in item.synonyms) {
-            filters.add(Filters(
-                fieldName: item.fieldName,
-                operation: "contains",
-                criteria: [synonym]));
-            orIndices.add("$index");
-            index++;
-          }
-          segments.add("(${orIndices.join(" OR ")})");
-          continue;
-        }
-        // No synonyms: existing list logic
         if (item.classification == CatClassification.breed) {
           final nonAnyValues = item.choosenListValues.where((v) => v != 0).toList();
           if (nonAnyValues.isEmpty) continue;
@@ -5427,36 +5459,27 @@ class SearchScreenState extends State<SearchScreen> {
             index++;
           }
         } else {
-          int? anyOptionValue;
-          try {
-            final anyOption = item.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
-            );
-            anyOptionValue = anyOption.value;
-          } catch (e) {
-            anyOptionValue = null;
-          }
-          final nonAnyValues = anyOptionValue != null
-              ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
-              : item.choosenListValues;
-          if (nonAnyValues.isEmpty) {
+          final nonAnyOptions = _selectedNonAnyOptions(item);
+          if (nonAnyOptions.isEmpty) {
             print("Skipping filter ${item.fieldName}: only 'Any' selected or empty");
             continue;
           }
+
+          final nextIndex = _appendContainsSegment(
+            filters: filters,
+            segments: segments,
+            index: index,
+            fieldName: item.fieldName,
+            options: nonAnyOptions,
+          );
+          if (nextIndex != index) {
+            index = nextIndex;
+            continue;
+          }
+
           List<String> OptionsList = [];
-          for (var choosenValue in nonAnyValues) {
-            try {
-              final option = item.options.firstWhere(
-                (element) => element.value == choosenValue,
-              );
-              if (option.search == "Any" || option.search == "Any Type" || option.displayName == "Any") {
-                print("Skipping 'Any' option in ${item.fieldName}");
-                continue;
-              }
-              OptionsList.add(option.search.toString());
-            } catch (e) {
-              print('⚠️ Option with value $choosenValue not found for filter ${item.fieldName}: $e');
-            }
+          for (final option in nonAnyOptions) {
+            OptionsList.add(option.search.toString());
           }
           if (OptionsList.isNotEmpty) {
             print("Adding list filter: ${item.fieldName} = $OptionsList");
@@ -5485,31 +5508,26 @@ class SearchScreenState extends State<SearchScreen> {
             stringValue.toLowerCase() == "any type") {
           continue;
         }
+        listOption? matchingOption;
         if (item.options.isNotEmpty) {
-          var matchingOption = item.options.firstWhere(
-            (opt) => opt.value == value || opt.search == stringValue,
-            orElse: () => item.options.first,
-          );
-          if (matchingOption.search == "Any" ||
-              matchingOption.search == "Any Type") {
+          matchingOption = _matchingOption(item, value, stringValue);
+          if (matchingOption != null && _isAnyOption(matchingOption)) {
             continue;
           }
         }
-        // Single-value WITH synonyms: add one filter per synonym (contains), OR group
-        if (item.synonyms.isNotEmpty) {
-          final orIndices = <String>[];
-          for (var synonym in item.synonyms) {
-            filters.add(Filters(
-                fieldName: item.fieldName,
-                operation: "contains",
-                criteria: [synonym]));
-            orIndices.add("$index");
-            index++;
+        if (matchingOption != null) {
+          final nextIndex = _appendContainsSegment(
+            filters: filters,
+            segments: segments,
+            index: index,
+            fieldName: item.fieldName,
+            options: [matchingOption],
+          );
+          if (nextIndex != index) {
+            index = nextIndex;
+            continue;
           }
-          segments.add("(${orIndices.join(" OR ")})");
-          continue;
         }
-        // No synonyms: one equals filter
         print("Adding filter: ${item.fieldName} = $stringValue");
         filters.add(Filters(
             fieldName: item.fieldName,
@@ -5590,32 +5608,6 @@ class SearchScreenState extends State<SearchScreen> {
       }
       if (item.list) {
         if (item.choosenListValues.isEmpty) continue;
-        if (item.synonyms.isNotEmpty) {
-          int? anyOptionValue;
-          try {
-            final anyOption = item.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
-            );
-            anyOptionValue = anyOption.value;
-          } catch (e) {
-            anyOptionValue = null;
-          }
-          final nonAnyValues = anyOptionValue != null
-              ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
-              : item.choosenListValues;
-          if (nonAnyValues.isEmpty) continue;
-          final orIndices = <String>[];
-          for (var synonym in item.synonyms) {
-            filters.add(Filters(
-                fieldName: item.fieldName,
-                operation: "contains",
-                criteria: [synonym]));
-            orIndices.add("$index");
-            index++;
-          }
-          segments.add("(${orIndices.join(" OR ")})");
-          continue;
-        }
         if (item.classification == CatClassification.breed) {
           final nonAnyValues = item.choosenListValues.where((v) => v != 0).toList();
           if (nonAnyValues.isEmpty) continue;
@@ -5635,28 +5627,24 @@ class SearchScreenState extends State<SearchScreen> {
             index++;
           }
         } else {
-          int? anyOptionValue;
-          try {
-            final anyOption = item.options.firstWhere(
-              (opt) => opt.search == "Any" || opt.search == "Any Type" || opt.displayName == "Any",
-            );
-            anyOptionValue = anyOption.value;
-          } catch (e) {
-            anyOptionValue = null;
+          final nonAnyOptions = _selectedNonAnyOptions(item);
+          if (nonAnyOptions.isEmpty) continue;
+
+          final nextIndex = _appendContainsSegment(
+            filters: filters,
+            segments: segments,
+            index: index,
+            fieldName: item.fieldName,
+            options: nonAnyOptions,
+          );
+          if (nextIndex != index) {
+            index = nextIndex;
+            continue;
           }
-          final nonAnyValues = anyOptionValue != null
-              ? item.choosenListValues.where((v) => v != anyOptionValue).toList()
-              : item.choosenListValues;
-          if (nonAnyValues.isEmpty) continue;
+
           List<String> OptionsList = [];
-          for (var choosenValue in nonAnyValues) {
-            try {
-              final option = item.options.firstWhere(
-                (element) => element.value == choosenValue,
-              );
-              if (option.search == "Any" || option.search == "Any Type" || option.displayName == "Any") continue;
-              OptionsList.add(option.search.toString());
-            } catch (e) {}
+          for (final option in nonAnyOptions) {
+            OptionsList.add(option.search.toString());
           }
           if (OptionsList.isNotEmpty) {
             filters.add(Filters(
@@ -5677,26 +5665,23 @@ class SearchScreenState extends State<SearchScreen> {
         if (stringValue.isEmpty ||
             stringValue.toLowerCase() == "any" ||
             stringValue.toLowerCase() == "any type") continue;
+        listOption? matchingOption;
         if (item.options.isNotEmpty) {
-          var matchingOption = item.options.firstWhere(
-            (opt) => opt.value == value || opt.search == stringValue,
-            orElse: () => item.options.first,
-          );
-          if (matchingOption.search == "Any" ||
-              matchingOption.search == "Any Type") continue;
+          matchingOption = _matchingOption(item, value, stringValue);
+          if (matchingOption != null && _isAnyOption(matchingOption)) continue;
         }
-        if (item.synonyms.isNotEmpty) {
-          final orIndices = <String>[];
-          for (var synonym in item.synonyms) {
-            filters.add(Filters(
-                fieldName: item.fieldName,
-                operation: "contains",
-                criteria: [synonym]));
-            orIndices.add("$index");
-            index++;
+        if (matchingOption != null) {
+          final nextIndex = _appendContainsSegment(
+            filters: filters,
+            segments: segments,
+            index: index,
+            fieldName: item.fieldName,
+            options: [matchingOption],
+          );
+          if (nextIndex != index) {
+            index = nextIndex;
+            continue;
           }
-          segments.add("(${orIndices.join(" OR ")})");
-          continue;
         }
         filters.add(Filters(
             fieldName: item.fieldName,

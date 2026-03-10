@@ -3,11 +3,11 @@ import 'package:catapp/models/searchPageConfig.dart';
 import 'package:catapp/screens/globals.dart' as globals;
 
 /// Infers a suggested cat type from an adoptable cat's description text
-/// by matching filter synonyms to traits, then scoring against cat types (trait >= 4).
+/// by matching personality "Yes" option search terms to traits, then scoring against cat types (trait >= 4).
 class DescriptionCatTypeScorer {
   DescriptionCatTypeScorer._();
 
-  /// Filter name (personality, with synonyms) -> stat name(s) on CatType.
+  /// Filter name (personality, with positive search terms) -> stat name(s) on CatType.
   static const Map<String, List<String>> _filterToStat = {
     'Activity Level': ['Energy Level'],
     'Energy level': ['Energy Level'],
@@ -23,7 +23,8 @@ class DescriptionCatTypeScorer {
   };
 
   /// Returns the set of stat names implied by [descriptionText] (lowercased)
-  /// using personality filter synonyms. Empty or null description returns empty set.
+  /// using personality filter "Yes" option search terms.
+  /// Empty or null description returns empty set.
   static Set<String> _traitsFromDescription(String? descriptionText) {
     if (descriptionText == null || descriptionText.trim().isEmpty) {
       return {};
@@ -34,8 +35,15 @@ class DescriptionCatTypeScorer {
       if (option.classification != CatClassification.personality) continue;
       final stats = _filterToStat[option.name];
       if (stats == null) continue;
-      final synonyms = option.synonyms;
-      for (final s in synonyms) {
+      listOption? yesOption;
+      for (final candidate in option.options) {
+        if (candidate.displayName == 'Yes' || candidate.search == 'Yes') {
+          yesOption = candidate;
+          break;
+        }
+      }
+      if (yesOption == null) continue;
+      for (final s in yesOption.searchTerms) {
         if (s.trim().isEmpty) continue;
         if (lower.contains(s.toLowerCase())) {
           statNames.addAll(stats);

@@ -26,7 +26,6 @@ class filterOption {
   List<int> choosenListValues;
   bool imported;
   FilterType filterType;
-  List<String> synonyms;
 
   /// If non-null, this filter can appear in the status chip bar. Higher = higher priority.
   int? statusPriority;
@@ -50,12 +49,11 @@ class filterOption {
       this.choosenListValues,
       this.imported,
       this.filterType, {
-    List<String>? synonyms,
     this.statusPriority,
     this.statusGroup,
     this.statusLabelOverride,
     this.slider = false,
-  }) : synonyms = synonyms ?? const [];
+  });
 }
 
 /// State for the "Match Style" chip (preset name, Custom, or Not set).
@@ -93,8 +91,11 @@ class listOption {
   String displayName;
   dynamic search;
   int value;
+  List<String> searchTerms;
 
-  listOption(this.displayName, this.search, this.value);
+  listOption(this.displayName, this.search, this.value,
+      {List<String>? searchTerms})
+      : searchTerms = searchTerms ?? const [];
 }
 
 /// Returns true if the filter has a non-default, active value (should count toward chips).
@@ -836,13 +837,30 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     28,
     [
-      listOption("Yes", "Yes", 0),
-      listOption("Any", "Any", 1),
+      listOption("Yes", "Yes", 0, searchTerms: [
+        'calm',
+        'calmness',
+        'quiet',
+        'relaxed',
+        'laid back',
+        'mellow',
+        'easygoing',
+      ]),
+      listOption("No", "No", 1, searchTerms: [
+        'active',
+        'energetic',
+        'high energy',
+        'hyper',
+        'rambunctious',
+        'rowdy',
+        'wild',
+        'busy',
+      ]),
+      listOption("Any", "Any", 2),
     ],
     [0],
     false,
     FilterType.advanced,
-    synonyms: ['calm', 'calmness', 'quiet', 'relaxed', 'laid back', 'mellow', 'easygoing'],
   ),
   filterOption(
     "Gentleness",
@@ -853,13 +871,31 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     29,
     [
-      listOption("Yes", "Yes", 0),
-      listOption("Any", "Any", 1),
+      listOption("Yes", "Yes", 0, searchTerms: [
+        'gentle',
+        'gentleness',
+        'soft',
+        'sweet',
+        'mild',
+        'kind',
+        'gentle nature',
+        'gentle cat',
+      ]),
+      listOption("No", "No", 1, searchTerms: [
+        'feisty',
+        'spicy',
+        'rough',
+        'rowdy',
+        'boisterous',
+        'assertive',
+        'intense',
+        'scrappy',
+      ]),
+      listOption("Any", "Any", 2),
     ],
     [0],
     false,
     FilterType.advanced,
-    synonyms: ['gentle', 'gentleness', 'soft', 'sweet', 'mild', 'kind', 'gentle nature', 'gentle cat'],
   ),
   filterOption(
     "Lap Cat",
@@ -870,13 +906,32 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     30,
     [
-      listOption("Yes", "Yes", 0),
-      listOption("Any", "Any", 1),
+      listOption("Yes", "Yes", 0, searchTerms: [
+        'lap',
+        'lap lover',
+        'lap cat',
+        'lapcat',
+        'cuddly',
+        'snuggly',
+        'loves laps',
+        'on your lap',
+        'affectionate',
+      ]),
+      listOption("No", "No", 1, searchTerms: [
+        'independent',
+        'aloof',
+        'not a lap cat',
+        'not cuddly',
+        'not affectionate',
+        'keeps to self',
+        'prefers space',
+        'not snuggly',
+      ]),
+      listOption("Any", "Any", 2),
     ],
     [0],
     false,
     FilterType.advanced,
-    synonyms: ['lap', 'lap lover', 'lap cat', 'lapcat', 'cuddly', 'snuggly', 'loves laps', 'on your lap', 'affectionate'],
   ),
   filterOption(
     "Likes toys",
@@ -887,13 +942,29 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     31,
     [
-      listOption("Yes", "Yes", 0),
-      listOption("Any", "Any", 1),
+      listOption("Yes", "Yes", 0, searchTerms: [
+        'likes toys',
+        'playful',
+        'toys',
+        'loves toys',
+        'playfulness',
+        'enjoys play',
+      ]),
+      listOption("No", "No", 1, searchTerms: [
+        'not playful',
+        'low play',
+        'ignores toys',
+        'uninterested in toys',
+        'laid back',
+        'couch potato',
+        'sedate',
+        'lazy',
+      ]),
+      listOption("Any", "Any", 2),
     ],
     [0],
     false,
     FilterType.advanced,
-    synonyms: ['likes toys', 'playful', 'toys', 'loves toys', 'playfulness', 'enjoys play'],
   ),
   filterOption(
     "Timid / shy",
@@ -904,13 +975,31 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     32,
     [
-      listOption("Yes", "Yes", 0),
-      listOption("Any", "Any", 1),
+      listOption("Yes", "Yes", 0, searchTerms: [
+        'timid',
+        'shy',
+        'cautious',
+        'reserved',
+        'skittish',
+        'nervous',
+        'fearful',
+        'hesitant',
+      ]),
+      listOption("No", "No", 1, searchTerms: [
+        'outgoing',
+        'confident',
+        'social',
+        'friendly',
+        'bold',
+        'brave',
+        'fearless',
+        'gregarious',
+      ]),
+      listOption("Any", "Any", 2),
     ],
     [0],
     false,
     FilterType.advanced,
-    synonyms: ['timid', 'shy', 'cautious', 'reserved', 'skittish', 'nervous', 'fearful', 'hesitant'],
   ),
   filterOption(
     "Curious",
@@ -921,13 +1010,30 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     33,
     [
-      listOption("Yes", "Yes", 0),
-      listOption("Any", "Any", 1),
+      listOption("Yes", "Yes", 0, searchTerms: [
+        'curious',
+        'exploratory',
+        'explores',
+        'mischievous',
+        'inquisitive',
+        'gets into things',
+        'adventurous',
+      ]),
+      listOption("No", "No", 1, searchTerms: [
+        'laid back',
+        'low-key',
+        'mellow',
+        'reserved',
+        'homebody',
+        'content to lounge',
+        'not curious',
+        'uninterested',
+      ]),
+      listOption("Any", "Any", 2),
     ],
     [0],
     false,
     FilterType.advanced,
-    synonyms: ['curious', 'exploratory', 'explores', 'mischievous', 'inquisitive', 'gets into things', 'adventurous'],
   ),
   //physical
   filterOption(

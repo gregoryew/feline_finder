@@ -377,8 +377,8 @@ class SearchAIService {
       "description": "How the cat reacts to strangers or new people.",
       "options": ["Cautious", "Friendly", "Any"],
       "keywords": {
-        "positive": ["friendly", "sociable", "trusting"],
-        "negative": ["shy", "timid", "hides from strangers"]
+        "positive": ["friendly", "sociable", "trusting", "greets people", "greets strangers", "greets guests", "welcomes people", "good with new people", "friendly with strangers", "meets people easily", "comes up to visitors", "good with visitors", "welcomes guests", "comes to say hi", "says hi to visitors", "greets at the door", "welcomes guests at the door"],
+        "negative": ["shy", "timid", "hides from strangers", "wary of strangers", "avoids new people"]
       }
     },
     "isHousetrained": {
@@ -530,8 +530,8 @@ class SearchAIService {
       "description": "Whether the cat is described in its profile as loving, cuddly, or people-oriented.",
       "options": ["Yes"],
       "keywords": {
-        "positive": ["affectionate","loving","cuddly","snuggly","friendly","devoted","social","socialable","socializable","socialize","socialized","socializing"],
-        "negative": ["independent","aloof","not cuddly"]
+        "positive": ["affectionate","loving","cuddly","snuggly","friendly","devoted","social","socialable","socializable","socialize","socialized","socializing","likes cuddles","likes pets","sweet with people","affectionate but independent","affectionate on their own terms"],
+        "negative": ["independent","aloof","not cuddly","distant","detached","wants space"]
       }
     },
     "independentAloof": {
@@ -539,35 +539,35 @@ class SearchAIService {
       "description": "Whether the cat is described as independent, aloof, or preferring to keep to itself.",
       "options": ["Yes"],
       "keywords": {
-        "positive": ["independent","aloof","standoffish","distant","unfriendly","unapproachable","uncommunicative"],
-        "negative": ["social","clingy","needy"]
+        "positive": ["independent","aloof","standoffish","distant","unfriendly","unapproachable","uncommunicative","self-sufficient","does own thing","prefers space","likes space","not clingy","not needy","on their own terms","not in my face","not constantly in my face"],
+        "negative": ["social","clingy","needy","lap cat","velcro","always on you","in your face"]
       }
     },
     "calmness": {
       "field": "animals.descriptionText",
       "description": "Whether the cat is described as calm, quiet, or relaxed in temperament.",
-      "options": ["Yes","Any"],
+      "options": ["Yes","No","Any"],
       "keywords": {
-        "positive": ["calm","quiet","laid back","relaxed"],
-        "negative": ["hyper","high strung","nervous"]
+        "positive": ["calm","quiet","laid back","relaxed","mellow","easygoing"],
+        "negative": ["active","energetic","high energy","hyper","rambunctious","rowdy","wild"]
       }
     },
     "gentleness": {
       "field": "animals.descriptionText",
       "description": "Whether the cat is described as gentle, soft, or sweet-natured.",
-      "options": ["Yes","Any"],
+      "options": ["Yes","No","Any"],
       "keywords": {
-        "positive": ["gentle","gentleness","soft","sweet","mild","kind"],
-        "negative": ["rough","feisty","aggressive"]
+        "positive": ["gentle","gentleness","soft","sweet","mild","kind","no attitude","without attitude","not sassy","not spicy","sweet personality","easygoing personality"],
+        "negative": ["feisty","spicy","rough","rowdy","boisterous","assertive","intense","scrappy","attitude","sassy","sassy attitude","spicy attitude","dramatic","drama queen","diva","bossy"]
       }
     },
     "lapCat": {
       "field": "animals.descriptionText",
       "description": "Whether the cat is described as a lap cat or as loving to sit on laps.",
-      "options": ["Yes","Any"],
+      "options": ["Yes","No","Any"],
       "keywords": {
-        "positive": ["lap cat","on your lap","loves laps"],
-        "negative": ["not a lap cat","doesn't like laps"]
+        "positive": ["lap","lap lover","lap cat","lapcat","cuddly","snuggly","loves laps","on your lap","affectionate"],
+        "negative": ["independent","aloof","not a lap cat","not cuddly","not affectionate","keeps to self","prefers space","not snuggly","not clingy","not needy","not in my face","not constantly in my face","likes space","affectionate on their own terms","cuddles on their own terms"]
       }
     },
     "playful": {
@@ -582,10 +582,10 @@ class SearchAIService {
     "likesToys": {
       "field": "animals.descriptionText",
       "description": "Whether the cat is described as liking or playing with toys.",
-      "options": ["Yes","Any"],
+      "options": ["Yes","No","Any"],
       "keywords": {
-        "positive": ["toys","plays with toys","chews toys","loves toys"],
-        "negative": ["ignores toys","not interested in toys"]
+        "positive": ["likes toys","toys","plays with toys","loves toys","playful","enjoys play"],
+        "negative": ["not playful","low play","ignores toys","uninterested in toys","laid back","couch potato","sedate","lazy"]
       }
     },
     "outgoing": {
@@ -600,10 +600,10 @@ class SearchAIService {
     "curious": {
       "field": "animals.descriptionText",
       "description": "Whether the cat is described as curious, mischievous, or prone to getting into things.",
-      "options": ["Yes","Any"],
+      "options": ["Yes","No","Any"],
       "keywords": {
-        "positive": ["curious","mischievous","explores","gets into things","trouble"],
-        "negative": ["well behaved","docile","boring"]
+        "positive": ["curious","mischievous","explores","gets into things","trouble","inquisitive","adventurous"],
+        "negative": ["laid back","low-key","mellow","reserved","homebody","content to lounge","not curious","uninterested"]
       }
     },
     "adultSexesOk": {
@@ -636,10 +636,10 @@ class SearchAIService {
     "timidShy": {
       "field": "animals.descriptionText",
       "description": "Whether the cat is described as timid, shy, or cautious with people.",
-      "options": ["Yes","Any"],
+      "options": ["Yes","No","Any"],
       "keywords": {
         "positive": ["shy","timid","fearful","reserved","skittish","nervous","hesitant"],
-        "negative": ["bold","confident","outgoing"]
+        "negative": ["outgoing","confident","social","friendly","bold","brave","fearless","gregarious"]
       }
     },
     "personalityEnergyLevel": { "field": "energyLevel", "description": "Energy Level slider (1-5). 0 or omit = Any.", "options": [0,1,2,3,4,5] },
@@ -696,6 +696,7 @@ CAT TYPE (personality type by name):
 - When the user asks for a cat by personality type NAME, set "catType" at the top level to that exact name. Use ONLY one of these exact names (case-sensitive): Professional Napper, Lap Legend, Zen Companion, Old Soul, Quiet Shadow, Zoomie Rocket, Parkour Cat, Toy Addict, Chaos Sprite, Forever Kitten, Velcro Cat, Cuddle Ambassador, Welcome Committee, Therapy Cat, Heart Healer, Solo Artist, Dignified Observer, Window Philosopher, Private Thinker, Gentle Hermit, Drama Monarch, Opinionated Roommate, Soap Opera Star, Mood Ring Cat, Attention Magnet, Routine Master, Puzzle Pro, Social Learner, Explorer Brain, Little Professor.
 - Examples: "I want a Velcro Cat" → "catType": "Velcro Cat". "Show me Zoomie Rocket types" → "catType": "Zoomie Rocket". "Professional Napper near me" → "catType": "Professional Napper" and include location.
 - Omit "catType" if the user does not mention one of these personality type names.
+- Do NOT infer a catType from generic traits like "curious", "intelligent", "playful", "affectionate", or combinations like "curious and very intelligent". Those should stay in filters unless the user explicitly names a catType.
 
 SORT BY (optional top-level "sortBy"):
 - When the user asks to sort or order results, set "sortBy" at the top level to either "distance" or "date".
@@ -753,34 +754,51 @@ IMPORTANT - Handling OR conditions:
        12. For AND conditions or single requirements, return a string: "Value"
        
        PERSONALITY FILTERS (priority when user describes personality):
-       - When the user asks for a cat with a personality trait, set the matching personality filter to "Yes". Do NOT map these to breed.
+       - For the non-slider personality dropdowns, use "Yes" when the user wants the trait, "No" when the user asks for the opposite of that trait, and "Any" when they have no preference. Do NOT map these to breed.
+      - Phrases about wanting affection WITHOUT clinginess or constant contact such as "affectionate but not constantly in my face", "not clingy", "not needy", "likes cuddles on their own terms" usually mean affectionate: "Yes" and lapCat: "No". If the wording clearly emphasizes wanting space or a self-directed cat, independentAloof: "Yes" can also fit.
+      - Generic phrases like "has personality", "full of personality", or "fun personality" do NOT by themselves mean timidShy, curious, or independentAloof.
+      - Phrases like "personality but not attitude", "playful but not spicy", "sweet but not sassy", or "some personality without drama" should bias toward gentleness: "Yes" and often playful: "Yes" or outgoing: "Yes". Do NOT interpret these as timidShy: "Yes", curious: "Yes", or independentAloof: "Yes" unless the user clearly asks for those traits.
        - "playful", "playful cat", "loves to play", "energetic cat", "lively" → playful: "Yes"
        - "affectionate", "affectionate cat", "cuddly", "snuggly", "loving", "lap cat" → affectionate: "Yes"
        - "calm", "calm cat", "quiet", "laid back", "relaxed" → calmness: "Yes" (and optionally energyLevel: "Low")
+       - "not calm", "high energy", "hyper", "wild" → calmness: "No"
        - "curious", "curious cat", "mischievous", "gets into things" → curious: "Yes"
+       - "not curious", "homebody", "low-key", "content to lounge" → curious: "No"
        - "gentle", "gentle cat", "sweet", "soft" → gentleness: "Yes"
+       - "not gentle", "feisty", "spicy", "rowdy", "attitude", "sassy", "dramatic" → gentleness: "No"
+       - "not sassy", "not spicy", "without attitude", "personality but not attitude" → gentleness: "Yes"
        - "outgoing", "friendly cat", "social cat" → outgoing: "Yes" (or newPeopleReaction: "Friendly" for stranger reaction)
+      - "greets people", "greets guests", "good with new people", "friendly with strangers", "good with visitors", "comes to say hi", "greets at the door" → newPeopleReaction: "Friendly"
        - "shy", "timid cat", "reserved" → timidShy: "Yes"
-       - "independent", "aloof" → independentAloof: "Yes"
+       - "not shy", "confident", "bold", "fearless" → timidShy: "No"
+      - For independence-related wording, always use the Independence slider output key (`personalityIndependence`), not a dropdown-style field.
+      - "independent", "aloof", "self-sufficient" → personalityIndependence: 2
+      - "very independent", "does own thing", "keeps to self", "prefers space" → personalityIndependence: 1
+      - "not independent" → personalityIndependence: 1
+      - "dependent", "wants company" → personalityIndependence: 4
+      - "very dependent", "clingy", "needs company" → personalityIndependence: 5
+       - "not a lap cat", "aloof", "prefers space", "independent" → lapCat: "No"
+       - "not clingy", "not needy", "not in my face", "not constantly in my face" → lapCat: "No" and usually affectionate: "Yes" only if the query still asks for affection/cuddles
+       - "ignores toys", "not playful with toys", "uninterested in toys" → likesToys: "No"
        
        TEN TRAITS (searchPageConfig field names; use these so the animation system highlights the correct filter row):
        Sliders (output key → searchPageConfig field): personalityEnergyLevel → energyLevel; personalityPlayfulness → playfulness; personalityAffectionate → affectionate; personalityIndependence → independence; personalitySociability → sociability; personalityVocalization → vocalLevel; personalityAdaptability → adaptability; personalityIntelligence → intelligence; personalityConfidence → confidence; personalitySensitivity → sensitivity.
-       Yes/Any dropdowns (output key → searchPageConfig field): calmness → animals.descriptionText (Calmness); gentleness → animals.descriptionText (Gentleness); lapCat → animals.descriptionText (Lap Cat); likesToys → animals.descriptionText (Likes toys); timidShy → animals.descriptionText (Timid / shy); curious → animals.descriptionText (Curious).
+       Yes/No/Any dropdowns (output key → searchPageConfig field): calmness → animals.descriptionText (Calmness); gentleness → animals.descriptionText (Gentleness); lapCat → animals.descriptionText (Lap Cat); likesToys → animals.descriptionText (Likes toys); timidShy → animals.descriptionText (Timid / shy); curious → animals.descriptionText (Curious).
        
        TEN TRAITS ON A 1-5 SCALE (personality sliders; analyze word intensity and output integer 1-5; 0 or omit = Any):
        The following 10 traits are personality SLIDERS (field in searchPageConfig in parentheses). Analyze words in the query that relate to each trait, evaluate the INTENSITY of those words, and set the corresponding filter to an integer 1-5. Use 0 or omit if the user does not mention that dimension.
        - Energy Level (field: energyLevel) (personalityEnergyLevel): "very lazy", "couch potato" → 1; "low energy" → 2; "moderate energy" → 3; "active", "high energy" → 4; "extremely active", "zoomies", "nonstop" → 5
        - Playfulness (field: playfulness) (personalityPlayfulness): "not playful", "serious" → 1; "low play" → 2; "moderately playful" → 3; "playful", "loves toys" → 4; "very playful", "toy addict", "always playing" → 5
        - Affection Level (field: affectionate) (personalityAffectionate): "not affectionate", "aloof" → 1; "low affection" → 2; "moderate cuddles" → 3; "affectionate", "cuddly", "lap cat" → 4; "very affectionate", "velcro", "constant cuddles" → 5
-       - Independence (field: independence) (personalityIndependence): "very independent", "does own thing" → 1; "independent" → 2; "balanced" → 3; "somewhat dependent" → 4; "very dependent", "clingy", "needs company" → 5
+      - Independence (field: independence) (personalityIndependence): ALWAYS prefer returning personalityIndependence as the output key when the user mentions independence, clinginess, or needing space. "very independent", "does own thing", "keeps to self", "prefers space" → 1; "independent", "aloof", "self-sufficient" → 2; "balanced" → 3; "dependent", "wants company", "somewhat dependent" → 4; "very dependent", "clingy", "needs company", "velcro" → 5. If the user explicitly says independence is "No" or "not independent", map that to the low end of the Independence slider (1) to match the UI slider orientation.
        - Sociability (field: sociability) (personalitySociability): "very unsocial", "reclusive" → 1; "unsocial" → 2; "moderate" → 3; "social", "friendly" → 4; "very social", "loves everyone", "party cat" → 5
-       - Vocality (field: vocalLevel) (personalityVocalization): ALWAYS set this when the user mentions how much the cat meows or talks. "very quiet", "silent", "quiet house", "quiet home", "quiet household", "I have a quiet house", "we have a quiet house", "quiet environment", "need a quiet cat" → 1; "quiet" → 2; "moderate" → 3; "vocal", "talkative", "vocal cat", "talkative cat", "likes to meow", "meows", "communicative" → 4; "very talkative", "very vocal", "chatty", "meows a lot", "loquacious" → 5
+       - Vocality (field: vocalLevel) (personalityVocalization): ALWAYS set this when the user mentions how much the cat meows or talks. Prefer returning personalityVocalization as the output key so it maps directly to the Vocalization personality slider. "very quiet", "silent", "quiet house", "quiet home", "quiet household", "I have a quiet house", "we have a quiet house", "quiet environment", "need a quiet cat" → 1; "quiet" → 2; "moderate" → 3; "vocal", "talkative", "vocal cat", "talkative cat", "likes to meow", "meows", "communicative" → 4; "very talkative", "very vocal", "chatty", "meows a lot", "loquacious" → 5
        - Confidence (field: confidence) (personalityConfidence): "very shy", "timid", "skittish", "fearful" → 1; "shy", "reserved" → 2; "moderate", "balanced" → 3; "confident", "bold" → 4; "very confident", "fearless", "outgoing" → 5
        - Sensitivity (field: sensitivity) (personalitySensitivity): "very thick-skinned", "unfazed" → 1; "low sensitivity" → 2; "moderate" → 3; "sensitive", "gentle" → 4; "very sensitive", "delicate", "needs gentle handling" → 5
        - Adaptability (field: adaptability) (personalityAdaptability): "not adaptable", "set in ways" → 1; "low adaptability" → 2; "moderate" → 3; "adaptable", "adjusts well" → 4; "very adaptable", "easy transition", "goes with flow" → 5
-       - Intelligence (field: intelligence) (personalityIntelligence): "dim", "slow" → 1; "below average" → 2; "average" → 3; "smart", "learns quickly" → 4; "very intelligent", "puzzle solver", "bright" → 5
+      - Intelligence (field: intelligence) (personalityIntelligence): "dim", "slow" → 1; "below average" → 2; "average" → 3; "smart", "intelligent", "learns quickly" → 4; "very intelligent", "extremely intelligent", "puzzle solver", "bright", "brilliant", "genius" → 5
        Output these as integers in filters, e.g. "personalityEnergyLevel": 4, "personalityPlayfulness": 5. Omit or use 0 for Any.
-       (Calmness/Gentleness/Timid Shy: use calmness, timidShy, gentleness as Yes/Any when user only says calm, shy, gentle without intensity; for intensity use the Confidence/Sensitivity sliders above.)
+       (Calmness/Gentleness/Timid Shy: use calmness, timidShy, gentleness as Yes/No/Any when user describes those traits without intensity; for intensity use the Confidence/Sensitivity sliders above.)
        
        KEYWORD MAPPING EXAMPLES (understand user intent):
        - "kitten", "baby cat", "young cat" → ageGroup: "Baby"
@@ -790,17 +808,23 @@ IMPORTANT - Handling OR conditions:
        - "white cat", "white" → colorDetails: "White"
        - "gray cat", "grey cat", "gray" → colorDetails: "Gray"
        - "calico", "calico cat" → breed: "Calico" (Calico is a breed, not a color)
-       - "friendly", "sociable" (stranger reaction) → newPeopleReaction: "Friendly"
+      - "friendly", "sociable", "greets people", "greets guests", "friendly with strangers", "good with visitors", "comes to say hi", "greets at the door" (stranger reaction) → newPeopleReaction: "Friendly"
        - "good with dogs", "dog friendly" → isDogsOk: "Yes"
        - "good with kids", "family friendly" → isKidsOk: "Yes"
        - "companion cat", "bonded pair", "must be adopted with another cat", "must come with another cat", "cat that needs to come with another cat" → needsCompanionAnimal: "Yes" (cat has to be adopted with another cat; they are companions).
        - "apartment", "apartment living", "apartment ok", "no yard", "condo", "small space", "good for apartments", "cat for apartment" → apartmentOk: "Yes" (cat suitable for apartment; does not need a yard).
-       - "quiet house", "quiet home", "quiet household", "I have a quiet house", "we have a quiet house", "quiet environment", "need a quiet cat" → vocalLevel: 1 or personalityVocalization: 1 (very low vocality; user wants a cat that won't be noisy).
-       - "vocal", "talkative", "vocal cat", "talkative cat", "I want a vocal cat", "I want a talkative cat", "chatty", "meows a lot", "likes to meow" → vocalLevel: 4 or personalityVocalization: 4 (or 5 if "very"); set the Vocalization slider. Do NOT only return breed—always include vocalLevel when user mentions vocal/talkative.
+       - "quiet house", "quiet home", "quiet household", "I have a quiet house", "we have a quiet house", "quiet environment", "need a quiet cat" → personalityVocalization: 1 (very low vocality; user wants a cat that won't be noisy).
+       - "vocal", "talkative", "vocal cat", "talkative cat", "I want a vocal cat", "I want a talkative cat", "chatty", "meows a lot", "likes to meow" → personalityVocalization: 4 (or 5 if "very"); set the Vocalization slider. Do NOT only return breed—always include the Vocalization personality slider when user mentions vocal/talkative.
+      - "independent", "aloof", "self-sufficient", "prefers space" → personalityIndependence: 1 or 2 depending on intensity; prefer the Independence personality slider, not independentAloof.
+      - "not independent" → personalityIndependence: 1.
+      - "dependent", "clingy", "needs company" → personalityIndependence: 4 or 5 depending on intensity.
+      - "intelligent", "smart", "learns quickly" → personalityIntelligence: 4; "very intelligent", "extremely intelligent", "brilliant", "genius" → personalityIntelligence: 5.
+      - "affectionate but not constantly in my face", "cuddly but not clingy", "likes affection on their own terms" → affectionate: "Yes", lapCat: "No"
+      - "a cat with personality but not attitude", "playful but not spicy", "sweet but not sassy" → gentleness: "Yes" and often playful: "Yes"; do not set timidShy, curious, or independentAloof unless separately requested.
        
        BREED BY PERSONALITY/SAYINGS (use only when user asks for a BREED by trait, not for "I want a playful cat"):
        - Use breed from personalitySayings when: user names a breed, or asks "what breed", "which breed", "playful breed", "breed that is X". For "I want a playful cat" or "show me affectionate cats", use personality filters (playful: "Yes", affectionate: "Yes"), NOT breed.
-       - When a trait matches ONLY ONE breed: return breed as a string (e.g. "go limp when held" → breed: "Ragdoll", "gentle giant" → breed: "Maine Coon", "Meezer" → breed: "Siamese", "hairless" → breed: "Sphynx", "curled ears" → breed: "American Curl", "folded ears" → breed: "Scottish Fold", "short legs" → breed: "Munchkin", "good luck cat" → breed: "Korat"). IMPORTANT: If user says "vocal" or "talkative" or "talkative cat" as a personality preference (e.g. "I want a vocal cat"), set vocalLevel: 4 or 5 in filters; do not only return breed. "Meezer" by name → breed: "Siamese"; "I want a talkative cat" → filters must include vocalLevel: 4 or 5.
+       - When a trait matches ONLY ONE breed: return breed as a string (e.g. "go limp when held" → breed: "Ragdoll", "gentle giant" → breed: "Maine Coon", "Meezer" → breed: "Siamese", "hairless" → breed: "Sphynx", "curled ears" → breed: "American Curl", "folded ears" → breed: "Scottish Fold", "short legs" → breed: "Munchkin", "good luck cat" → breed: "Korat"). IMPORTANT: If user says "vocal" or "talkative" or "talkative cat" as a personality preference (e.g. "I want a vocal cat"), set personalityVocalization: 4 or 5 in filters; do not only return breed. "Meezer" by name → breed: "Siamese"; "I want a talkative cat" → filters must include personalityVocalization: 4 or 5.
        - When a trait matches MULTIPLE breeds and user is asking for breed: return breed as an ARRAY. Example: "dog-like cat" (breed question) → breed: ["Ragdoll", "Maine Coon", "Bobtail", "Norwegian Forest", "Ocicat"].
        
        EXAMPLE QUERIES:
@@ -808,17 +832,31 @@ IMPORTANT - Handling OR conditions:
        - "show me affectionate cats" → {"filters": {"affectionate": "Yes"}}
        - "playful and cuddly cat" → {"filters": {"playful": "Yes", "affectionate": "Yes"}}
        - "I want a calm black kitten" → {"filters": {"ageGroup": "Baby", "calmness": "Yes", "colorDetails": "Black"}}
+       - "show me cats that are not shy" → {"filters": {"timidShy": "No"}}
+       - "I want a cat that is not a lap cat" → {"filters": {"lapCat": "No"}}
+       - "show me cats that ignore toys" → {"filters": {"likesToys": "No"}}
+       - "I want a cat that is not curious" → {"filters": {"curious": "No"}}
        - "show me friendly white cats" → {"filters": {"newPeopleReaction": "Friendly", "colorDetails": "White"}}
        - "active Persian cats near me" → {"location": {"distance": "20"}, "filters": {"breed": "Persian", "energyLevel": "High"}}
        - "calico cats", "I want a calico" → {"filters": {"breed": "Calico"}}
        - "cat that goes limp when you hold it", "I want a ragdoll type", "docile floppy cat" → {"filters": {"breed": "Ragdoll"}}
        - "gentle giant", "big fluffy cat" (only Maine Coon) → {"filters": {"breed": "Maine Coon"}}
-       - "Meezer" (breed name) → {"filters": {"breed": "Siamese"}}. "I want a vocal cat", "talkative cat", "I want a talkative cat" (personality) → {"filters": {"vocalLevel": 4}} or {"filters": {"personalityVocalization": 4}}
+       - "Meezer" (breed name) → {"filters": {"breed": "Siamese"}}. "I want a vocal cat", "talkative cat", "I want a talkative cat" (personality) → {"filters": {"personalityVocalization": 4}}
        - "dog-like cat", "cat that acts like a dog" (matches multiple breeds) → {"filters": {"breed": ["Ragdoll", "Maine Coon", "Bobtail", "Norwegian Forest", "Ocicat"]}}
        - "companion cat", "bonded pair", "cat that has to come with another cat" → {"filters": {"needsCompanionAnimal": "Yes"}}
        - "apartment cat", "cat for apartment", "I live in an apartment", "no yard" → {"filters": {"apartmentOk": "Yes"}}
-       - "I have a quiet house", "quiet home", "we need a quiet cat", "quiet household" → {"filters": {"vocalLevel": 1}}
-       - "I want a vocal cat", "talkative cat", "vocal", "talkative", "show me talkative cats" → {"filters": {"vocalLevel": 4}}
+       - "I have a quiet house", "quiet home", "we need a quiet cat", "quiet household" → {"filters": {"personalityVocalization": 1}}
+       - "I want a vocal cat", "talkative cat", "vocal", "talkative", "show me talkative cats" → {"filters": {"personalityVocalization": 4}}
+      - "I want an independent cat" → {"filters": {"personalityIndependence": 2}}
+      - "I want a very independent cat that likes space" → {"filters": {"personalityIndependence": 1}}
+      - "independence no" → {"filters": {"personalityIndependence": 1}}
+      - "I do not want an independent cat" → {"filters": {"personalityIndependence": 1}}
+      - "I want a clingy cat that needs company" → {"filters": {"personalityIndependence": 5}}
+      - "I want a curious and very intelligent cat" → {"filters": {"curious": "Yes", "personalityIntelligence": 5}}
+      - "affectionate but not constantly in my face" → {"filters": {"affectionate": "Yes", "lapCat": "No"}}
+      - "a cat with personality but not attitude" → {"filters": {"gentleness": "Yes", "playful": "Yes"}}
+      - "I want a quiet cat that still greets people" → {"filters": {"personalityVocalization": 1, "newPeopleReaction": "Friendly"}}
+      - "quiet cat that comes to say hi to visitors" → {"filters": {"personalityVocalization": 1, "newPeopleReaction": "Friendly"}}
 ''';
 
     try {

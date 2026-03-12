@@ -58,6 +58,27 @@ class _LinkRange {
   _LinkRange(this.start, this.end, this.text);
 }
 
+/// Header + bullet list for the top 3 personality trait differences.
+class _Top3DifferenceData {
+  final String header;
+  final List<String> bullets;
+  _Top3DifferenceData(this.header, this.bullets);
+}
+
+/// Adjective for each personality trait (for "more X than" comparison sentences).
+const Map<String, String> _kPersonalityTraitAdjective = {
+  'Energy Level': 'energetic',
+  'Playfulness': 'playful',
+  'Affection Level': 'affectionate',
+  'Independence': 'independent',
+  'Sociability': 'sociable',
+  'Vocality': 'vocal',
+  'Confidence': 'confident',
+  'Sensitivity': 'sensitive',
+  'Adaptability': 'adaptable',
+  'Intelligence': 'intelligent',
+};
+
 class petDetail extends StatefulWidget {
   final String petID;
   late String userID;
@@ -1127,6 +1148,54 @@ class petDetailState extends State<petDetail>
     return CatTypeFilterMapping.getTraitProfileForCatType(type);
   }
 
+  /// Match label from fit score using same ranges as fit screen: 0.0–1.0 percent.
+  static String _getMatchLabel(double percentMatch) {
+    final percentage = percentMatch * 100;
+    if (percentage >= 95) return 'Purrfect';
+    if (percentage >= 90) return 'Excellent';
+    if (percentage >= 85) return 'Great';
+    if (percentage >= 75) return 'Very Good';
+    if (percentage >= 65) return 'Good';
+    if (percentage >= 55) return 'Fair';
+    if (percentage >= 45) return 'Okay';
+    if (percentage >= 35) return 'Poor';
+    return 'Not a Match';
+  }
+
+  /// Top 3 trait differences as a header + bullet list. Only includes traits the cat has data for. Null if no type profile or no differences.
+  _Top3DifferenceData? _getTop3DifferenceBullets() {
+    final typeProfile = _getTypeProfileForChart();
+    if (typeProfile == null || _fitRecord == null) return null;
+    const defaultScore = 3;
+    final diffs = <String, int>{};
+    for (final traitName in kPersonalityTraitNames) {
+      final match = _fitRecord!.traits[traitName]?.score;
+      if (match == null || match < 1 || match > 5) continue; // skip traits we don't have data for
+      final selected = typeProfile[traitName] ?? defaultScore;
+      final d = selected - match;
+      if (d != 0) diffs[traitName] = d;
+    }
+    if (diffs.isEmpty) return null;
+    // Biggest differences by absolute value (positive or negative)
+    final sorted = diffs.entries.toList()
+      ..sort((a, b) => b.value.abs().compareTo(a.value.abs()));
+    final top3 = sorted.take(3).toList();
+    final isTypical = _personalityChartMode == 1;
+    final header = isTypical ? 'Compared to the usual type:' : 'Compared to my type:';
+    final bullets = <String>[];
+    for (final e in top3) {
+      final adj = _kPersonalityTraitAdjective[e.key] ?? e.key.toLowerCase();
+      final magnitude = e.value.abs();
+      final degree = (magnitude >= 3) ? 'Far' : 'A bit';
+      if (e.value > 0) {
+        bullets.add('$degree less $adj');
+      } else {
+        bullets.add('$degree more $adj');
+      }
+    }
+    return _Top3DifferenceData(header, bullets);
+  }
+
   void _showPersonalityChartHelpDialog(BuildContext context) {
     showDialog<void>(
       context: context,
@@ -1224,7 +1293,49 @@ class petDetailState extends State<petDetail>
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            ...() {
+              const bulletStyle = TextStyle(
+                fontSize: 13,
+                color: Colors.white70,
+                fontFamily: 'Poppins',
+                height: 1.3,
+              );
+              final list = <Widget>[const SizedBox(height: 8)];
+              // Rating label: use stored fitScore or compute from current type profile vs cat traits
+              double? score = _fitRecord?.fitScore;
+              if (score == null && _fitRecord != null && typeProfile != null && typeProfile!.isNotEmpty) {
+                score = CatFitService.computeFitScore(_fitRecord!.traitScores, typeProfile!);
+              }
+              if (score != null) {
+                final percent = score <= 1 ? score : score / 100.0;
+                final typeLabel = _personalityChartMode == 1 ? _suggestedTypeLabel : _adopterTypeLabel;
+                list.add(Text(
+                  '${_getMatchLabel(percent)} $typeLabel Match',
+                  style: bulletStyle.copyWith(fontWeight: FontWeight.w600),
+                ));
+                list.add(const SizedBox(height: 6));
+              }
+              final data = _getTop3DifferenceBullets();
+              if (data != null && data.bullets.isNotEmpty) {
+                list.add(Text(
+                  data.header,
+                  style: bulletStyle.copyWith(fontWeight: FontWeight.w600),
+                ));
+                list.add(const SizedBox(height: 6));
+                list.addAll(data.bullets.map((b) => Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('• ', style: bulletStyle),
+                      Expanded(child: Text(b, style: bulletStyle)),
+                    ],
+                  ),
+                )));
+              }
+              list.add(const SizedBox(height: 12));
+              return list;
+            }(),
             ...kPersonalityTraitNames.map((traitName) {
               final detail = _fitRecord!.traits[traitName];
               final score = detail?.score;
@@ -1412,6 +1523,17 @@ class petDetailState extends State<petDetail>
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    'Compare this match to:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.95),
+                    ),
+                  ),
+                ),
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
@@ -1435,7 +1557,7 @@ class petDetailState extends State<petDetail>
                                     : Colors.white54),
                           ),
                           Text(
-                            'Your type: $_adopterTypeLabel',
+                            'My: $_adopterTypeLabel',
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.white.withOpacity(0.95),
@@ -1469,7 +1591,7 @@ class petDetailState extends State<petDetail>
                                     : Colors.white54),
                           ),
                           Text(
-                            'Typical: $_suggestedTypeLabel',
+                            'Usual: $_suggestedTypeLabel',
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.white.withOpacity(0.95),

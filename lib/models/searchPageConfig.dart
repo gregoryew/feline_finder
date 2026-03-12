@@ -837,7 +837,7 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     28,
     [
-      listOption("Yes", "Yes", 0, searchTerms: [
+      listOption("Yes", "Yes", 2, searchTerms: [
         'calm',
         'calmness',
         'quiet',
@@ -856,7 +856,7 @@ List<filterOption> filteringOptions = [
         'wild',
         'busy',
       ]),
-      listOption("Any", "Any", 2),
+      listOption("Any", "Any", 0),
     ],
     [0],
     false,
@@ -871,7 +871,7 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     29,
     [
-      listOption("Yes", "Yes", 0, searchTerms: [
+      listOption("Yes", "Yes", 2, searchTerms: [
         'gentle',
         'gentleness',
         'soft',
@@ -891,7 +891,7 @@ List<filterOption> filteringOptions = [
         'intense',
         'scrappy',
       ]),
-      listOption("Any", "Any", 2),
+      listOption("Any", "Any", 0),
     ],
     [0],
     false,
@@ -906,7 +906,7 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     30,
     [
-      listOption("Yes", "Yes", 0, searchTerms: [
+      listOption("Yes", "Yes", 2, searchTerms: [
         'lap',
         'lap lover',
         'lap cat',
@@ -927,7 +927,7 @@ List<filterOption> filteringOptions = [
         'prefers space',
         'not snuggly',
       ]),
-      listOption("Any", "Any", 2),
+      listOption("Any", "Any", 0),
     ],
     [0],
     false,
@@ -942,7 +942,7 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     31,
     [
-      listOption("Yes", "Yes", 0, searchTerms: [
+      listOption("Yes", "Yes", 2, searchTerms: [
         'likes toys',
         'playful',
         'toys',
@@ -960,7 +960,7 @@ List<filterOption> filteringOptions = [
         'sedate',
         'lazy',
       ]),
-      listOption("Any", "Any", 2),
+      listOption("Any", "Any", 0),
     ],
     [0],
     false,
@@ -975,7 +975,7 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     32,
     [
-      listOption("Yes", "Yes", 0, searchTerms: [
+      listOption("Yes", "Yes", 2, searchTerms: [
         'timid',
         'shy',
         'cautious',
@@ -995,7 +995,7 @@ List<filterOption> filteringOptions = [
         'fearless',
         'gregarious',
       ]),
-      listOption("Any", "Any", 2),
+      listOption("Any", "Any", 0),
     ],
     [0],
     false,
@@ -1010,7 +1010,7 @@ List<filterOption> filteringOptions = [
     CatClassification.personality,
     33,
     [
-      listOption("Yes", "Yes", 0, searchTerms: [
+      listOption("Yes", "Yes", 2, searchTerms: [
         'curious',
         'exploratory',
         'explores',
@@ -1029,7 +1029,35 @@ List<filterOption> filteringOptions = [
         'not curious',
         'uninterested',
       ]),
-      listOption("Any", "Any", 2),
+      listOption("Any", "Any", 0),
+    ],
+    [0],
+    false,
+    FilterType.advanced,
+  ),
+  filterOption(
+    "Outgoing",
+    "Any",
+    "animals.descriptionText",
+    true,
+    false,
+    CatClassification.personality,
+    34,
+    [
+      listOption("Yes", "Yes", 1, searchTerms: [
+        'outgoing',
+        'friendly',
+        'social',
+        'sociable',
+        'socialized',
+        'socializing',
+      ]),
+      listOption("No", "No", 2, searchTerms: [
+        'shy',
+        'reserved',
+        'withdrawn',
+      ]),
+      listOption("Any", "Any", 0),
     ],
     [0],
     false,

@@ -29,6 +29,10 @@ class PetTileData {
   /// Distance in miles from search location (when API returns it).
   double? distanceMiles;
 
+  /// Stable order index assigned when the cat is first retrieved. Never recomputed.
+  /// Used as final tiebreaker so the list does not jump when fit scores update.
+  int? sequenceNumber;
+
   PetTileData(petDatum pet, List<Included> included) {
     id = pet.id;
     descriptionText = pet.attributes?.descriptionText;

@@ -6,9 +6,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../main.dart' as main;
 import '../models/rescuegroups_v5.dart';
+import '../utils/cat_result_ranking.dart';
 import '/ExampleCode/RescueGroupsQuery.dart';
 import '/ExampleCode/petTileData.dart';
 import '/screens/petDetail.dart';
@@ -183,6 +185,47 @@ class AdoptGridState extends State<AdoptGrid> {
   /// Prevents multiple getPets() in flight (e.g. scroll firing repeatedly).
   bool _isLoadingPets = false;
 
+  /// Next sequence number when a tile is first added. Reset when tiles are cleared.
+  int _nextSequence = 0;
+  /// Stable display order for single-section mode (distance → fit → sequence); visible region can be frozen.
+  List<PetTileData> _displayList = [];
+  /// Ids of cards currently visible; their order is preserved until they scroll off.
+  final Set<String> _visibleItemIds = {};
+
+  /// Selected cat type when we last loaded the list; used to requery when user changes type on Fit tab.
+  String? _lastSelectedTypeWhenLoaded;
+
+  /// Cache: type name (lowercase) -> fit score vs chosen type. Invalid when chosen type changes.
+  Map<String, double>? _typeNameToFitScoreCache;
+  String? _typeNameToFitScoreChosen;
+
+  /// Map each archetype to its fit score vs the selected type (same type = same score). Used for sort order: distance group, then fit of archetype, then sequence.
+  Map<String, double> _getTypeNameToFitScore() {
+    final chosen = server.selectedPersonalityCatTypeName?.trim();
+    if (chosen == null || chosen.isEmpty) return {};
+    if (_typeNameToFitScoreCache != null && _typeNameToFitScoreChosen == chosen) {
+      return _typeNameToFitScoreCache!;
+    }
+    CatType? chosenCatType;
+    for (final ct in catType) {
+      if (ct.name.trim().toLowerCase() == chosen.toLowerCase()) {
+        chosenCatType = ct;
+        break;
+      }
+    }
+    if (chosenCatType == null) return {};
+    final chosenProfile = CatTypeFilterMapping.getTraitProfileForCatType(chosenCatType);
+    final map = <String, double>{};
+    for (final ct in catType) {
+      final profile = CatTypeFilterMapping.getTraitProfileForCatType(ct);
+      final score = CatFitService.computeFitScore(profile, chosenProfile);
+      map[ct.name.trim().toLowerCase()] = score;
+    }
+    _typeNameToFitScoreChosen = chosen;
+    _typeNameToFitScoreCache = map;
+    return map;
+  }
+
   List<Filters> filters = [];
   List<Filters> filters_backup = [];
   String? filterprocessing;
@@ -315,6 +358,7 @@ class AdoptGridState extends State<AdoptGrid> {
   }
 
   static const String _kLastSearchCatTypeKey = 'lastSearchCatType';
+  static const String _kTopFitButtonHintSeenKey = 'top_fit_button_hint_seen';
 
   /// Load saved cat type from SharedPreferences and set server.selectedPersonalityCatTypeName
   /// so the status chip bar shows the cat type (e.g. "🎯 Lap Legend") on first display.
@@ -396,6 +440,21 @@ class AdoptGridState extends State<AdoptGrid> {
     }
   }
 
+  /// Recomputes display list: full stable rank then freeze visible region. Call from setState when tiles or visibility change.
+  void _updateStableDisplayList() {
+    if (tiles.isEmpty) {
+      _displayList = [];
+      return;
+    }
+    final typeFit = _getTypeNameToFitScore();
+    final fullRanked = CatResultRanking.sortStableResults(tiles, chosenTypeName: server.selectedPersonalityCatTypeName, typeNameToFitScore: typeFit.isEmpty ? null : typeFit);
+    _displayList = CatResultRanking.applyRankingWithFrozenVisibleItems(
+      currentDisplayList: _displayList,
+      visibleIds: _visibleItemIds,
+      fullRanked: fullRanked,
+    );
+  }
+
   /// Returns band index 0..3 for distance (null/unknown -> 3 for 50+).
   static int _bandIndexForDistance(double? miles) {
     final d = miles ?? 999.0;
@@ -449,14 +508,16 @@ class AdoptGridState extends State<AdoptGrid> {
       });
     }
 
-    // Neither distance nor date: single section sorted by score.
+    // Neither distance nor date: single section with stable ranking (distance → archetype fit → sequence) and frozen visible rows.
     if (!byDistance && !byDate) {
-      final copy = List<PetTileData>.from(tiles);
-      sortByScore(copy);
-      return [_DistanceSection(null, copy)];
+      final typeFit = _getTypeNameToFitScore();
+      final list = (_displayList.length == tiles.length)
+          ? _displayList
+          : CatResultRanking.sortStableResults(tiles, chosenTypeName: server.selectedPersonalityCatTypeName, typeNameToFitScore: typeFit.isEmpty ? null : typeFit);
+      return [_DistanceSection(null, list)];
     }
 
-    // Time grouping (sort by recent): sort by date newest first, then group into time bands.
+    // Date grouping: API sorts by -animals.updatedDate. Group by date categories (Today, Past 7 days, ...); within each section sort by distance → fit → sequence.
     if (byDate) {
       final copy = List<PetTileData>.from(tiles);
       copy.sort((a, b) {
@@ -469,7 +530,8 @@ class AdoptGridState extends State<AdoptGrid> {
       int currentBand = -1;
       void flush() {
         if (current.isEmpty) return;
-        sortByScore(current);
+        final typeFit = _getTypeNameToFitScore();
+        CatResultRanking.sortByTypeThenSequence(current, chosenTypeName: server.selectedPersonalityCatTypeName, typeNameToFitScore: typeFit.isEmpty ? null : typeFit);
         sections.add(_DistanceSection(_kTimeBands[currentBand].label, List.from(current)));
         current = [];
       }
@@ -485,7 +547,7 @@ class AdoptGridState extends State<AdoptGrid> {
       return sections;
     }
 
-    // Distance grouping: sort by distance (null last), then one pass assign to band; on new band sort previous by score and emit.
+    // Distance grouping: API sorts by animals.distance. Group by distance bands; within each section sort by fit → sequence (stable).
     final copy = List<PetTileData>.from(tiles);
     copy.sort((a, b) {
       final da = a.distanceMiles ?? 999.0;
@@ -497,7 +559,8 @@ class AdoptGridState extends State<AdoptGrid> {
     int currentBand = -1;
     void flush() {
       if (current.isEmpty) return;
-      sortByScore(current);
+      final typeFit = _getTypeNameToFitScore();
+      CatResultRanking.sortByTypeThenSequence(current, chosenTypeName: server.selectedPersonalityCatTypeName, typeNameToFitScore: typeFit.isEmpty ? null : typeFit);
       sections.add(_DistanceSection(_kDistanceBands[currentBand].label, List.from(current)));
       current = [];
     }
@@ -538,7 +601,7 @@ class AdoptGridState extends State<AdoptGrid> {
     const mainAxisSpacing = 14.0;
     const crossAxisSpacing = 12.0;
 
-    // Single section without label: one grid (e.g. sort by date or flat list).
+    // Single section: stable-ranked list with visible-region freeze (cards on screen do not reshuffle).
     if (sections.length == 1 && sections[0].label == null) {
       final list = sections[0].tiles;
       return MasonryGridView.count(
@@ -550,13 +613,23 @@ class AdoptGridState extends State<AdoptGrid> {
         crossAxisSpacing: crossAxisSpacing,
         itemBuilder: (context, index) {
           final tile = list[index];
-          return GestureDetector(
-            onTap: () => _navigateAndDisplaySelection(context, tile),
-            child: GoldPetCard(
-              tile: tile,
-              favorites: favorites,
-              onVideoBadgeFirstSeen: _onVideoBadgeFirstSeen,
-              showVideoGlow: _videoBadgeGlowIds.contains(tile.id ?? ''),
+          return VisibilityDetector(
+            key: Key('rank_${tile.id ?? index}'),
+            onVisibilityChanged: (info) {
+              final id = tile.id;
+              if (id == null || id.isEmpty) return;
+              final visible = info.visibleFraction > 0.05;
+              final changed = visible ? _visibleItemIds.add(id) : _visibleItemIds.remove(id);
+              if (changed && mounted) setState(() => _updateStableDisplayList());
+            },
+            child: GestureDetector(
+              onTap: () => _navigateAndDisplaySelection(context, tile),
+              child: GoldPetCard(
+                tile: tile,
+                favorites: favorites,
+                onVideoBadgeFirstSeen: _onVideoBadgeFirstSeen,
+                showVideoGlow: _videoBadgeGlowIds.contains(tile.id ?? ''),
+              ),
             ),
           );
         },
@@ -811,6 +884,27 @@ Future<void> refreshZipFromCanonical() async {
   setState(() {});
 }
 
+/// Call when switching to Adopt tab. If the user changed the selected cat type on the Fit tab, requery the adoption list.
+void requeryIfSelectedTypeChanged() {
+  final current = server.selectedPersonalityCatTypeName?.trim();
+  final last = _lastSelectedTypeWhenLoaded?.trim();
+  if (current == last) return;
+  _lastSelectedTypeWhenLoaded = server.selectedPersonalityCatTypeName;
+  if (server.zip.isEmpty || server.zip == '?') return;
+  setState(() {
+    tiles = [];
+    loadedPets = 0;
+    maxPets = -1;
+    _nextSequence = 0;
+    _displayList = [];
+    _visibleItemIds.clear();
+    _videoBadgeSeenIds.clear();
+    _videoBadgeGlowIds.clear();
+    count = 'Processing';
+  });
+  getPets();
+}
+
 // ----------------------------------------------------------------------
 //                         CLEAR ZIP CODE (long-press)
 // ----------------------------------------------------------------------
@@ -823,6 +917,9 @@ Future<void> _clearZipCode() async {
     tiles = [];
     loadedPets = 0;
     maxPets = -1;
+    _nextSequence = 0;
+    _displayList = [];
+    _visibleItemIds.clear();
     _videoBadgeSeenIds.clear();
     _videoBadgeGlowIds.clear();
   });
@@ -904,6 +1001,9 @@ Future<void> askForZip() async {
       tiles = [];
       loadedPets = 0;
       maxPets = -1;
+      _nextSequence = 0;
+      _displayList = [];
+      _visibleItemIds.clear();
       _videoBadgeSeenIds.clear();
       _videoBadgeGlowIds.clear();
       getPets();
@@ -1116,6 +1216,9 @@ void search() async {
     tiles = [];
     loadedPets = 0;
     maxPets = -1;
+    _nextSequence = 0;
+    _displayList = [];
+    _visibleItemIds.clear();
     _videoBadgeSeenIds.clear();
     _videoBadgeGlowIds.clear();
     main.favoritesSelected = false;
@@ -1138,6 +1241,53 @@ void search() async {
     if (mounted) setState(() {});
   }
 
+  /// Show SnackBar hint to tap 🎯 to use top fit, until user has tapped the target button (persisted).
+  Future<void> maybeShowTopFitHint() async {
+    try {
+      final prefs = await _prefs;
+      if (prefs.getBool(_kTopFitButtonHintSeenKey) == true) return;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tap 🎯 to sort by your top Fit match.'),
+          duration: Duration(seconds: 3),
+          backgroundColor: Color(0xFF6B4E9D),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  /// Called when user taps the 🎯 button: set selected cat type to top fit, save to prefs, stop showing hint.
+  Future<void> applyTopFitFromButton() async {
+    try {
+      final prefs = await _prefs;
+      await prefs.setBool(_kTopFitButtonHintSeenKey, true);
+    } catch (_) {}
+    final top = CatTypeFilterMapping.getTopPersonalityCatType(server);
+    if (top == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Set your cat type on the Fit tab first.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+    await setChosenCatTypeFromFit(top.name);
+    requeryIfSelectedTypeChanged();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Set the selected cat type to ${top.name}.'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: const Color(0xFF6B4E9D),
+        ),
+      );
+    }
+  }
+
 // ----------------------------------------------------------------------
 //                           FAVORITES HANDLER
 // ----------------------------------------------------------------------
@@ -1148,6 +1298,9 @@ void setFavorites(bool favorited) {
     tiles = [];
     loadedPets = 0;
     maxPets = -1;
+    _nextSequence = 0;
+    _displayList = [];
+    _visibleItemIds.clear();
     _videoBadgeSeenIds.clear();
     _videoBadgeGlowIds.clear();
 
@@ -1175,7 +1328,7 @@ void _scrollListener() {
   if (!mounted || !controller.hasClients) return;
   if (controller.position.extentAfter < 500) {
     if (!_isLoadingPets && loadedPets < maxPets) {
-      setState(() => getPets());
+      setState(() { getPets(); });
     }
   }
   _updateStickySectionFromScroll();
@@ -1283,14 +1436,9 @@ Future<void> _resolvePersonalityFitForTiles() async {
     }));
     if (mounted) {
       setState(() {
-        // Only sort tiles in place when not using distance or time groups (so grouping keeps API order).
         if (globals.sortMethod != 'animals.distance' &&
             globals.sortMethod != '-animals.updatedDate') {
-          tiles.sort((a, b) {
-            final sa = a.personalityFitScore ?? -1.0;
-            final sb = b.personalityFitScore ?? -1.0;
-            return sb.compareTo(sa);
-          });
+          _updateStableDisplayList();
         }
       });
     }
@@ -1514,6 +1662,9 @@ void getPets() async {
       tiles = [];
       maxPets = 0;
       count = "No Matches";
+      _nextSequence = 0;
+      _displayList = [];
+      _visibleItemIds.clear();
       _videoBadgeSeenIds.clear();
       _videoBadgeGlowIds.clear();
     });
@@ -1551,6 +1702,7 @@ void getPets() async {
           for (var petData in petDecoded.data!) {
             try {
               final tile = PetTileData(petData, included);
+              tile.sequenceNumber = _nextSequence++;
               tile.suggestedCatTypeName =
                   DescriptionCatTypeScorer.getTopCatTypeName(tile.descriptionText);
               tiles.add(tile);
@@ -1558,6 +1710,10 @@ void getPets() async {
               print("Skip pet ${petData.id}: $e");
             }
           }
+          if (globals.sortMethod != 'animals.distance' && globals.sortMethod != '-animals.updatedDate') {
+            _updateStableDisplayList();
+          }
+          _lastSelectedTypeWhenLoaded = server.selectedPersonalityCatTypeName;
         });
         // Defer so layout/height callbacks from new tiles settle before fit batches run setState.
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1574,6 +1730,9 @@ void getPets() async {
       tiles = [];
       maxPets = 0;
       count = "No Matches";
+      _nextSequence = 0;
+      _displayList = [];
+      _visibleItemIds.clear();
       _videoBadgeSeenIds.clear();
       _videoBadgeGlowIds.clear();
     });

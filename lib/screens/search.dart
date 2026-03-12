@@ -98,6 +98,8 @@ class SearchScreenState extends State<SearchScreen> {
   List<String> _selectedShelterOrgIds = [];
   /// Selected shelter names (same order as _selectedShelterOrgIds; for display and when reopening Select Shelters).
   List<String> _selectedShelterNames = [];
+  /// True once the user has applied a cat type (or otherwise changed filters) from the UI. Prevents async _loadSearchState from overwriting with stale prefs.
+  bool _filtersModifiedByUserSinceOpen = false;
 
   /// If a personality preset is selected, switch to Custom and persist. Call after user edits a personality filter.
   void _switchToCustomPersonalityIfPresetSelected() {
@@ -537,37 +539,40 @@ class SearchScreenState extends State<SearchScreen> {
       if (savedFiltersJson != null && savedFiltersJson.isNotEmpty) {
         final Map<String, dynamic> savedFilters = jsonDecode(savedFiltersJson);
 
-        for (var filter in widget.filteringOptions) {
-          // Skip saved searches category
-          if (filter.classification == CatClassification.saves) {
-            continue;
-          }
-
-          final key = filter.name;
-          final listKey = '${filter.name}:list';
-
-          if (filter.list) {
-            // Load list filter values (key by name)
-            if (savedFilters.containsKey(listKey)) {
-              final List<dynamic> savedValues = savedFilters[listKey];
-              filter.choosenListValues =
-                  savedValues.map((v) => v as int).toList();
+        // If user already applied a cat type (or changed filters), do not overwrite — avoids race where _loadSearchState completes after dropdown selection.
+        if (!_filtersModifiedByUserSinceOpen) {
+          for (var filter in widget.filteringOptions) {
+            // Skip saved searches category
+            if (filter.classification == CatClassification.saves) {
+              continue;
             }
-          } else {
-            // Load single value (key by name)
-            if (savedFilters.containsKey(key)) {
-              final savedValue = savedFilters[key];
-              // Zip code is never restored from lastSearchFilters; use canonical store below so adoption-list zip syncs here
-              if (filter.fieldName == 'zipCode') continue;
-              // Handle different types (String, bool, int)
-              if (savedValue is String) {
-                filter.choosenValue = savedValue;
-              } else if (savedValue is bool) {
-                filter.choosenValue = savedValue;
-              } else if (savedValue is int) {
-                filter.choosenValue = savedValue;
-              } else {
-                filter.choosenValue = savedValue.toString();
+
+            final key = filter.name;
+            final listKey = '${filter.name}:list';
+
+            if (filter.list) {
+              // Load list filter values (key by name)
+              if (savedFilters.containsKey(listKey)) {
+                final List<dynamic> savedValues = savedFilters[listKey];
+                filter.choosenListValues =
+                    savedValues.map((v) => v as int).toList();
+              }
+            } else {
+              // Load single value (key by name)
+              if (savedFilters.containsKey(key)) {
+                final savedValue = savedFilters[key];
+                // Zip code is never restored from lastSearchFilters; use canonical store below so adoption-list zip syncs here
+                if (filter.fieldName == 'zipCode') continue;
+                // Handle different types (String, bool, int)
+                if (savedValue is String) {
+                  filter.choosenValue = savedValue;
+                } else if (savedValue is bool) {
+                  filter.choosenValue = savedValue;
+                } else if (savedValue is int) {
+                  filter.choosenValue = savedValue;
+                } else {
+                  filter.choosenValue = savedValue.toString();
+                }
               }
             }
           }
@@ -1156,14 +1161,57 @@ class SearchScreenState extends State<SearchScreen> {
                         value == _kCustomId ? 'Custom' : toApply?.name,
                       );
                       if (toApply != null) {
-                        CatTypeFilterMapping.applyCatTypeNonSliderParts(
+                        _filtersModifiedByUserSinceOpen = true;
+                        // Use full apply so chips (Lap Cat, etc.) are set; then reset sliders to 0 so we can animate them.
+                        CatTypeFilterMapping.applyCatTypeToFilterOptions(
                           toApply,
                           widget.filteringOptions,
+                          server: server,
                         );
+                        for (final f in widget.filteringOptions) {
+                          if (f.classification == CatClassification.personality &&
+                              f.slider &&
+                              f.list &&
+                              f.options.isNotEmpty) {
+                            f.choosenListValues = [0];
+                          }
+                        }
+                        // Explicitly re-apply non-slider chips (list and single-select); set choosenValue for dropdowns (list: false).
+                        final chipUpdates = CatTypeFilterMapping.getPersonalityFiltersForCatType(toApply);
+                        for (final f in widget.filteringOptions) {
+                          if (f.classification != CatClassification.personality ||
+                              f.slider ||
+                              f.options.isEmpty) continue;
+                          dynamic chipValue;
+                          for (final entry in chipUpdates.entries) {
+                            if (entry.key.toString().toLowerCase() == f.name.toLowerCase()) {
+                              chipValue = entry.value;
+                              break;
+                            }
+                          }
+                          if (chipValue == null) continue;
+                          final want = chipValue.toString().trim().toLowerCase();
+                          if (want.isEmpty || want == 'any') continue;
+                          final opt = CatTypeFilterMapping.optionForYesNoAny(f, want);
+                          if (opt != null) {
+                            f.choosenListValues = [opt.value];
+                            if (!f.list) f.choosenValue = opt.search ?? opt.displayName;
+                          } else {
+                            final match = _findClosestOption(f.options, want, isNumeric: false);
+                            if (match != null &&
+                                match.search != 'Any' &&
+                                match.search != 'Any Type' &&
+                                match.displayName != 'Any') {
+                              f.choosenListValues = [match.value];
+                              if (!f.list) f.choosenValue = match.search ?? match.displayName;
+                            }
+                          }
+                        }
                       }
                     });
                     _saveCatTypeToPrefs(value);
                     if (toApply != null && mounted) {
+                      _saveSearchState();
                       WidgetsBinding.instance.addPostFrameCallback((_) async {
                         if (!mounted) return;
                         setState(() {
@@ -1207,6 +1255,54 @@ class SearchScreenState extends State<SearchScreen> {
                             );
                             await Future.delayed(const Duration(milliseconds: 200));
                           }
+                          if (!mounted) return;
+                          // Re-apply non-slider chips; set choosenValue for single-select (e.g. Lap Cat with list: false).
+                          setState(() {
+                            final chipUpdates = CatTypeFilterMapping.getPersonalityFiltersForCatType(toApply!);
+                            for (final f in widget.filteringOptions) {
+                              if (f.classification != CatClassification.personality ||
+                                  f.slider ||
+                                  f.options.isEmpty) continue;
+                              dynamic chipValue;
+                              for (final entry in chipUpdates.entries) {
+                                if (entry.key.toString().toLowerCase() == f.name.toLowerCase()) {
+                                  chipValue = entry.value;
+                                  break;
+                                }
+                              }
+                              if (chipValue == null) continue;
+                              final want = chipValue.toString().trim().toLowerCase();
+                              if (want.isEmpty || want == 'any') continue;
+                              final opt = CatTypeFilterMapping.optionForYesNoAny(f, want);
+                              if (opt != null) {
+                                f.choosenListValues = [opt.value];
+                                if (!f.list) f.choosenValue = opt.search ?? opt.displayName;
+                              } else {
+                                final match = _findClosestOption(f.options, want, isNumeric: false);
+                                if (match != null &&
+                                    match.search != 'Any' &&
+                                    match.search != 'Any Type' &&
+                                    match.displayName != 'Any') {
+                                  f.choosenListValues = [match.value];
+                                  if (!f.list) f.choosenValue = match.search ?? match.displayName;
+                                }
+                              }
+                            }
+                            // Defensive: Lap Cat = Yes (list or single-select)
+                            if (chipUpdates['Lap Cat'] == 'Yes' || chipUpdates['Lap Cat']?.toString().toLowerCase() == 'yes') {
+                              final lapCatFilters = widget.filteringOptions.where((f) =>
+                                  f.name == 'Lap Cat' &&
+                                  f.classification == CatClassification.personality &&
+                                  !f.slider);
+                              if (lapCatFilters.isNotEmpty) {
+                                final yesOpt = CatTypeFilterMapping.optionForYesNoAny(lapCatFilters.first, 'yes');
+                                if (yesOpt != null) {
+                                  lapCatFilters.first.choosenListValues = [yesOpt.value];
+                                  if (!lapCatFilters.first.list) lapCatFilters.first.choosenValue = yesOpt.search ?? yesOpt.displayName;
+                                }
+                              }
+                            }
+                          });
                           if (!mounted) return;
                           final personalityUpdates = CatTypeFilterMapping.getPersonalityFiltersForCatType(toApply!);
                           final sliderTargets = CatTypeFilterMapping.getSliderTargetValuesForCatType(toApply!);
@@ -2609,18 +2705,43 @@ class SearchScreenState extends State<SearchScreen> {
             server: globals.FelineFinderServer.instance);
         appliedFilters.add('Cat type: ${matchedType.name}');
         print('✅ Applied cat type: ${matchedType.name}');
-        // Add updated personality filters to filtersToUpdate so the Personality panel
-        // opens and chip selection animates for each trait.
+        // Apply non-slider personality chips (Lap Cat, Gentleness, etc.) from cat type so they show Yes, not Any.
         final personalityUpdates =
             CatTypeFilterMapping.getPersonalityFiltersForCatType(matchedType);
         for (final filterName in personalityUpdates.keys) {
+          final value = personalityUpdates[filterName];
+          if (value == null) continue;
+          filterOption? filter;
           for (final f in widget.filteringOptions) {
             if (f.classification == CatClassification.personality &&
-                f.name == filterName &&
-                !filtersToUpdate.contains(f)) {
-              filtersToUpdate.add(f);
+                f.name.toLowerCase() == filterName.toString().toLowerCase() &&
+                !f.slider) {
+              filter = f;
               break;
             }
+          }
+          if (filter == null) continue;
+          final f = filter;
+          if (f.list && f.options.isNotEmpty) {
+            final matchingOption = _findClosestOption(
+                f.options, value.toString(), isNumeric: false);
+            if (matchingOption != null &&
+                matchingOption.search != 'Any' &&
+                matchingOption.search != 'Any Type') {
+              final anyOption = f.options.firstWhere(
+                (opt) =>
+                    opt.search == 'Any' ||
+                    opt.search == 'Any Type' ||
+                    opt.displayName == 'Any',
+                orElse: () => f.options.last,
+              );
+              f.choosenListValues.remove(anyOption.value);
+              f.choosenListValues.add(matchingOption.value);
+              if (!filtersToUpdate.contains(f)) filtersToUpdate.add(f);
+              print('✅ Set ${f.name} to ${matchingOption.displayName} (from cat type)');
+            }
+          } else {
+            if (!filtersToUpdate.contains(f)) filtersToUpdate.add(f);
           }
         }
       } else {
@@ -2831,7 +2952,7 @@ class SearchScreenState extends State<SearchScreen> {
       'gentleness': 'Gentleness',
       'lapCat': 'Lap Cat',
       'likesToys': 'Likes toys',
-      'outgoing': 'outgoing',
+      'outgoing': 'Outgoing',
       'curious': 'Curious',
       'timidShy': 'Timid / shy',
       'newPeopleReaction': 'New People',
@@ -3163,6 +3284,11 @@ class SearchScreenState extends State<SearchScreen> {
             }
           }
 
+          // Normalize bool to Yes/No for Yes/No/Any list filters (AI sometimes returns true/false)
+          if (!applied && filter.list && filter.fieldName == 'animals.descriptionText') {
+            if (value == true) value = 'Yes';
+            if (value == false) value = 'No';
+          }
           if (!applied && filter.list) {
             applied = _applyListFilter(filter, value, aiField);
           } else if (!applied && !filter.list) {
@@ -3410,6 +3536,17 @@ class SearchScreenState extends State<SearchScreen> {
       }
     } catch (e) {
       // Continue to next matching strategy
+    }
+
+    // Edge case: Match by searchTerms (e.g. "calm" -> Yes for Calmness)
+    for (final opt in options) {
+      if (opt.search == "Any" || opt.search == "Any Type") continue;
+      for (final term in opt.searchTerms) {
+        if (term.toLowerCase() == normalizedSearch ||
+            normalizedSearch.contains(term.toLowerCase())) {
+          return opt;
+        }
+      }
     }
 
     // Edge case: Numeric matching for distance

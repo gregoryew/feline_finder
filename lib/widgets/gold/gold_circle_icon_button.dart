@@ -4,12 +4,15 @@ class GoldCircleIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final bool isSelected; // for favorites toggle
+  /// If set, show this emoji instead of [icon] (e.g. '🎯' for target).
+  final String? emoji;
 
   const GoldCircleIconButton({
     Key? key,
     required this.icon,
     required this.onTap,
     this.isSelected = false,
+    this.emoji,
   }) : super(key: key);
 
   @override
@@ -60,18 +63,33 @@ class GoldCircleIconButton extends StatelessWidget {
             ),
           ),
           child: Center(
-            child: Icon(
-              icon,
-              color: isSelected ? Colors.pinkAccent : Colors.white,
-              size: 26,
-              shadows: const [
-                Shadow(
-                  offset: Offset(0, 1),
-                  blurRadius: 2,
-                  color: Colors.black45,
-                ),
-              ],
-            ),
+            child: emoji != null
+                ? Text(
+                    emoji!,
+                    style: TextStyle(
+                      fontSize: 26,
+                      height: 1.2,
+                      shadows: const [
+                        Shadow(
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
+                          color: Colors.black45,
+                        ),
+                      ],
+                    ),
+                  )
+                : Icon(
+                    icon,
+                    color: isSelected ? Colors.pinkAccent : Colors.white,
+                    size: 26,
+                    shadows: const [
+                      Shadow(
+                        offset: Offset(0, 1),
+                        blurRadius: 2,
+                        color: Colors.black45,
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),

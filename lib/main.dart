@@ -798,6 +798,8 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         PersonalityFitScreenKey.currentState?.snapshotTopCatTypeForWhenUserEntered();
       } else if (index == 1) {
         AdoptionGridKey.currentState?.refreshZipFromCanonical();
+        AdoptionGridKey.currentState?.requeryIfSelectedTypeChanged();
+        AdoptionGridKey.currentState?.maybeShowTopFitHint();
       } else if (index == 3) {
         (FavoritesListScreenKey.currentState as dynamic)?.refreshFavorites();
       } else if (index == 4) {
@@ -806,45 +808,18 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
-  /// Called when user taps Adopt tab from Fit. If top cat type changed, ask to set as chosen; else just switch.
+  /// Called when user taps Adopt tab from Fit. Switch without dialog; user can set top fit via 🎯 on Adopt tab.
   Future<void> _onLeavingFitForAdopt() async {
-    final fitState = PersonalityFitScreenKey.currentState;
-    final topWhenEntered = fitState?.getTopCatTypeNameWhenEntered();
-    final topNow = fitState?.getCurrentTopCatTypeName();
-    final bool topChanged = topNow != null &&
-        topWhenEntered != null &&
-        topNow != topWhenEntered;
-
-    if (topChanged) {
-      final useAsChosen = await showDialog<bool>(
-        context: context,
-        builder: (BuildContext context) => AlertDialog(
-          title: const Text('Set cat type for adoption list?'),
-          content: Text(
-            'Do you want $topNow as the chosen cat type for the adoption list?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('No'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Yes'),
-            ),
-          ],
-        ),
-      );
-      if (!mounted) return;
-      if (useAsChosen == true) {
-        await AdoptionGridKey.currentState?.setChosenCatTypeFromFit(topNow);
-      }
-    }
-
     globals.sheltersOpenedFromSearch = false;
     PersonalityFitScreenKey.currentState?.dismissHelpAndSave();
     FitScreenKey.currentState?.dismissHelpAndSave();
     setState(() => _selectedIndex = 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await AdoptionGridKey.currentState?.refreshZipFromCanonical();
+      AdoptionGridKey.currentState?.requeryIfSelectedTypeChanged();
+      AdoptionGridKey.currentState?.maybeShowTopFitHint();
+    });
   }
 
   List<Widget>? getTrailingButtons(selectedIndex) {
@@ -860,8 +835,16 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(width: 15),
       ];
     } else if (selectedIndex == 1) {
-      // Adopt - search button
+      // Adopt - top-fit (🎯) then search
       return <Widget>[
+        GoldCircleIconButton(
+          icon: Icons.gps_fixed,
+          emoji: '🎯',
+          onTap: () {
+            AdoptionGridKey.currentState?.applyTopFitFromButton();
+          },
+        ),
+        const SizedBox(width: 15),
         GoldCircleIconButton(
           icon: Icons.search,
           onTap: () {

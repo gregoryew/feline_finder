@@ -125,8 +125,31 @@ class CatTypeFilterMapping {
     return out;
   }
 
+  /// Resolves the option value for Yes/No/Any from [filter]'s options by label, so ordering (Any=0/Yes=2 or Yes=0/Any=2) doesn't matter.
+  /// [want] is 'yes', 'no', or 'any'. Returns null if no matching option.
+  static int? valueForYesNoAny(filterOption filter, String want) {
+    final opt = optionForYesNoAny(filter, want);
+    return opt?.value;
+  }
+
+  /// Resolves the listOption for Yes/No/Any so callers can set both choosenListValues and choosenValue (for single-select dropdowns like Lap Cat with list: false).
+  static listOption? optionForYesNoAny(filterOption filter, String want) {
+    final w = want.trim().toLowerCase();
+    for (final opt in filter.options) {
+      final s = opt.search?.toString().trim().toLowerCase() ?? '';
+      final d = opt.displayName.toString().trim().toLowerCase();
+      final isAny = s == 'any' || d == 'any' || opt.search == 'Any' || opt.search == 'Any Type' || opt.search == '';
+      final isYes = s == 'yes' || d == 'yes' || opt.search == true;
+      final isNo = s == 'no' || d == 'no' || opt.search == false;
+      if (w == 'any' && isAny) return opt;
+      if (w == 'yes' && isYes) return opt;
+      if (w == 'no' && isNo) return opt;
+    }
+    return null;
+  }
+
   /// Sets all personality filters to "Any" so a cat type mapping starts from a clean state.
-  /// Slider filters are set to 0 (Any); other list filters to the "Any" option.
+  /// Slider filters are set to 0 (Any); Yes/No/Any list filters use the option whose label is "Any".
   static void setPersonalityFiltersToAny(List<filterOption> filteringOptions) {
     final personalityFilters = filteringOptions
         .where((f) => f.classification == CatClassification.personality)
@@ -140,8 +163,8 @@ class CatTypeFilterMapping {
           if (filter.slider) {
             filter.choosenListValues = [0]; // 0 = Any for personality sliders
           } else {
-            final anyOption = filter.options.last;
-            filter.choosenListValues = [anyOption.value];
+            final anyVal = valueForYesNoAny(filter, 'any');
+            filter.choosenListValues = [anyVal ?? filter.options.last.value];
           }
         }
       } else {
@@ -258,24 +281,73 @@ class CatTypeFilterMapping {
     // Do not set New People or other non-slider chip filters when applying a type.
   }
 
+  /// Applies only the non-slider personality chips (Lap Cat, Gentleness, etc.) from [type]
+  /// to [filteringOptions]. Call after applyCatTypeNonSliderParts when using slider animation
+  /// so chips show Yes/No instead of staying at Any.
+  static void applyCatTypeChipFiltersOnly(
+    CatType type,
+    List<filterOption> filteringOptions,
+  ) {
+    final chipUpdates = getPersonalityFiltersForCatType(type);
+    final personalityFilters = filteringOptions
+        .where((f) =>
+            f.classification == CatClassification.personality &&
+            !f.slider &&
+            f.options.isNotEmpty)
+        .toList();
+    for (final filter in personalityFilters) {
+      dynamic chipValue;
+      for (final entry in chipUpdates.entries) {
+        if (entry.key.toString().toLowerCase() == filter.name.toLowerCase()) {
+          chipValue = entry.value;
+          break;
+        }
+      }
+      if (chipValue == null) continue;
+      final want = chipValue.toString().trim().toLowerCase();
+      if (want.isEmpty || want == 'any') continue;
+      final opt = optionForYesNoAny(filter, want);
+      if (opt != null) {
+        filter.choosenListValues = [opt.value];
+        if (!filter.list) filter.choosenValue = opt.search ?? opt.displayName;
+        continue;
+      }
+      listOption? match;
+      final anyVal = valueForYesNoAny(filter, 'any');
+      for (final o in filter.options) {
+        if (anyVal != null && o.value == anyVal) continue;
+        final s = o.search?.toString().trim().toLowerCase() ?? '';
+        final d = o.displayName.toString().trim().toLowerCase();
+        if (s == want || d == want) {
+          match = o;
+          break;
+        }
+      }
+      if (match != null) {
+        filter.choosenListValues = [match.value];
+        if (!filter.list) filter.choosenValue = match.search ?? match.displayName;
+      }
+    }
+  }
+
   /// Applies a cat type's personality filters to [filteringOptions].
-  /// Only slider personality filters are set (Energy Level, Playfulness, Affectionate, etc.).
-  /// Non-slider personality chips (Calmness, Lap Cat, Gentleness, New People, etc.) are left at "Any"
-  /// so the API search is not over-restricted and returns results; personality is used for client-side scoring.
+  /// Sets sliders and Yes/No/Any chips (0=Yes, 1=No, 2=Any) from the cat type; does not call setPersonalityFiltersToAny
+  /// so chips like Lap Cat are set to 0 (Yes) in one pass and never overwritten with 2 (Any).
   static void applyCatTypeToFilterOptions(
     CatType type,
     List<filterOption> filteringOptions, {
     globals.FelineFinderServer? server,
   }) {
-    setPersonalityFiltersToAny(filteringOptions);
-
     final sliderTargets = getSliderTargetValuesForCatType(type);
     final personalityFilters = filteringOptions
         .where((f) => f.classification == CatClassification.personality)
         .toList();
+    final chipUpdates = getPersonalityFiltersForCatType(type);
 
     for (final filter in personalityFilters) {
       if (filter.slider && filter.list && filter.options.isNotEmpty) {
+        // Sliders: 0 = Any, then set to target 1–5 if present
+        filter.choosenListValues = [0];
         final value = sliderTargets[filter.name];
         if (value != null) {
           final clamped = value.clamp(1, 5);
@@ -285,8 +357,65 @@ class CatTypeFilterMapping {
         }
         continue;
       }
-      // Do not set non-slider personality filters (Calmness, Lap Cat, Gentleness, New People, etc.)
-      // when applying a type; they stay at "Any" to avoid zero API matches.
+      // Non-slider Yes/No/Any (Lap Cat, Calmness, etc.): include list and single-select (list: false); set both choosenListValues and choosenValue
+      if (filter.options.isEmpty) continue;
+      dynamic chipValue;
+      for (final entry in chipUpdates.entries) {
+        if (entry.key.toString().toLowerCase() == filter.name.toLowerCase()) {
+          chipValue = entry.value;
+          break;
+        }
+      }
+      final want = chipValue == null
+          ? null
+          : chipValue.toString().trim().toLowerCase();
+      if (want == null || want.isEmpty || want == 'any') {
+        final anyOpt = optionForYesNoAny(filter, 'any');
+        final anyVal = anyOpt?.value ?? filter.options.last.value;
+        filter.choosenListValues = [anyVal];
+        if (!filter.list && anyOpt != null) filter.choosenValue = anyOpt.search ?? anyOpt.displayName;
+        continue;
+      }
+      listOption? opt = optionForYesNoAny(filter, want);
+      if (opt != null) {
+        filter.choosenListValues = [opt.value];
+        if (!filter.list) filter.choosenValue = opt.search ?? opt.displayName;
+        continue;
+      }
+      listOption? match;
+      final anyVal = valueForYesNoAny(filter, 'any');
+      for (final o in filter.options) {
+        if (anyVal != null && o.value == anyVal) continue;
+        final s = o.search?.toString().trim().toLowerCase() ?? '';
+        final d = o.displayName.toString().trim().toLowerCase();
+        if (s == want || d == want) {
+          match = o;
+          break;
+        }
+      }
+      if (match != null) {
+        filter.choosenListValues = [match.value];
+        if (!filter.list) filter.choosenValue = match.search ?? match.displayName;
+      } else {
+        final fallbackAny = optionForYesNoAny(filter, 'any');
+        final v = fallbackAny?.value ?? filter.options.last.value;
+        filter.choosenListValues = [v];
+        if (!filter.list && fallbackAny != null) filter.choosenValue = fallbackAny.search ?? fallbackAny.displayName;
+      }
+    }
+
+    // Bulletproof: ensure Lap Cat is set to Yes when type has high affection (works for list and single-select)
+    if (chipUpdates['Lap Cat']?.toString().toLowerCase() == 'yes') {
+      for (final f in personalityFilters) {
+        if (f.name == 'Lap Cat' && !f.slider && f.options.isNotEmpty) {
+          final yesOpt = optionForYesNoAny(f, 'yes');
+          if (yesOpt != null) {
+            f.choosenListValues = [yesOpt.value];
+            if (!f.list) f.choosenValue = yesOpt.search ?? yesOpt.displayName;
+          }
+          break;
+        }
+      }
     }
 
     // Set Activity Level and Energy level from this cat type's Energy Level stat (1–2→low, 3→medium, 4–5→high).

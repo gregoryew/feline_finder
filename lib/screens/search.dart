@@ -94,6 +94,8 @@ class SearchScreenState extends State<SearchScreen> {
   String? _lastLoadedSearchName; // Track which search is currently loaded
   /// Cat type dropdown: null = None, 'my_type' = Apply my type, CatType = specific type.
   Object? _selectedCatTypeValue;
+  /// True if the user changed the cat type dropdown this session; if false, adoption list keeps type from prefs.
+  bool _userSelectedCatTypeThisSession = false;
   /// Selected shelter org IDs. Used in generateFilters as orgId filter.
   List<String> _selectedShelterOrgIds = [];
   /// Selected shelter names (same order as _selectedShelterOrgIds; for display and when reopening Select Shelters).
@@ -1147,6 +1149,7 @@ class SearchScreenState extends State<SearchScreen> {
                   ),
                   items: items,
                   onChanged: (Object? value) {
+                    _userSelectedCatTypeThisSession = true;
                     CatType? toApply;
                     if (value == _kApplyMyTypeId) {
                       toApply = CatTypeFilterMapping.getTopPersonalityCatType(server);
@@ -2138,7 +2141,7 @@ class SearchScreenState extends State<SearchScreen> {
               final resultWithCatType = FilterResult(
                 result.filters,
                 result.filterprocessing,
-                selectedCatTypeName: server.selectedPersonalityCatTypeName,
+                selectedCatTypeName: _userSelectedCatTypeThisSession ? server.selectedPersonalityCatTypeName : null,
               );
               print("Generated ${result.filters.length} filters, filterprocessing: ${result.filterprocessing}");
               
@@ -5878,7 +5881,10 @@ class SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  static const String _kChosenCatTypeSourceKey = 'chosen_cat_type_source';
+
   /// Save selected cat type to SharedPreferences so it can be restored when returning to search.
+  /// Also sets chosen_cat_type_source = 'search' so the adoption list shows "(from Search)".
   Future<void> _saveCatTypeToPrefs(Object? value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -5886,10 +5892,13 @@ class SearchScreenState extends State<SearchScreen> {
         await prefs.setString(_kLastSearchCatTypeKey, 'none');
       } else if (value == _kApplyMyTypeId) {
         await prefs.setString(_kLastSearchCatTypeKey, 'my_type');
+        await prefs.setString(_kChosenCatTypeSourceKey, 'search');
       } else if (value == _kCustomId) {
         await prefs.setString(_kLastSearchCatTypeKey, 'custom');
+        await prefs.setString(_kChosenCatTypeSourceKey, 'search');
       } else if (value is CatType) {
         await prefs.setString(_kLastSearchCatTypeKey, value.name);
+        await prefs.setString(_kChosenCatTypeSourceKey, 'search');
       } else {
         await prefs.setString(_kLastSearchCatTypeKey, 'none');
       }

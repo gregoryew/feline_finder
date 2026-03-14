@@ -33,6 +33,9 @@ class PetTileData {
   /// Used as final tiebreaker so the list does not jump when fit scores update.
   int? sequenceNumber;
 
+  /// Batch this tile belongs to (first page = 1, next = 2, …). Used for sort order so new pages append; on Sort, all become 1.
+  int? batchOrder;
+
   PetTileData(petDatum pet, List<Included> included) {
     id = pet.id;
     descriptionText = pet.attributes?.descriptionText;

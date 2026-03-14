@@ -799,7 +799,6 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       } else if (index == 1) {
         AdoptionGridKey.currentState?.refreshZipFromCanonical();
         AdoptionGridKey.currentState?.requeryIfSelectedTypeChanged();
-        AdoptionGridKey.currentState?.maybeShowTopFitHint();
       } else if (index == 3) {
         (FavoritesListScreenKey.currentState as dynamic)?.refreshFavorites();
       } else if (index == 4) {
@@ -808,17 +807,20 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     });
   }
 
-  /// Called when user taps Adopt tab from Fit. Switch without dialog; user can set top fit via 🎯 on Adopt tab.
+  /// Called when user taps Adopt tab from Fit. Type for adoption list is set from Fit (last-changed type).
   Future<void> _onLeavingFitForAdopt() async {
     globals.sheltersOpenedFromSearch = false;
     PersonalityFitScreenKey.currentState?.dismissHelpAndSave();
     FitScreenKey.currentState?.dismissHelpAndSave();
+    final top = CatTypeFilterMapping.getTopPersonalityCatType(globals.FelineFinderServer.instance);
+    if (top != null) {
+      await AdoptionGridKey.currentState?.setChosenCatTypeFromFit(top.name);
+    }
     setState(() => _selectedIndex = 1);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await AdoptionGridKey.currentState?.refreshZipFromCanonical();
       AdoptionGridKey.currentState?.requeryIfSelectedTypeChanged();
-      AdoptionGridKey.currentState?.maybeShowTopFitHint();
     });
   }
 
@@ -835,13 +837,12 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(width: 15),
       ];
     } else if (selectedIndex == 1) {
-      // Adopt - top-fit (🎯) then search
+      // Adopt - sort then search
       return <Widget>[
         GoldCircleIconButton(
-          icon: Icons.gps_fixed,
-          emoji: '🎯',
+          icon: Icons.sort,
           onTap: () {
-            AdoptionGridKey.currentState?.applyTopFitFromButton();
+            AdoptionGridKey.currentState?.showSortSheet();
           },
         ),
         const SizedBox(width: 15),

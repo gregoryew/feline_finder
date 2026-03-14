@@ -38,12 +38,26 @@ class CatResultRanking {
     return '1$key';
   }
 
-  /// Fit score for a type name from [typeNameToFitScore] (keys lowercase); unknown => -1.
+  /// Fit score for an archetype (type name) from [typeNameToFitScore]. One score per archetype, not per cat; unknown => -1.
   static double _fitScoreForType(String? suggestedCatTypeName, Map<String, double>? typeNameToFitScore) {
     if (typeNameToFitScore == null || typeNameToFitScore.isEmpty) return -1;
     final key = suggestedCatTypeName?.trim().toLowerCase();
     if (key == null || key.isEmpty) return -1;
     return typeNameToFitScore[key] ?? -1;
+  }
+
+  /// Days ago from today (0 = today, 1 = yesterday). Used for date sort; null/unparseable => 999999 so they sort last.
+  static int _dateSortKey(String? updatedDate) {
+    if (updatedDate == null || updatedDate.isEmpty) return 999999;
+    final dt = DateTime.tryParse(updatedDate);
+    if (dt == null) return 999999;
+    final local = dt.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final updatedDay = DateTime(local.year, local.month, local.day);
+    final days = today.difference(updatedDay).inDays;
+    if (days < 0) return 0;
+    return days;
   }
 
   /// Within a distance or date section: sort by type fit score (higher = closer to chosen), then archetype name (A–Z), then sequence.
@@ -71,66 +85,46 @@ class CatResultRanking {
     });
   }
 
-  /// Sort: distance category asc, then type by fit to chosen (higher fit first; same type = same score), then archetype name A–Z, then sequence asc.
-  static List<PetTileData> sortStableResults(List<PetTileData> items, {
-    String? chosenTypeName,
+  /// Sort by batch → fit (by archetype, higher first) → distance/date → archetype name → sequence (for batch-based adopt list).
+  /// Top-fit archetype (e.g. Lap Legend when chosen) all appear first, then next fit, etc. Within each fit band, by distance/date then type then sequence.
+  /// Fit is from [typeNameToFitScore] only (one score per archetype); per-cat personalityFitScore is never used for ordering.
+  /// When [useDateOrder] is true, third key is date (newest first); otherwise distance (nearest first).
+  static List<PetTileData> sortByBatchDistanceFitTypeSequence(
+    List<PetTileData> items, {
     Map<String, double>? typeNameToFitScore,
+    bool useDateOrder = false,
+    String? chosenTypeName,
   }) {
     final list = List<PetTileData>.from(items);
     list.sort((a, b) {
-      final dcA = getDistanceCategory(a.distanceMiles);
-      final dcB = getDistanceCategory(b.distanceMiles);
-      if (dcA != dcB) return dcA.compareTo(dcB);
+      final batchA = a.batchOrder ?? 999999;
+      final batchB = b.batchOrder ?? 999999;
+      if (batchA != batchB) return batchA.compareTo(batchB);
 
       if (typeNameToFitScore != null && typeNameToFitScore.isNotEmpty) {
         final sa = _fitScoreForType(a.suggestedCatTypeName, typeNameToFitScore);
         final sb = _fitScoreForType(b.suggestedCatTypeName, typeNameToFitScore);
         if (sa != sb) return sb.compareTo(sa);
-      } else {
-        final ta = getArchetypeSortKey(a.suggestedCatTypeName, chosenTypeName);
-        final tb = getArchetypeSortKey(b.suggestedCatTypeName, chosenTypeName);
-        if (ta != tb) return ta.compareTo(tb);
       }
 
-      final nameA = (a.suggestedCatTypeName ?? _kUnknownTypeKey).toLowerCase();
-      final nameB = (b.suggestedCatTypeName ?? _kUnknownTypeKey).toLowerCase();
-      if (nameA != nameB) return nameA.compareTo(nameB);
+      if (useDateOrder) {
+        final dateA = _dateSortKey(a.updatedDate);
+        final dateB = _dateSortKey(b.updatedDate);
+        if (dateA != dateB) return dateA.compareTo(dateB);
+      } else {
+        final da = a.distanceMiles ?? 999.0;
+        final db = b.distanceMiles ?? 999.0;
+        if (da != db) return da.compareTo(db);
+      }
+
+      final keyA = getArchetypeSortKey(a.suggestedCatTypeName, chosenTypeName);
+      final keyB = getArchetypeSortKey(b.suggestedCatTypeName, chosenTypeName);
+      if (keyA != keyB) return keyA.compareTo(keyB);
 
       final seqA = a.sequenceNumber ?? 999999;
       final seqB = b.sequenceNumber ?? 999999;
       return seqA.compareTo(seqB);
     });
     return list;
-  }
-
-  /// Visible items stay in [currentDisplayList] order; offscreen from [fullRanked].
-  /// When visible items are not contiguous in fullRanked (e.g. after new items load
-  /// and rank between them), we emit the frozen block once at the first visible
-  /// and skip the rest so we never drop items or corrupt the list.
-  static List<PetTileData> applyRankingWithFrozenVisibleItems({
-    required List<PetTileData> currentDisplayList,
-    required Set<String> visibleIds,
-    required List<PetTileData> fullRanked,
-  }) {
-    if (visibleIds.isEmpty) return List.from(fullRanked);
-    final frozenVisible = currentDisplayList
-        .where((t) => t.id != null && t.id!.isNotEmpty && visibleIds.contains(t.id!))
-        .where((t) => fullRanked.any((r) => r.id == t.id))
-        .toList();
-    if (frozenVisible.isEmpty) return List.from(fullRanked);
-    final result = <PetTileData>[];
-    var frozenEmitted = false;
-    for (final item in fullRanked) {
-      final id = item.id;
-      if (id == null || id.isEmpty || !visibleIds.contains(id)) {
-        result.add(item);
-      } else {
-        if (!frozenEmitted) {
-          result.addAll(frozenVisible);
-          frozenEmitted = true;
-        }
-      }
-    }
-    return result;
   }
 }

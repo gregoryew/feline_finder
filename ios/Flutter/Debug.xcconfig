@@ -1,2 +1,4 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+// So Xcode can find the Flutter module (built by Run Script, not Pods)
+FRAMEWORK_SEARCH_PATHS = $(inherited) "$(SRCROOT)/../$(FLUTTER_BUILD_DIR)/ios/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)"

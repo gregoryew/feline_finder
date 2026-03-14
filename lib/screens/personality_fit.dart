@@ -1065,9 +1065,9 @@ class PersonalityFitState extends State<PersonalityFit> {
 
   Future<void> _showCatTypeDetail(BuildContext context, CatType type) async {
     final prefs = await SharedPreferences.getInstance();
-    final initialT = prefs.getBool(_kCatTypeDetailTraitsExpandedKey) ?? false;
-    final initialP = prefs.getBool(_kCatTypeDetailPositivesExpandedKey) ?? false;
-    final initialN = prefs.getBool(_kCatTypeDetailNegativesExpandedKey) ?? false;
+    final initialT = prefs.getBool(_kCatTypeDetailTraitsExpandedKey) ?? true;
+    final initialP = prefs.getBool(_kCatTypeDetailPositivesExpandedKey) ?? true;
+    final initialN = prefs.getBool(_kCatTypeDetailNegativesExpandedKey) ?? true;
     final initialShowOnly = prefs.getBool(_kCatTypeDetailShowOnlyChosenStatsKey) ?? false;
     if (!context.mounted) return;
     showDialog(

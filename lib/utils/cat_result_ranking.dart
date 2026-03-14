@@ -85,18 +85,31 @@ class CatResultRanking {
     });
   }
 
-  /// Sort by batch → fit (by archetype, higher first) → distance/date → archetype name → sequence (for batch-based adopt list).
-  /// Top-fit archetype (e.g. Lap Legend when chosen) all appear first, then next fit, etc. Within each fit band, by distance/date then type then sequence.
-  /// Fit is from [typeNameToFitScore] only (one score per archetype); per-cat personalityFitScore is never used for ordering.
-  /// When [useDateOrder] is true, third key is date (newest first); otherwise distance (nearest first).
+  /// Sort for adopt list. When [useDistanceOrder] or [useDateOrder] is true, that is the primary key so
+  /// distance/date bands stay contiguous (no "Under 10, 10–20, Under 10, 10–20" from batches).
+  /// Otherwise: batch first, then fit → distance/date → archetype → sequence.
+  /// Tiebreakers: batch, then fit (by archetype), then archetype name, then sequence.
   static List<PetTileData> sortByBatchDistanceFitTypeSequence(
     List<PetTileData> items, {
     Map<String, double>? typeNameToFitScore,
     bool useDateOrder = false,
+    bool useDistanceOrder = false,
     String? chosenTypeName,
   }) {
     final list = List<PetTileData>.from(items);
     list.sort((a, b) {
+      // Primary: distance or date when that's the active sort (so bands don't repeat across batches).
+      if (useDistanceOrder) {
+        final da = a.distanceMiles ?? 999.0;
+        final db = b.distanceMiles ?? 999.0;
+        if (da != db) return da.compareTo(db);
+      }
+      if (useDateOrder) {
+        final dateA = _dateSortKey(a.updatedDate);
+        final dateB = _dateSortKey(b.updatedDate);
+        if (dateA != dateB) return dateA.compareTo(dateB);
+      }
+
       final batchA = a.batchOrder ?? 999999;
       final batchB = b.batchOrder ?? 999999;
       if (batchA != batchB) return batchA.compareTo(batchB);
@@ -107,14 +120,14 @@ class CatResultRanking {
         if (sa != sb) return sb.compareTo(sa);
       }
 
-      if (useDateOrder) {
-        final dateA = _dateSortKey(a.updatedDate);
-        final dateB = _dateSortKey(b.updatedDate);
-        if (dateA != dateB) return dateA.compareTo(dateB);
-      } else {
+      // When neither distance nor date is primary, still tie-break by distance then date
+      if (!useDistanceOrder && !useDateOrder) {
         final da = a.distanceMiles ?? 999.0;
         final db = b.distanceMiles ?? 999.0;
         if (da != db) return da.compareTo(db);
+        final dateA = _dateSortKey(a.updatedDate);
+        final dateB = _dateSortKey(b.updatedDate);
+        if (dateA != dateB) return dateA.compareTo(dateB);
       }
 
       final keyA = getArchetypeSortKey(a.suggestedCatTypeName, chosenTypeName);

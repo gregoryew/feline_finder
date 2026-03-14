@@ -383,8 +383,8 @@ class AdoptGridState extends State<AdoptGrid> {
             setState(() => _chosenCatTypeSource = 'fit');
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Please use the Fit screen first to set your preferred cat type.'),
-                duration: Duration(seconds: 4),
+                content: Text('Use the Fit screen to personalize your preferred cat type for better sorting.'),
+                duration: Duration(seconds: 3),
                 backgroundColor: Color(0xFF6B4E9D),
               ),
             );
@@ -633,6 +633,7 @@ class AdoptGridState extends State<AdoptGrid> {
       tiles,
       typeNameToFitScore: typeFit.isEmpty ? null : typeFit,
       useDateOrder: byDate,
+      useDistanceOrder: byDistance,
       chosenTypeName: server.selectedPersonalityCatTypeName,
     );
 
@@ -826,7 +827,7 @@ class AdoptGridState extends State<AdoptGrid> {
 @override
 Widget build(BuildContext context) {
   String status = main.favoritesSelected ? " Favorites: " : " Cats: ";
-  final bool awaitingFirstPage = (count == "Processing");
+  final bool awaitingFirstPage = (count == "Processing" || count == "Processing...");
   status += awaitingFirstPage
       ? "Processing..."
       : (tiles.isEmpty ? "0" : count);
@@ -1315,6 +1316,24 @@ void search() async {
     await _saveCatTypeToPrefsForSort(top.name, 'fit');
     final result = SearchScreenState.generateFiltersFromOptions(filteringOptions);
     if (mounted) setState(() => applySearchResult(result));
+  }
+
+  /// Call when ZIP was just set elsewhere (e.g. main's _ensureZipCode). Loads pets if ZIP is now valid so the list populates without needing to open Search.
+  void reloadPetsIfZipAvailable() {
+    if (!mounted) return;
+    final server = globals.FelineFinderServer.instance;
+    if (server.zip.isEmpty || server.zip == '?') return;
+    setState(() {
+      count = 'Processing'; // must match build()'s awaitingFirstPage check
+      tiles = [];
+      maxPets = -1;
+      _totalFromAPI = -1;
+      _nextSequence = 0;
+      _nextBatchId = 1;
+      _videoBadgeSeenIds.clear();
+      _videoBadgeGlowIds.clear();
+    });
+    getPets();
   }
 
   /// Apply a search result (FilterResult or List<Filters>) and run getPets. Used when returning from SearchScreen or when switching from Shelters + Find Cats.
@@ -1911,6 +1930,7 @@ void getPets() async {
       _totalFromAPI = -1;
       _nextSequence = 0;
       _nextBatchId = 1;
+      count = "?";
       _videoBadgeSeenIds.clear();
       _videoBadgeGlowIds.clear();
     });

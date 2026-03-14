@@ -603,49 +603,32 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     };
   }
 
-  /// 1) Ask for location permission (reason: find cats near you). 2) If denied, ask for zip via dialog with validation; allow retry or skip.
+  /// Try to get ZIP from device location (system permission dialog shows first on iOS). If denied or unavailable, ask for zip via dialog.
   Future<void> _ensureZipCode() async {
     if (!mounted) return;
     final server = globals.FelineFinderServer.instance;
     if (server.zip.isNotEmpty && server.zip != "?") return;
 
-    // Step 1: Ask user if we can use location to find cats near them
-    final useLocation = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Find cats near you'),
-        content: const Text(
-          'Feline Finder would like to use your location so we can find cats near you for adoption.',
-          style: TextStyle(fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Not now'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Allow'),
-          ),
-        ],
-      ),
-    );
-
-    if (useLocation == true && mounted) {
-      final zipFromLocation = await _getZipFromLocation();
-      if (zipFromLocation.isNotEmpty && zipFromLocation.length == 5) {
-        try {
-          final isValid = await server.isZipCodeValid(zipFromLocation);
-          if (isValid == true) {
-            await server.setZipCode(zipFromLocation);
-            return;
-          }
-        } catch (_) {}
+    // Try location first (system permission dialog; no in-app dialog)
+    final zipFromLocation = await _getZipFromLocation();
+    if (zipFromLocation.isNotEmpty && zipFromLocation.length == 5 && mounted) {
+      try {
+        final isValid = await server.isZipCodeValid(zipFromLocation);
+        if (isValid == true) {
+          await server.setZipCode(zipFromLocation);
+          if (mounted) AdoptionGridKey.currentState?.reloadPetsIfZipAvailable();
+          return;
+        }
+      } catch (_) {}
+      // User allowed location and we got a 5-digit US-style ZIP; use it even if validation failed (e.g. network) so we don't ask again
+      if (RegExp(r'^\d{5}$').hasMatch(zipFromLocation)) {
+        await server.setZipCode(zipFromLocation);
+        if (mounted) AdoptionGridKey.currentState?.reloadPetsIfZipAvailable();
+        return;
       }
     }
 
-    // Step 2: No location or denied — ask for zip in dialog; validate like adopt screen; allow retry or skip
+    // No location or denied — ask for zip in dialog; validate; allow retry or skip
     while (mounted) {
       final controller = TextEditingController();
       final result = await showDialog<_ManualZipResult>(
@@ -709,6 +692,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         final isValid = await server.isZipCodeValid(zipTrimmed);
         if (isValid == true) {
           await server.setZipCode(zipTrimmed);
+          if (mounted) AdoptionGridKey.currentState?.reloadPetsIfZipAvailable();
           return;
         }
         if (isValid == false && mounted) {
@@ -733,6 +717,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   /// Get ZIP from device location (uses system permission; iOS shows reason from Info.plist).
+  /// Normalizes to 5 digits (US) so ZIP+4 or formatted strings don't cause a fallback to the manual dialog.
   Future<String> _getZipFromLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -751,7 +736,10 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
       );
       List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
       if (placemarks.isNotEmpty && placemarks.first.postalCode != null && placemarks.first.postalCode!.isNotEmpty) {
-        return placemarks.first.postalCode!;
+        final raw = placemarks.first.postalCode!.trim();
+        // US: use first 5 digits (handles "12345" and "12345-6789"); non-US may have no 5-digit run
+        final fiveDigit = RegExp(r'\d{5}').firstMatch(raw)?.group(0);
+        return fiveDigit ?? (raw.length >= 5 ? raw.substring(0, 5) : raw);
       }
     } catch (e) {
       print('Error getting zip from location: $e');

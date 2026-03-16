@@ -1099,12 +1099,14 @@ List<filterOption> filteringOptions = [
         listOption("Cream", "Cream", 8),
         listOption("Ivory", "Ivory", 9),
         listOption("Red", "Red Tabby", 10),
+
         listOption("Spotted Tabby/Leopard Spotted",
             "Spotted Tabby/Leopard Spotted", 11),
         listOption("Tan", "Tan", 12),
         listOption("Fawn", "Fawn", 13),
         listOption("White", "White", 15),
-        listOption("Any", "Any", 16)
+        listOption("Orange", "Red Tabby", 16),
+        listOption("Any", "Any", 17)
       ],
       [],
       false,

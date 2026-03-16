@@ -47,6 +47,10 @@
 	<string>Feline Finder uses your location to find cats near you for adoption.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Feline Finder uses your location to find cats near you for adoption.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Feline Finder uses the microphone for voice search so you can describe the cat you want.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Feline Finder uses speech recognition to turn your voice into a search query.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

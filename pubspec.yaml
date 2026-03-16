@@ -66,6 +66,7 @@ dependencies:
   qr_flutter: ^4.1.0
   google_maps_flutter: ^2.7.0
   google_map_dynamic_key: ^1.0.1
+  speech_to_text: ^7.0.0
 
   syncfusion_flutter_core: ^32.2.4
   syncfusion_flutter_sliders: ^32.2.4

@@ -17,6 +17,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_network_connectivity/flutter_network_connectivity.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 import '../theme.dart';
 import '../network_utils.dart';
 import 'search_screen_style.dart';
@@ -65,6 +66,10 @@ class SearchScreenState extends State<SearchScreen> {
   late ScrollController _scrollController;
   late FocusNode _zipCodeFocusNode;
   late FocusNode _searchFocusNode;
+
+  final SpeechToText _speech = SpeechToText();
+  bool _speechAvailable = false;
+  bool _isListening = false;
 
   // Track which filters are currently being animated
   final Map<String, bool> _animatingFilters = {};
@@ -763,12 +768,91 @@ class SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  /// Tap-to-talk: tap mic to start listening, tap again to stop. Replaces field with recognized text.
+  void _onMicTap() {
+    if (_isListening) {
+      _stopListening();
+      return;
+    }
+    _startListening();
+  }
+
+  Future<void> _startListening() async {
+    if (_isListening) return;
+    if (!_speechAvailable) {
+      _speechAvailable = await _speech.initialize(onError: (e) {
+        if (mounted) {
+          setState(() => _isListening = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Speech error: ${e.errorMsg}'), backgroundColor: Colors.orange),
+          );
+        }
+      }, onStatus: (status) {
+        if (mounted) {
+          setState(() => _isListening = status == 'listening');
+          // When user is done speaking (tap to stop or pauseFor), run search and animate filters like text submit
+          if (status != 'listening') {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              final query = controller2.text.trim();
+              if (query.isNotEmpty) {
+                if (_animateFilters) {
+                  _performQuickSearch();
+                } else {
+                  _performSearchAndNavigate();
+                }
+              }
+            });
+          }
+        }
+      });
+      if (!_speechAvailable && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Speech recognition is not available. Check permissions.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    }
+    if (!mounted) return;
+    HapticFeedback.lightImpact();
+    setState(() => _isListening = true);
+    await _speech.listen(
+      onResult: (result) {
+        if (result.recognizedWords.isNotEmpty && mounted) {
+          controller2.text = result.recognizedWords;
+          controller2.selection = TextSelection.collapsed(offset: controller2.text.length);
+          setState(() {});
+        }
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      partialResults: true,
+    );
+  }
+
+  void _stopListening() {
+    if (_isListening) {
+      _speech.stop();
+      HapticFeedback.lightImpact();
+      setState(() => _isListening = false);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _searchFocusNode.canRequestFocus) {
+          _searchFocusNode.requestFocus();
+        }
+      });
+    }
+  }
+
   Widget _buildQuickSearchCard() {
     return Container(
       margin: EdgeInsets.all(AppTheme.spacingM),
       padding: EdgeInsets.all(AppTheme.spacingL),
       decoration: SearchScreenStyle.card(highlighted: true),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
@@ -804,6 +888,22 @@ class SearchScreenState extends State<SearchScreen> {
                     },
                     onChanged: (_) => setState(() {}),
                     decoration: SearchScreenStyle.searchFieldDecoration().copyWith(
+                      prefixIcon: Semantics(
+                        label: _isListening ? 'Tap to stop listening' : 'Tap to speak',
+                        hint: 'Starts or stops voice input',
+                        button: true,
+                        child: IconButton(
+                          onPressed: _onMicTap,
+                          tooltip: _isListening ? 'Tap to stop' : 'Tap to speak',
+                          icon: Icon(
+                            _isListening ? Icons.mic : Icons.mic_none,
+                            color: SearchScreenStyle.gold,
+                            size: 24,
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                        ),
+                      ),
                       suffixIcon: IconButton(
                         onPressed: () {
                           controller2.clear();
@@ -824,6 +924,17 @@ class SearchScreenState extends State<SearchScreen> {
               ),
             ],
           ),
+          if (_isListening) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Listening…',
+              style: TextStyle(
+                color: SearchScreenStyle.gold,
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -2664,6 +2775,87 @@ class SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  /// Clear all filters to defaults before applying NL query results (no SnackBar, no clear of search text).
+  void _clearAllFiltersForNLQuery() {
+    setState(() {
+      _selectedCatTypeValue = null;
+      _selectedShelterOrgIds = [];
+      _selectedShelterNames = [];
+    });
+    globals.FelineFinderServer.instance.setSelectedPersonalityCatTypeName(null);
+
+    for (var filter in widget.filteringOptions) {
+      if (filter.classification == CatClassification.saves) continue;
+
+      if (filter.fieldName == 'sortBy') {
+        final distanceOption = filter.options.firstWhere(
+          (opt) => opt.search == 'distance',
+          orElse: () => filter.options.first,
+        );
+        filter.choosenValue = distanceOption.search;
+        continue;
+      }
+      if (filter.fieldName == 'distance') {
+        final anyOption = filter.options.firstWhere(
+          (opt) => opt.search == 'Any',
+          orElse: () => filter.options.last,
+        );
+        filter.choosenValue = anyOption.search;
+        continue;
+      }
+      if (filter.fieldName == 'animals.updatedDate') {
+        final anyOption = filter.options.firstWhere(
+          (opt) => opt.search == 'Any',
+          orElse: () => filter.options.last,
+        );
+        filter.choosenValue = anyOption.search;
+        continue;
+      }
+      if (filter.fieldName == 'zipCode') {
+        filter.choosenValue = '';
+        _zipCodeController.clear();
+        _zipCodeValidated = false;
+        _zipCodeIsValid = null;
+        continue;
+      }
+      if (filter.slider == true) {
+        filter.choosenListValues = [0];
+        continue;
+      }
+      if (filter.list && filter.classification == CatClassification.breed) {
+        filter.choosenListValues = [0];
+        continue;
+      }
+      if (filter.list) {
+        var anyOption = filter.options.isNotEmpty
+            ? filter.options.firstWhere(
+                (opt) =>
+                    opt.search == 'Any' ||
+                    opt.search == 'Any Type' ||
+                    opt.displayName == 'Any',
+                orElse: () => filter.options.last,
+              )
+            : filter.options.first;
+        filter.choosenListValues = [anyOption.value];
+      } else {
+        if (filter.options.isNotEmpty) {
+          var anyOption = filter.options.firstWhere(
+            (opt) =>
+                opt.search == 'Any' ||
+                opt.search == 'Any Type' ||
+                opt.displayName == 'Any',
+            orElse: () => filter.options.first,
+          );
+          filter.choosenValue = anyOption.search;
+        } else {
+          filter.choosenValue = '';
+        }
+      }
+    }
+    setState(() {});
+    print('🎯 Cleared all filters before applying NL query results');
+  }
+
   // Add method to apply filters from AI response
   Future<void> _applyAIFilters(
     Map<String, dynamic> filterData, {
@@ -2684,6 +2876,9 @@ class SearchScreenState extends State<SearchScreen> {
           'No filters could be parsed from your search. Please try rephrasing.');
       return;
     }
+
+    // Clear all filters first, then apply the new filters from the NL query
+    _clearAllFiltersForNLQuery();
 
     final location = filterData['location'] as Map<String, dynamic>?;
     var filters = filterData['filters'] as Map<String, dynamic>?;
@@ -3236,9 +3431,19 @@ class SearchScreenState extends State<SearchScreen> {
             print('      ✅ Set ${filter.name} slider to 1 (independent/aloof Yes)');
           }
 
-          // Slider + "No" for personality sliders: treat as 1 (low end of slider).
+          // Slider + "No" for independentAloof / independence: treat as 5 (Very Dependent = very low on independence)
+          if (!applied && filter.slider == true && filter.fieldName == 'independence' &&
+              value.toString().trim().toLowerCase() == 'no') {
+            filter.choosenListValues.clear();
+            filter.choosenListValues.add(5);
+            applied = true;
+            print('      ✅ Set ${filter.name} slider to 5 (independence No = very dependent)');
+          }
+
+          // Slider + "No" for other personality sliders: treat as 1 (low end of slider). Exclude independence.
           if (!applied && filter.slider == true &&
               value.toString().trim().toLowerCase() == 'no' &&
+              filter.fieldName != 'independence' &&
               (personalitySliderAiFields.contains(aiField) ||
                   aiField == 'playful' || aiField == 'affectionate')) {
             filter.choosenListValues.clear();
@@ -3404,6 +3609,12 @@ class SearchScreenState extends State<SearchScreen> {
     if (animate) {
       print(
           '🎯 Starting filter animation with ${filtersToUpdate.length} filters');
+
+      // Ensure voice recognition is off before animating
+      if (_isListening) {
+        _speech.stop();
+        if (mounted) setState(() => _isListening = false);
+      }
 
       // Dismiss keyboard before animation
       FocusScope.of(context).unfocus();

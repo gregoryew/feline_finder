@@ -1208,15 +1208,16 @@ class petDetailState extends State<petDetail>
             children: const [
               Text(
                 'What you see\n'
+                'At the top you may see a match rating and up to three comparison bullets (how this cat differs from the selected type). '
                 'Each row is a personality trait. The gold bars show how strong that trait is for this cat (1–5). '
-                'If you\'ve set a preference (My Type) or we\'ve suggested a type (Suggested Type), a gold triangle on the bar shows that type\'s level for the same trait.',
+                'If you\'ve chosen My or Usual below, a gold triangle on the bar shows that type\'s level for the same trait.',
                 style: TextStyle(fontSize: 14, height: 1.4),
               ),
               SizedBox(height: 16),
               Text(
                 'Two modes\n'
-                'Use the buttons below the chart to switch between My Type (your preferences from search/fit) and Suggested Type (our suggested personality type for this cat). '
-                'The triangle shows the selected type; the bar always shows the cat.',
+                'Use the buttons below the chart to switch between My (your chosen type from search/fit) and Usual (the usual personality type we suggest for this cat). '
+                'The triangle on each bar shows the selected type; the bar always shows the cat.',
                 style: TextStyle(fontSize: 14, height: 1.4),
               ),
               SizedBox(height: 16),

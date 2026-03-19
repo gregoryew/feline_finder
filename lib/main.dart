@@ -757,7 +757,7 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
     PersonalityFit(key: PersonalityFitScreenKey), // Index 0 - Fit (brain/personality)
     AdoptGrid(key: AdoptionGridKey, setFav: _setFavoriteButton), // Index 1 - Adopt
     BreedList(title: "Breed List"), // Index 2 - Breeds
-    const FavoritesListScreen(), // Index 3 - Saved
+    FavoritesListScreen(key: FavoritesListScreenKey), // Index 3 - Saved
     SheltersNearYouScreen(key: SheltersScreenKey), // Index 4 - Shelters Near You
   ];
 

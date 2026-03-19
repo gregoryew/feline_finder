@@ -75,9 +75,10 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
     try {
       String baseUrl =
           "https://api.rescuegroups.org/v5/public/animals/search/available";
+      // No distance: search by favorite IDs only, sort by name
       String url =
-          "$baseUrl?fields[animals]=distance,id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status,descriptionText"
-          "&sort=animals.distance&limit=100&page=1";
+          "$baseUrl?fields[animals]=id,ageGroup,sex,sizeGroup,name,breedPrimary,updatedDate,status,descriptionText"
+          "&sort=animals.name&limit=100&page=1";
 
       // Create filter for favorite IDs
       List<Map> filtersJson = [
@@ -88,17 +89,9 @@ class _FavoritesListScreenState extends State<FavoritesListScreen> {
         }
       ];
 
-      // API requires filterRadius; when zip unknown use center of USA + largest distance so favorites still load
-      final bool zipUnknown = server.zip.isEmpty || server.zip == "?";
-      final String postalcode = zipUnknown ? AppConfig.centerOfUsaZipCode : server.zip;
-      final int miles = zipUnknown ? AppConfig.maxDistanceMiles : 3000;
-
+      // No filterRadius: search by IDs only (no distance/location)
       Map<String, dynamic> data = {
         "data": {
-          "filterRadius": {
-            "miles": miles,
-            "postalcode": postalcode,
-          },
           "filters": filtersJson,
         }
       };

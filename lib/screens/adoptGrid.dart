@@ -1827,7 +1827,7 @@ void getPets() async {
   try {
     var jsonMap = jsonDecode(response.body);
 
-    Meta meta = Meta.fromJson(jsonMap["meta"]);
+    Meta meta = Meta.fromJson(jsonMap["meta"] ?? {});
     print('🔗 Animals search: request succeeded (200). meta.count=${meta.count}, countReturned=${jsonMap["meta"]?["countReturned"] ?? "n/a"}');
     pet petDecoded;
 
@@ -1838,15 +1838,18 @@ void getPets() async {
       petDecoded = pet.fromJson(jsonMap);
     }
 
+    // Always set total count and update UI for first page so header and loading message update even if data/included are null
+    final totalCount = meta.count ?? petDecoded.meta?.count ?? 0;
+    if (nextPage == 1) {
+      _totalFromAPI = totalCount;
+      if (mounted) setState(() {
+        maxPets = totalCount;
+        count = totalCount == 0 ? "No Matches" : totalCount.toString();
+      });
+    }
+
     if (petDecoded.data != null && petDecoded.included != null) {
       final included = petDecoded.included!;
-      if (nextPage == 1) {
-        _totalFromAPI = petDecoded.meta?.count ?? 0;
-        if (mounted) setState(() {
-          maxPets = _totalFromAPI;
-          count = maxPets == 0 ? "No Matches" : maxPets.toString();
-        });
-      }
 
       if (isFavorites) {
         _isLoadingPets = false;

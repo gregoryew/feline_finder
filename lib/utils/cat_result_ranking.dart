@@ -98,16 +98,16 @@ class CatResultRanking {
   }) {
     final list = List<PetTileData>.from(items);
     list.sort((a, b) {
-      // Primary: distance or date when that's the active sort (so bands don't repeat across batches).
-      if (useDistanceOrder) {
-        final da = a.distanceMiles ?? 999.0;
-        final db = b.distanceMiles ?? 999.0;
-        if (da != db) return da.compareTo(db);
-      }
+      // Primary: date or distance when that's the active sort (date first so "Recently Updated" always wins).
       if (useDateOrder) {
         final dateA = _dateSortKey(a.updatedDate);
         final dateB = _dateSortKey(b.updatedDate);
         if (dateA != dateB) return dateA.compareTo(dateB);
+      }
+      if (useDistanceOrder) {
+        final da = a.distanceMiles ?? 999.0;
+        final db = b.distanceMiles ?? 999.0;
+        if (da != db) return da.compareTo(db);
       }
 
       final batchA = a.batchOrder ?? 999999;
@@ -133,6 +133,11 @@ class CatResultRanking {
       final keyA = getArchetypeSortKey(a.suggestedCatTypeName, chosenTypeName);
       final keyB = getArchetypeSortKey(b.suggestedCatTypeName, chosenTypeName);
       if (keyA != keyB) return keyA.compareTo(keyB);
+
+      // Within same cat type, sort by per-cat fit score (higher first)
+      final fitA = a.personalityFitScore ?? -1.0;
+      final fitB = b.personalityFitScore ?? -1.0;
+      if (fitA != fitB) return fitB.compareTo(fitA);
 
       final seqA = a.sequenceNumber ?? 999999;
       final seqB = b.sequenceNumber ?? 999999;

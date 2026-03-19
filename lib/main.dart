@@ -825,15 +825,8 @@ class _HomeScreen extends State<HomeScreen> with TickerProviderStateMixin {
         const SizedBox(width: 15),
       ];
     } else if (selectedIndex == 1) {
-      // Adopt - sort then search
+      // Adopt - search (sort is in the filter row)
       return <Widget>[
-        GoldCircleIconButton(
-          icon: Icons.sort,
-          onTap: () {
-            AdoptionGridKey.currentState?.showSortSheet();
-          },
-        ),
-        const SizedBox(width: 15),
         GoldCircleIconButton(
           icon: Icons.search,
           onTap: () {
